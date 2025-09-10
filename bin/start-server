@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Default values
+PORT="8000"
+ROOT="docs"
+
+# Parse arguments
+for arg in "$@"; do
+    case $arg in
+        --port=*)
+            PORT="${arg#*=}"
+            shift
+            ;;
+        --root=*)
+            ROOT="${arg#*=}"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $arg"
+            echo "Usage: $0 [--port=PORT] [--root=ROOT]"
+            exit 1
+            ;;
+    esac
+done
+
+# Command check
+command_exists () {
+    type "$1" &> /dev/null
+}
+
+# Determine OS
+OS="$(uname -s)"
+
+# Run PHP server
+if [[ "$OS" == "Linux" || "$OS" == "Darwin" ]]; then
+    if command_exists php ; then
+        php -S localhost:"$PORT" -t "$ROOT"
+    else
+        # Fallback path for Homebrew PHP
+        /opt/homebrew/bin/php -S localhost:"$PORT" -t "$ROOT"
+    fi
+elif [[ "$OS" == MINGW* || "$OS" == CYGWIN* || "$OS" == MSYS* ]]; then
+    # Windows Git Bash or similar
+    if command_exists php ; then
+        php -S localhost:"$PORT" -t "$ROOT"
+    else
+        echo "PHP not found. Please ensure php.exe is in your PATH."
+        exit 1
+    fi
+else
+    echo "Unsupported OS: $OS"
+    exit 1
+fi

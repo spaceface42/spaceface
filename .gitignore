@@ -1,0 +1,5 @@
+.DS_Store
+
+/docs/spaceface/system/*
+/docs/spaceface/app/*
+/node_modules/

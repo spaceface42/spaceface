@@ -1,0 +1,12 @@
+{
+    "name": "nextworld",
+    "version": "1.2.1",
+    "type": "module",
+    "devDependencies": {
+        "esbuild": "^0.19.12",
+        "typescript": "^5.2.0"
+    },
+    "scripts": {
+        "build": "node ./bin/build.js"
+    }
+}

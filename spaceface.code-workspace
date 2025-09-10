@@ -1,0 +1,27 @@
+{
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "name": "public",
+            "path": "docs"
+        },
+        {
+            "name": "sources",
+            "path": "src"
+        }
+    ],
+    "settings": {
+        "emmet.syntaxProfiles": {
+            "html": "xhtml"
+        },
+        "editor.wordWrap": "on",
+        "git.confirmSync": true,
+        "files.eol": "\n",
+        "liveServer.settings.CustomBrowser": "chrome",
+        "liveServer.settings.multiRootWorkspaceName": "spaceface",
+        "liveServer.settings.root": "/docs",
+        "cSpell.words": ["slideplayer", "spaceface"]
+    }
+}
