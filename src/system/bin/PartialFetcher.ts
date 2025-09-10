@@ -1,3 +1,7 @@
+// ============================================================================
+// src/spaceface/system/bin/PartialFetcher.ts
+// ============================================================================
+
 export const VERSION = 'nextworld-1.0.0';
 
 import { eventBus } from "./EventBus.js";
@@ -13,7 +17,7 @@ export class PartialFetcher {
         url: string,
         targetSelector: string,
         options: IPartialFetchOptions = {}
-    ): Promise<{ container: HTMLElement; html: string } | void> {
+    ): Promise<{ container: HTMLElement; html: string }> {
         const { replace = true, signal, withBindings, debugBindings = false } = options;
 
         const runLoad = async (): Promise<{ container: HTMLElement; html: string }> => {
@@ -21,7 +25,6 @@ export class PartialFetcher {
             eventBus.emit("partial:load:start", basePayload);
 
             try {
-                // Only pass RequestInit if signal exists to satisfy TS
                 const fetchOptions = signal ? { signal } : undefined;
                 const response = await fetch(url, fetchOptions);
                 if (!response.ok) throw new Error(`Fetch failed with status ${response.status}`);
@@ -46,10 +49,8 @@ export class PartialFetcher {
             }
         };
 
-        // If caller wants temporary event bindings
         if (typeof withBindings === "function") {
             return EventBinder.withAutoUnbind(async (binder) => {
-                // Attach binder lifetime to the fetch signal if provided
                 if (signal) binder.attachTo(signal);
                 withBindings(binder);
                 return runLoad();

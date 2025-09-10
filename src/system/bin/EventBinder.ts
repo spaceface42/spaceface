@@ -1,34 +1,32 @@
+// ============================================================================
+// src/spaceface/system/bin/EventBinder.ts
+// ============================================================================
+
 export const VERSION = 'nextworld-1.0.0';
 
 import {
-    DomBinding,
-    EventBinderStats,
-    IEventBinder,
-    UnsubscribeFn
+  DomBinding,
+  EventBinderStats,
+  IEventBinder,
+  UnsubscribeFn,
+  IBusBinding // now reuses the one from types/bin.ts
 } from "../types/bin.js";
 
 import { eventBus } from "./EventBus.js";
 
 interface IEventBinderDebugPayload {
-    method: string;
-    details: unknown;
-}
-
-// Strong-reference bus binding
-interface IBusBinding {
-    event: string;
-    handler: (...args: any[]) => void;
-    unsubscribe: UnsubscribeFn;
+  method: string;
+  details: unknown;
 }
 
 export class EventBinder implements IEventBinder {
-    private IBusBindings: IBusBinding[] = [];
-    private domBindings: DomBinding[] = [];
-    private debugMode: boolean;
+  private IBusBindings: IBusBinding[] = [];
+  private domBindings: DomBinding[] = [];
+  private debugMode: boolean;
 
-    constructor(debug = false) {
-        this.debugMode = debug;
-    }
+  constructor(debug = false) {
+    this.debugMode = debug;
+  }
 
     /** Debug helper */
     private debug(method: string, details: unknown): void {

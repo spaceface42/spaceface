@@ -1,5 +1,3 @@
-import type { EventBinder } from "../bin/EventBinder.js";
-
 // domready
 export type WaitForElementOptions = {
   timeout?: number;
@@ -9,34 +7,34 @@ export type WaitForElementOptions = {
 
 // eventbinder
 export type DomBinding = {
-    target: EventTarget;
-    event: string;
-    handler: EventListenerOrEventListenerObject;
-    options: AddEventListenerOptions;
-    controller: AbortController;
+  target: EventTarget;
+  event: string;
+  handler: EventListenerOrEventListenerObject;
+  options: AddEventListenerOptions;
+  controller: AbortController;
 };
 export type EventBinderStats = {
-    busEvents: number;
-    domEvents: number;
-    totalEvents: number;
+  busEvents: number;
+  domEvents: number;
+  totalEvents: number;
 };
 export interface IEventBinder {
-    bindBus(event: string, handler: (...args: any[]) => void): void;
-    bindDOM(
-        target: EventTarget,
-        event: string,
-        handler: EventListenerOrEventListenerObject,
-        options?: AddEventListenerOptions | boolean
-    ): void;
-    unbindAll(): void;
-    getStats(): EventBinderStats;
-    hasBindings(): boolean;
+  bindBus(event: string, handler: (...args: any[]) => void): void;
+  bindDOM(
+    target: EventTarget,
+    event: string,
+    handler: EventListenerOrEventListenerObject,
+    options?: AddEventListenerOptions | boolean
+  ): void;
+  unbindAll(): void;
+  getStats(): EventBinderStats;
+  hasBindings(): boolean;
 }
 export type UnsubscribeFn = () => void;
 export interface IBusBinding {
-    event: string;
-    handler: (...args: any[]) => void;
-    unsubscribe: UnsubscribeFn;
+  event: string;
+  handler: (...args: any[]) => void;
+  unsubscribe: UnsubscribeFn;
 }
 
 // eventbus
@@ -69,21 +67,21 @@ export interface IEventBus {
 
 // partialloader
 export interface IPartialLoaderOptions {
-    debug?: boolean;
-    baseUrl?: string;
-    cacheEnabled?: boolean;
-    timeout?: number;
-    retryAttempts?: number;
+  debug?: boolean;
+  baseUrl?: string;
+  cacheEnabled?: boolean;
+  timeout?: number;
+  retryAttempts?: number;
 }
 export interface IPartialLoadResult {
-    success: boolean;
-    url: string;
-    cached: boolean;
+  success: boolean;
+  url: string;
+  cached: boolean;
 }
 export interface IPartialInfo {
-    id?: string;
-    url: string;
-    container: Element | ParentNode;
+  id?: string;
+  url: string;
+  container: Element | ParentNode;
 }
 
 // asyncimageloader
@@ -121,10 +119,10 @@ export interface IInactivityWatcherOptions {
 
 // partialfetcher
 export interface IPartialFetchOptions {
-    replace?: boolean;
-    signal?: AbortSignal;
-    withBindings?: (binder: EventBinder) => void;
-    debugBindings?: boolean;
+  replace?: boolean;
+  signal?: AbortSignal;
+  withBindings?: (binder: IEventBinder) => void; // 🔑 now interface instead of class
+  debugBindings?: boolean;
 }
 
 // PerformanceMonitor
