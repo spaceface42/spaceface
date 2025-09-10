@@ -2,10 +2,7 @@
 // src/spaceface/app/bin/main.ts
 // ============================================================================
 
-import { generateId } from '../../system/bin/generateId.js';
-import { eventBus } from '../../system/bin/EventBus.js';
-import { DomReadyPromise } from '../../system/bin/DomReadyPromise.js';
-import { InactivityWatcher } from '../../system/bin/InactivityWatcher.js';
+import { generateId, eventBus, DomReadyPromise, InactivityWatcher } from './_bin.js';
 
 import type { IFloatingImagesManager } from '../../system/types/features.js';
 import type ServiceWorkerManager from '../../system/bin/ServiceWorkerManager.js';
