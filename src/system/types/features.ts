@@ -3,7 +3,6 @@ export interface IFloatingImagesManagerOptions {
     maxImages?: number;
     debug?: boolean;
 }
-
 export interface IFloatingImagesManager {
     resetAllImagePositions(): void;
     destroy(): void;
@@ -12,22 +11,19 @@ export interface IFloatingImagesManager {
 }
 
 // FloatingImage
+export interface IFloatingImageOptions {
+    useSubpixel?: boolean;
+    debug?: boolean;
+}
 export interface IContainerDimensions {
     width: number;
     height: number;
 }
 
-export interface IFloatingImageOptions {
-    useSubpixel?: boolean;
-    debug?: boolean; // add this
-}
-
-// IScreensaverControllerOptions
-
+// ScreensaverController
 export interface IScreensaverControllerOptions {
     partialUrl: string;
     targetSelector: string;
     inactivityDelay?: number;
     onError?: (message: string, error: unknown) => void;
 }
-

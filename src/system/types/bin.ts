@@ -1,7 +1,5 @@
 import type { EventBinder } from "../bin/EventBinder.js";
 
-//
-//
 // domready
 export type WaitForElementOptions = {
   timeout?: number;
@@ -9,8 +7,6 @@ export type WaitForElementOptions = {
   signal?: AbortSignal;
 };
 
-//
-//
 // eventbinder
 export type DomBinding = {
     target: EventTarget;
@@ -27,44 +23,25 @@ export type EventBinderStats = {
 };
 
 export interface IEventBinder {
-    /** Bind an EventBus event */
     bindBus(event: string, handler: (...args: any[]) => void): void;
-
-    /** Bind a DOM event */
     bindDOM(
         target: EventTarget,
         event: string,
         handler: EventListenerOrEventListenerObject,
         options?: AddEventListenerOptions | boolean
     ): void;
-
-    /** Unbind all tracked bus + DOM bindings */
     unbindAll(): void;
-
-    /** Get binding counts */
     getStats(): EventBinderStats;
-
-    /** Check if there are any active bindings */
     hasBindings(): boolean;
 }
 
 export type UnsubscribeFn = () => void;
 
-/**
- * Debug payload emitted on "debug:EventBinder" events.
- *
- * Each action produces a payload with a `method` string and a free-form `details` object.
- * Examples of `method`: "bus:bind", "dom:bind", "dom:unbind", "unbindAll", "getStats", "hasBindings".
- */
-
-
-// Track bus bindings with strong references
 export interface IBusBinding {
     event: string;
     handler: (...args: any[]) => void;
     unsubscribe: UnsubscribeFn;
 }
-// eventbinder
 
 // eventbus
 export interface IListener<T = any> {
@@ -85,32 +62,18 @@ export interface IEventBusErrorPayload {
 export interface IEventBus {
   on<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
   once<T = any>(event: string, fn: (payload: T) => any, priority?: number): void;
-
   onAny(fn: (event: string, payload: any) => any, priority?: number): UnsubscribeFn;
-
   off(event: string, fn: Function): void;
   offAny(fn: Function): void;
-
   emit<T = any>(event: string, payload?: T): void;
   emitAsync<T = any>(event: string, payload?: T): Promise<any[]>;
-
   removeAllListeners(event?: string): void;
-
   hasListeners(event: string): boolean;
   listenerCount(event: string): number;
   eventNames(): string[];
   getListeners(event: string): Function[];
 }
-// eventbus
-//
-//
 
-
-
-
-
-//
-//
 // partialloader
 export interface IPartialLoaderOptions {
     debug?: boolean;
@@ -131,17 +94,8 @@ export interface IPartialInfo {
     url: string;
     container: Element | ParentNode;
 }
-// partialloader
-//
-//
 
-
-
-
-//
-//
 // asyncimageloader
-
 export interface AsyncImageLoaderOptions {
   includePicture?: boolean;
 }
@@ -166,14 +120,6 @@ export interface IImageLoadResult {
 }
 
 
-// asyncimageloader
-//
-//
-
-
-
-//
-//
 // InactivityWatcher
 
 export interface IInactivityWatcherOptions {
@@ -188,10 +134,6 @@ export interface IInactivityWatcherOptions {
 }
 
 
-
-
-
-//
 // partialfetcher
 export interface IPartialFetchOptions {
     replace?: boolean;
@@ -201,7 +143,6 @@ export interface IPartialFetchOptions {
 }
 
 
-//
 // PerformanceMonitor
 export interface IPerformanceSettings {
   maxImages: number;
@@ -209,4 +150,3 @@ export interface IPerformanceSettings {
   useSubpixel: boolean;
 }
 export type PerformanceLevel = 'high' | 'medium' | 'low';
-
