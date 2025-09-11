@@ -310,12 +310,73 @@ export class Spaceface {
         }
     }
 
-    public destroy(): void {
+
+
+
+    public destroyXXX(): void {
         if (this._partialUnsub) {
             this._partialUnsub();
             this._partialUnsub = undefined;
         }
     }
+
+
+public destroy(): void {
+    // --- Unsubscribe partial loader ---
+    if (this._partialUnsub) {
+        this._partialUnsub();
+        this._partialUnsub = undefined;
+    }
+
+    if (this._partialObserver) {
+        if (this._partialObserver.disconnect) this._partialObserver.disconnect();
+        this._partialObserver = undefined;
+    }
+
+    // --- Destroy slideshows ---
+    if (this.slideshows?.length) {
+        this.slideshows.forEach(slideshow => {
+            if (slideshow.destroy) slideshow.destroy();
+        });
+        this.slideshows = [];
+    }
+
+    // --- Destroy inactivity watcher ---
+    if (this.inactivityWatcher?.destroy) {
+        this.inactivityWatcher.destroy();
+        this.inactivityWatcher = null;
+    }
+
+    // --- Destroy screensaver controller ---
+    if (this.screensaverController?.destroy) {
+        this.screensaverController.destroy();
+        this.screensaverController = null;
+    }
+
+    // --- Clear feature module cache ---
+    if (this.featureCache) {
+        this.featureCache.clear();
+    }
+
+    // --- Remove dynamically added DOM elements ---
+    const screensaverEl = document.querySelector('[id^="screensaver"]');
+    if (screensaverEl) screensaverEl.remove();
+
+    // --- Unbind all events via EventBinder (if you use one globally) ---
+    if ((window as any).eventBinder?.unbindAll) {
+        (window as any).eventBinder.unbindAll();
+    }
+
+    // --- Optional: log cleanup ---
+    this.log('info', 'Spaceface destroyed, all resources released.');
+}
+
+
+
+
+
+
+
 }
 
 // Dev Event Logging
@@ -353,3 +414,15 @@ const app = new Spaceface({
 });
 
 app.init();
+
+
+window.addEventListener('beforeunload', () => {
+    app.destroy();
+    console.log('_________________ [spaceface] App destroyed on beforeunload');
+});
+
+
+
+
+
+
