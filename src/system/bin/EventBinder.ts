@@ -144,9 +144,6 @@ export class EventBinder implements EventBinderInterface {
             }
         }
 
-        /**
-         * Unbind all EventBus and DOM event handlers managed by this binder.
-         */
         for (const b of this.domBindings) {
             try {
                 b.controller.abort();
