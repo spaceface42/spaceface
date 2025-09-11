@@ -1,20 +1,42 @@
 #!/usr/bin/env node
 import { build } from "esbuild";
-import { rmSync } from "node:fs";
+import { rmSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const outDir = resolve("./docs/bin");
+const entryFile = "./src/app/main.ts"; // Adjust if your entry point is different
 
 // Clean previous build
 rmSync(outDir, { recursive: true, force: true });
+mkdirSync(outDir, { recursive: true });
 
+const baseOutFile = resolve(outDir, "bundle.js");
+const minOutFile = resolve(outDir, "bundle.min.js");
+
+// 1️⃣ Regular (unminified) build
 await build({
-    entryPoints: ["./src/spaceface/app/bin/main.ts"], // Adjust if your entry point is different
+    entryPoints: [entryFile],
     bundle: true,
-    platform: "browser", // Or 'node' if targeting Node.js
+    platform: "browser",
     format: "esm",
     target: ["es2022"],
-    outdir: outDir,
+    outfile: baseOutFile,
+    sourcemap: true,
+    minify: false,
+    define: {
+        "process.env.NODE_ENV": '"development"',
+    },
+    loader: { ".ts": "ts", ".js": "js" },
+});
+
+// 2️⃣ Minified build
+await build({
+    entryPoints: [entryFile],
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    target: ["es2022"],
+    outfile: minOutFile,
     sourcemap: true,
     minify: true,
     define: {
@@ -23,4 +45,6 @@ await build({
     loader: { ".ts": "ts", ".js": "js" },
 });
 
-console.log("Build finished! Output ->", outDir);
+console.log("Build finished!");
+console.log("Unminified ->", baseOutFile);
+console.log("Minified ->", minOutFile);
