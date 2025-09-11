@@ -133,7 +133,7 @@ export interface InactivityWatcherOptionsInterface {
 export interface PartialFetchOptionsInterface {
   replace?: boolean;
   signal?: AbortSignal;
-  withBindings?: (binder: EventBinderInterface) => void; // 🔑 now interface instead of class
+  withBindings?: (binder: EventBinderInterface) => void;
   debugBindings?: boolean;
 }
 
