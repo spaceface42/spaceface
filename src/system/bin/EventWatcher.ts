@@ -1,3 +1,5 @@
+// src/spaceface/system/bin/EventWatcher.ts
+
 export const VERSION = 'nextworld-1.2.0';
 
 export abstract class EventWatcher {

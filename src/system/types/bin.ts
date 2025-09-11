@@ -98,7 +98,7 @@ export interface AsyncImageLoaderOptions {
   includePicture?: boolean;
 }
 
-export interface ISourceData {
+export interface SourceDataInterface {
   srcset: string;
   type: string;
   media: string;
@@ -109,7 +109,7 @@ export interface ImageMetadataInterface {
   src: string;
   alt: string;
   href: string | null;
-  sources: ISourceData[];
+  sources: SourceDataInterface[];
 }
 
 export interface ImageLoadResultInterface {

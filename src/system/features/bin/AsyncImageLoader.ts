@@ -2,7 +2,7 @@ export const VERSION = 'nextworld-1.2.0';
 
 import {
   AsyncImageLoaderOptions,
-  ISourceData,
+  SourceDataInterface,
   ImageMetadataInterface,
   ImageLoadResultInterface
 } from '../../types/bin.js';
@@ -95,7 +95,7 @@ export class AsyncImageLoader {
 
   public getImageData(selector = "img"): ImageMetadataInterface[] {
     return this.getImages(selector).map(img => {
-      const sources: ISourceData[] = [];
+      const sources: SourceDataInterface[] = [];
 
       if (this.includePicture) {
         const picture = img.closest("picture");

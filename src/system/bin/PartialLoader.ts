@@ -1,3 +1,5 @@
+// src/spaceface/system/bin/PartialLoader.ts
+
 export const VERSION = 'nextworld-1.0.0';
 
 import { debounce } from "../features/bin/timing.js";

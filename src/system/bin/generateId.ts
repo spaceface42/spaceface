@@ -1,3 +1,5 @@
+// src/spaceface/system/bin/generateId.ts
+
 export const VERSION = 'nextworld-1.0.0';
 
 export function generateId(prefix: string = 'id', length: number = 9): string {

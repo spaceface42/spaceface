@@ -1,3 +1,5 @@
+// src/spaceface/system/bin/InactivityWatcher.ts
+
 export const VERSION = 'nextworld-1.2.0';
 
 import { EventWatcher } from './EventWatcher.js';
