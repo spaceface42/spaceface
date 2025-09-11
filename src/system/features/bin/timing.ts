@@ -1,51 +1,83 @@
 export const VERSION = 'nextworld-1.0.0' as const;
 
+/** Generic type: function with cancel method */
+export type CancellableFunction<T extends (...args: any[]) => void> = T & { cancel: () => void };
+
+/** Internal helper: manages a timeout with cancel support */
+function createTimeout(): { id: number | null; set: (fn: () => void, ms: number) => void; cancel: () => void } {
+  let id: number | null = null;
+
+  return {
+    get id() { return id; },
+    set(fn: () => void, ms: number) {
+      if (id !== null) clearTimeout(id);
+      id = window.setTimeout(() => {
+        id = null;
+        fn();
+      }, ms);
+    },
+    cancel() {
+      if (id !== null) {
+        clearTimeout(id);
+        id = null;
+      }
+    },
+  };
+}
+
 /**
  * Creates a debounced function that delays invoking `func` until after `delay` ms
- * have elapsed since the last time the debounced function was called.
+ * have elapsed since the last call.
+ *
+ * @example
+ * ```ts
+ * const saveInput = debounce((value: string) => console.log("Saving:", value), 300);
+ * saveInput("Hello");
+ * saveInput.cancel(); // cancels any pending call
+ * ```
  */
 export function debounce<T extends (...args: any[]) => void>(
   func: T,
   delay = 300,
   immediate = false
-): ((...args: Parameters<T>) => void) & { cancel: () => void } {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
+): CancellableFunction<(...args: Parameters<T>) => void> {
+  const timer = createTimeout();
 
   function debounced(this: ThisParameterType<T>, ...args: Parameters<T>) {
-    const callNow = immediate && !timeout;
-    if (timeout) clearTimeout(timeout);
+    const callNow = immediate && timer.id === null;
 
-    timeout = setTimeout(() => {
-      timeout = null;
+    timer.set(() => {
       if (!immediate) func.apply(this, args);
     }, delay);
 
     if (callNow) func.apply(this, args);
   }
 
-  debounced.cancel = () => {
-    if (timeout) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-  };
+  debounced.cancel = () => timer.cancel();
 
   return debounced;
 }
 
 /**
- * Creates a throttled function that invokes `func` at most once per every `delay` ms.
+ * Creates a throttled function that invokes `func` at most once per `delay` ms.
+ *
+ * @example
+ * ```ts
+ * const logScroll = throttle(() => console.log("Scroll!"), 500, { leading: true, trailing: true });
+ * window.addEventListener("scroll", logScroll);
+ * logScroll.cancel(); // cancels any pending trailing call
+ * ```
  */
 export function throttle<T extends (...args: any[]) => void>(
   func: T,
   delay = 100,
   options: { leading?: boolean; trailing?: boolean } = {}
-): ((...args: Parameters<T>) => void) & { cancel: () => void } {
+): CancellableFunction<(...args: Parameters<T>) => void> {
   const { leading = true, trailing = true } = options;
   let lastCall = 0;
-  let timeout: ReturnType<typeof setTimeout> | null = null;
   let lastArgs: Parameters<T> | null = null;
   let lastThis: ThisParameterType<T> | null = null;
+  const timer = createTimeout();
 
   function invoke() {
     lastCall = leading ? Date.now() : 0;
@@ -55,29 +87,25 @@ export function throttle<T extends (...args: any[]) => void>(
 
   function throttled(this: ThisParameterType<T>, ...args: Parameters<T>) {
     const now = Date.now();
-    if (!lastCall && !leading) lastCall = now;
+    if (lastCall === 0 && !leading) lastCall = now;
 
-    const remaining = delay - (now - lastCall);
     lastArgs = args;
     lastThis = this;
 
+    const remaining = delay - (now - lastCall);
+
     if (remaining <= 0 || remaining > delay) {
-      if (timeout) {
-        clearTimeout(timeout);
-        timeout = null;
-      }
+      timer.cancel();
       invoke();
-    } else if (!timeout && trailing) {
-      timeout = setTimeout(() => {
-        timeout = null;
+    } else if (timer.id === null && trailing) {
+      timer.set(() => {
         if (trailing && lastArgs) invoke();
       }, remaining);
     }
   }
 
   throttled.cancel = () => {
-    if (timeout) clearTimeout(timeout);
-    timeout = null;
+    timer.cancel();
     lastCall = 0;
     lastArgs = lastThis = null;
   };
