@@ -2,21 +2,21 @@ export const VERSION = 'nextworld-1.2.0';
 
 import {
     UnsubscribeFn,
-    IListener,
-    IAnyListener,
-    IEventBusErrorPayload,
-    IEventBus
+    ListenerInterface,
+    AnyListenerInterface,
+    EventBusErrorPayloadInterface,
+    EventBusInterface
 } from '../types/bin.js';
 
-export class EventBus implements IEventBus {
-    private listeners: Record<string, IListener[]> = {};
-    private anyListeners: IAnyListener[] = [];
+export class EventBus implements EventBusInterface {
+    private listeners: Record<string, ListenerInterface[]> = {};
+    private anyListeners: AnyListenerInterface[] = [];
     private onceWrappers = new WeakMap<Function, Function>();
 
     on<T = any>(event: string, fn: (payload: T) => any, priority = 0): UnsubscribeFn {
         const list = this.listeners[event] ??= [];
         // Insert in sorted order without re-sorting whole array
-        const listener: IListener = { fn, priority };
+        const listener: ListenerInterface = { fn, priority };
         let i = list.length;
         while (i > 0 && list[i - 1].priority < priority) i--;
         list.splice(i, 0, listener);
@@ -34,7 +34,7 @@ export class EventBus implements IEventBus {
     }
 
     onAny(fn: (event: string, payload: any) => any, priority = 0): UnsubscribeFn {
-        const listener: IAnyListener = { fn, priority };
+        const listener: AnyListenerInterface = { fn, priority };
         let i = this.anyListeners.length;
         while (i > 0 && this.anyListeners[i - 1].priority < priority) i--;
         this.anyListeners.splice(i, 0, listener);
@@ -125,7 +125,7 @@ export class EventBus implements IEventBus {
         console.error(message, error);
         if (message.includes("eventbus:error")) return;
         try {
-            this.emit<IEventBusErrorPayload>("eventbus:error", { message, error });
+            this.emit<EventBusErrorPayloadInterface>("eventbus:error", { message, error });
         } catch (e) {
             console.error('EventBus failed to emit "eventbus:error":', e);
         }

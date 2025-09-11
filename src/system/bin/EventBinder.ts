@@ -14,8 +14,8 @@ export const VERSION = 'nextworld-1.2.2';
 import {
   DomBinding,
   EventBinderStats,
-  IEventBinder,
-  IBusBinding
+  EventBinderInterface,
+  BusBindingInterface
 } from "../types/bin.js";
 
 import { eventBus } from "./EventBus.js";
@@ -31,8 +31,8 @@ interface IEventBinderDebugPayload {
  * A utility for managing event bindings across EventBus and DOM.
  * Keeps track of all active bindings and supports automatic cleanup.
  */
-export class EventBinder implements IEventBinder {
-  private IBusBindings: IBusBinding[] = [];
+export class EventBinder implements EventBinderInterface {
+  private IBusBindings: BusBindingInterface[] = [];
   private domBindings: DomBinding[] = [];
   private debugMode: boolean;
 

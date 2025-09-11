@@ -4,7 +4,7 @@ import { EventWatcher } from './EventWatcher.js';
 import { eventBus } from './EventBus.js';
 import { throttle } from '../features/bin/timing.js';
 
-export interface IInactivityWatcherOptions {
+export interface InactivityWatcherOptionsInterface {
     inactivityDelay: number;
     debug?: boolean;
 }
@@ -17,7 +17,7 @@ export class InactivityWatcher extends EventWatcher {
     private timer?: number;
     private userIsInactive: boolean = false;
 
-    constructor(target: EventTarget, options: IInactivityWatcherOptions) {
+    constructor(target: EventTarget, options: InactivityWatcherOptionsInterface) {
         super(target, options.debug ?? false);
         this.inactivityDelay = options.inactivityDelay;
         this.lastActiveAt = Date.now();
@@ -27,7 +27,7 @@ export class InactivityWatcher extends EventWatcher {
         this.addEventListeners();
     }
 
-    static getInstance(options: IInactivityWatcherOptions & { target?: EventTarget }): InactivityWatcher {
+    static getInstance(options: InactivityWatcherOptionsInterface & { target?: EventTarget }): InactivityWatcher {
         if (!this._instance) {
             this._instance = new InactivityWatcher(options.target ?? document, options);
         }

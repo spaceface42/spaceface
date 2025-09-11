@@ -3,8 +3,8 @@ export const VERSION = 'nextworld-1.2.0';
 import {
   AsyncImageLoaderOptions,
   ISourceData,
-  IImageMetadata,
-  IImageLoadResult
+  ImageMetadataInterface,
+  ImageLoadResultInterface
 } from '../../types/bin.js';
 
 export class AsyncImageLoader {
@@ -52,13 +52,13 @@ export class AsyncImageLoader {
   public async waitForImagesToLoad(
     selector: string,
     includeFailed: true
-  ): Promise<IImageLoadResult[]>;
+  ): Promise<ImageLoadResultInterface[]>;
 
   // ---------- Implementation ----------
   public async waitForImagesToLoad(
     selector = "img",
     includeFailed = false
-  ): Promise<HTMLImageElement[] | IImageLoadResult[]> {
+  ): Promise<HTMLImageElement[] | ImageLoadResultInterface[]> {
     const images = this.getImages(selector);
 
     const results = await Promise.all(
@@ -70,7 +70,7 @@ export class AsyncImageLoader {
           return { element: img, loaded: true };
         }
 
-        return new Promise<IImageLoadResult>(resolve => {
+        return new Promise<ImageLoadResultInterface>(resolve => {
           img.addEventListener(
             "load",
             () => {
@@ -93,7 +93,7 @@ export class AsyncImageLoader {
       : results.filter(r => r.loaded).map(r => r.element);
   }
 
-  public getImageData(selector = "img"): IImageMetadata[] {
+  public getImageData(selector = "img"): ImageMetadataInterface[] {
     return this.getImages(selector).map(img => {
       const sources: ISourceData[] = [];
 

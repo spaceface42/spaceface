@@ -6,7 +6,7 @@ export const VERSION = 'nextworld-1.0.0';
 
 import { eventBus } from "./EventBus.js";
 import { EventBinder } from "./EventBinder.js";
-import { IPartialFetchOptions } from "../types/bin.js";
+import { PartialFetchOptionsInterface } from "../types/bin.js";
 
 export class PartialFetcher {
     /**
@@ -16,7 +16,7 @@ export class PartialFetcher {
     static async load(
         url: string,
         targetSelector: string,
-        options: IPartialFetchOptions = {}
+        options: PartialFetchOptionsInterface = {}
     ): Promise<{ container: HTMLElement; html: string }> {
         const { replace = true, signal, withBindings, debugBindings = false } = options;
 

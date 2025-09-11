@@ -4,18 +4,18 @@ import { debounce } from "../features/bin/timing.js";
 import { eventBus } from "./EventBus.js";
 
 import {
-    IPartialLoaderOptions,
-    IPartialLoadResult,
-    IPartialInfo
+    PartialLoaderOptionsInterface,
+    PartialLoadResultInterface,
+    PartialInfoInterface
 } from "../types/bin.js";
 
 export class PartialLoader {
     private cache = new Map<string, string>();
     private loadingPromises = new Map<string, Promise<string>>();
     private loadedPartials = new Map<string, boolean>();
-    private options: Required<IPartialLoaderOptions>;
+    private options: Required<PartialLoaderOptionsInterface>;
 
-    constructor(options: IPartialLoaderOptions = {}) {
+    constructor(options: PartialLoaderOptionsInterface = {}) {
         this.options = {
             debug: false,
             baseUrl: "/",
@@ -31,10 +31,10 @@ export class PartialLoader {
     }
 
     async load(
-        input: HTMLLinkElement | IPartialInfo | (HTMLLinkElement | IPartialInfo)[]
-    ): Promise<IPartialLoadResult[]> {
+        input: HTMLLinkElement | PartialInfoInterface | (HTMLLinkElement | PartialInfoInterface)[]
+    ): Promise<PartialLoadResultInterface[]> {
         const items = Array.isArray(input) ? input : [input];
-        const results: IPartialLoadResult[] = [];
+        const results: PartialLoadResultInterface[] = [];
 
         for (const item of items) {
             try {
@@ -61,11 +61,11 @@ export class PartialLoader {
         return this.loadUrl(this.resolveUrl(src), link);
     }
 
-    private loadInfo(info: IPartialInfo) {
+    private loadInfo(info: PartialInfoInterface) {
         return this.loadUrl(this.resolveUrl(info.url), info.container, info.id);
     }
 
-    private async loadUrl(url: string, container: Element | ParentNode, id?: string): Promise<IPartialLoadResult> {
+    private async loadUrl(url: string, container: Element | ParentNode, id?: string): Promise<PartialLoadResultInterface> {
         try {
             if (this.loadingPromises.has(url)) await this.loadingPromises.get(url)!;
 
@@ -168,7 +168,7 @@ export class PartialLoader {
         return new Promise(r => setTimeout(r, ms));
     }
 
-    async loadContainer(container: ParentNode = document): Promise<IPartialLoadResult[]> {
+    async loadContainer(container: ParentNode = document): Promise<PartialLoadResultInterface[]> {
         const links = container.querySelectorAll<HTMLLinkElement>('link[rel="partial"][src]');
         if (!links.length) return [];
         return this.load(Array.from(links));

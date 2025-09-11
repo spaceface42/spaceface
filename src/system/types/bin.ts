@@ -20,7 +20,7 @@ export type EventBinderStats = {
   totalEvents: number;
 };
 
-export interface IEventBinder {
+export interface EventBinderInterface {
   bindBus(event: string, handler: (...args: any[]) => void): void;
   bindDOM(
     target: EventTarget,
@@ -36,28 +36,28 @@ export interface IEventBinder {
 // EventBus
 export type UnsubscribeFn = () => void;
 
-export interface IBusBinding {
+export interface BusBindingInterface {
   event: string;
   handler: (...args: any[]) => void;
   unsubscribe: UnsubscribeFn;
 }
 
-export interface IListener<T = any> {
+export interface ListenerInterface<T = any> {
   fn: (payload: T) => any;
   priority: number;
 }
 
-export interface IAnyListener {
+export interface AnyListenerInterface {
   fn: (event: string, payload: any) => any;
   priority: number;
 }
 
-export interface IEventBusErrorPayload {
+export interface EventBusErrorPayloadInterface {
   message: string;
   error: any;
 }
 
-export interface IEventBus {
+export interface EventBusInterface {
   on<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
   once<T = any>(event: string, fn: (payload: T) => any, priority?: number): void;
   onAny(fn: (event: string, payload: any) => any, priority?: number): UnsubscribeFn;
@@ -73,7 +73,7 @@ export interface IEventBus {
 }
 
 // partialloader
-export interface IPartialLoaderOptions {
+export interface PartialLoaderOptionsInterface {
   debug?: boolean;
   baseUrl?: string;
   cacheEnabled?: boolean;
@@ -81,13 +81,13 @@ export interface IPartialLoaderOptions {
   retryAttempts?: number;
 }
 
-export interface IPartialLoadResult {
+export interface PartialLoadResultInterface {
   success: boolean;
   url: string;
   cached: boolean;
 }
 
-export interface IPartialInfo {
+export interface PartialInfoInterface {
   id?: string;
   url: string;
   container: Element | ParentNode;
@@ -104,7 +104,7 @@ export interface ISourceData {
   media: string;
 }
 
-export interface IImageMetadata {
+export interface ImageMetadataInterface {
   element: HTMLImageElement;
   src: string;
   alt: string;
@@ -112,13 +112,13 @@ export interface IImageMetadata {
   sources: ISourceData[];
 }
 
-export interface IImageLoadResult {
+export interface ImageLoadResultInterface {
   element: HTMLImageElement;
   loaded: boolean;
 }
 
 // InactivityWatcher
-export interface IInactivityWatcherOptions {
+export interface InactivityWatcherOptionsInterface {
   inactivityDelay?: number;
   target?: Document | HTMLElement | Window;
   debug?: boolean;
@@ -130,15 +130,15 @@ export interface IInactivityWatcherOptions {
 }
 
 // partialfetcher
-export interface IPartialFetchOptions {
+export interface PartialFetchOptionsInterface {
   replace?: boolean;
   signal?: AbortSignal;
-  withBindings?: (binder: IEventBinder) => void; // 🔑 now interface instead of class
+  withBindings?: (binder: EventBinderInterface) => void; // 🔑 now interface instead of class
   debugBindings?: boolean;
 }
 
 // PerformanceMonitor
-export interface IPerformanceSettings {
+export interface PerformanceSettingsInterface {
   maxImages: number;
   speedMultiplier: number;
   useSubpixel: boolean;

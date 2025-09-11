@@ -2,7 +2,7 @@ export const VERSION = 'nextworld-1.0.0';
 
 import {
   PerformanceLevel,
-  IPerformanceSettings,
+  PerformanceSettingsInterface,
 } from '../../types/bin.js';
 
 export class PerformanceMonitor {
@@ -15,7 +15,7 @@ export class PerformanceMonitor {
   private cachedPerformanceLevel: PerformanceLevel = 'high';
   private lastLevelUpdate: number = 0;
   private levelUpdateInterval: number = 1000;
-  private cachedSettings: IPerformanceSettings | null = null;
+  private cachedSettings: PerformanceSettingsInterface | null = null;
 
   private lastLoggedFPS: number = 60;
   private fpsLogThreshold: number = 5;
@@ -55,11 +55,11 @@ export class PerformanceMonitor {
     return this.cachedPerformanceLevel;
   }
 
-  public getRecommendedSettings(): IPerformanceSettings {
+  public getRecommendedSettings(): PerformanceSettingsInterface {
     if (this.cachedSettings) return this.cachedSettings;
 
     const level = this.getPerformanceLevel();
-    const settingsMap: Record<PerformanceLevel, IPerformanceSettings> = {
+    const settingsMap: Record<PerformanceLevel, PerformanceSettingsInterface> = {
       high: { maxImages: 50, speedMultiplier: 1.0, useSubpixel: true },
       medium: { maxImages: 25, speedMultiplier: 0.8, useSubpixel: false },
       low: { maxImages: 10, speedMultiplier: 0.5, useSubpixel: false },
