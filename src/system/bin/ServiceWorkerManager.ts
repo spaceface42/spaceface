@@ -1,5 +1,5 @@
 export const VERSION = 'nextworld-1.0.0';
-class ServiceWorkerManager {
+export class ServiceWorkerManager {
   private swPath: string;
   private options: RegistrationOptions;
   private customConfig: Record<string, any>;
@@ -182,5 +182,3 @@ class ServiceWorkerManager {
   public onUpdateAvailable?(newWorker: ServiceWorker): void;
   public onControllerChange?(): void;
 }
-
-export default ServiceWorkerManager;
