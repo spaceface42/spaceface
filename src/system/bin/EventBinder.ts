@@ -1,5 +1,14 @@
 // src/spaceface/system/bin/EventBinder.ts
 
+/**
+ * EventBinder v1.2.2
+ *
+ * Manages the lifecycle of EventBus and DOM event bindings with
+ * support for auto-unbinding, debugging, and scoped lifetimes.
+ *
+ * Provides a single utility class for safely attaching and
+ * detaching event handlers in a structured way.
+ */
 export const VERSION = 'nextworld-1.2.2';
 
 import {
@@ -16,16 +25,26 @@ interface IEventBinderDebugPayload {
   details: unknown;
 }
 
+/**
+ * EventBinder
+ *
+ * A utility for managing event bindings across EventBus and DOM.
+ * Keeps track of all active bindings and supports automatic cleanup.
+ */
 export class EventBinder implements IEventBinder {
   private IBusBindings: IBusBinding[] = [];
   private domBindings: DomBinding[] = [];
   private debugMode: boolean;
 
+  /**
+   * Create a new EventBinder.
+   * @param debug Enable debug logging (emits `debug:EventBinder` events)
+   */
   constructor(debug = false) {
     this.debugMode = debug;
   }
 
-    /** Debug helper */
+    /** Emit debug info via EventBus if debug mode is enabled */
     private debug(method: string, details: unknown): void {
         if (!this.debugMode) return;
         try {
@@ -36,7 +55,11 @@ export class EventBinder implements IEventBinder {
         }
     }
 
-    /** Attach binder lifetime to external AbortSignal (auto-unbind on abort) */
+    /**
+     * Attach binder lifetime to an AbortSignal.
+     * All bindings will be unbound automatically when the signal aborts.
+     * @param signal AbortSignal to link binder lifetime to
+     */
     attachTo(signal: AbortSignal): void {
         if (signal.aborted) {
             this.unbindAll();
@@ -46,7 +69,11 @@ export class EventBinder implements IEventBinder {
         signal.addEventListener("abort", listener, { once: true });
     }
 
-    /** Bind EventBus event */
+    /**
+     * Bind a handler to an EventBus event.
+     * @param event Event name
+     * @param handler Event handler function
+     */
     bindBus(event: string, handler: (...args: any[]) => void): void {
         if (this.IBusBindings.find(b => b.event === event && b.handler === handler)) {
             this.debug("bus:bind:duplicate", { event, handler });
@@ -61,7 +88,13 @@ export class EventBinder implements IEventBinder {
         }
     }
 
-    /** Bind DOM event */
+    /**
+     * Bind a DOM event handler with automatic tracking and unbind support.
+     * @param target Target element or EventTarget
+     * @param event Event name
+     * @param handler Event listener
+     * @param options Optional event listener options
+     */
     bindDOM(
         target: EventTarget,
         event: string,
@@ -93,14 +126,15 @@ export class EventBinder implements IEventBinder {
         }
     }
 
-    /** Unbind everything */
+    /**
+     * Unbind all EventBus and DOM event handlers managed by this binder.
+     */
     unbindAll(): void {
         this.debug("unbindAll", {
             bus: this.IBusBindings.length,
             dom: this.domBindings.length,
         });
 
-        // EventBus
         for (const b of this.IBusBindings) {
             try {
                 b.unsubscribe();
@@ -110,7 +144,9 @@ export class EventBinder implements IEventBinder {
             }
         }
 
-        // DOM
+        /**
+         * Unbind all EventBus and DOM event handlers managed by this binder.
+         */
         for (const b of this.domBindings) {
             try {
                 b.controller.abort();
@@ -124,7 +160,12 @@ export class EventBinder implements IEventBinder {
         this.domBindings = [];
     }
 
-    /** Unbind specific EventBus handler */
+    /**
+     * Unbind a specific EventBus handler.
+     * @param event Event name
+     * @param handler Event handler
+     * @returns True if successfully unbound, false otherwise
+     */
     unbindBus(event: string, handler: (...args: any[]) => void): boolean {
         const i = this.IBusBindings.findIndex(b => b.event === event && b.handler === handler);
         if (i === -1) return false;
@@ -140,7 +181,13 @@ export class EventBinder implements IEventBinder {
         }
     }
 
-    /** Unbind specific DOM handler */
+    /**
+     * Unbind a specific DOM event handler.
+     * @param target Target element
+     * @param event Event name
+     * @param handler Event listener
+     * @returns True if successfully unbound, false otherwise
+     */
     unbindDOM(target: EventTarget, event: string, handler: EventListenerOrEventListenerObject): boolean {
         const i = this.domBindings.findIndex(b => b.target === target && b.event === event && b.handler === handler);
         if (i === -1) return false;
@@ -156,7 +203,10 @@ export class EventBinder implements IEventBinder {
         }
     }
 
-    /** Stats */
+    /**
+     * Get binding statistics.
+     * @returns Number of bus and DOM events currently bound
+     */
     getStats(): EventBinderStats {
         return {
             busEvents: this.IBusBindings.length,
@@ -165,12 +215,18 @@ export class EventBinder implements IEventBinder {
         };
     }
 
-    /** Are there any bindings? */
+    /**
+     * Check if there are any active bindings.
+     * @returns True if any EventBus or DOM bindings exist
+     */
     hasBindings(): boolean {
         return this.IBusBindings.length > 0 || this.domBindings.length > 0;
     }
 
-    /** Details for debugging */
+    /**
+     * Get details of all active bindings.
+     * @returns Object with arrays of bus and DOM binding info
+     */
     getBindingDetails(): { bus: string[]; dom: string[] } {
         return {
             bus: this.IBusBindings.map(b => b.event),
@@ -178,7 +234,14 @@ export class EventBinder implements IEventBinder {
         };
     }
 
-    /** Auto-unbind wrapper */
+    /**
+     * Utility wrapper for scoped binding lifetimes.
+     * Automatically unbinds after callback execution (sync or async).
+     *
+     * @param callback Function that receives a temporary EventBinder
+     * @param debug Enable debug mode
+     * @returns The callback result
+     */
     static withAutoUnbind<T>(
         callback: (binder: EventBinder) => T | Promise<T>,
         debug = false
@@ -199,4 +262,5 @@ export class EventBinder implements IEventBinder {
     }
 }
 
+/** Default shared EventBinder instance */
 export const eventBinder = new EventBinder();
