@@ -30,7 +30,8 @@ export class ResizeManager {
 
   /**
    * Register a callback for an element's resize events.
-   * Returns a cleanup function to remove the observer.
+   * Reuses existing ResizeObserver for the element if available.
+   * Returns a cleanup function to remove the observer/callback.
    */
   onElement(el: Element, cb: ResizeCallback): () => void {
     let entry = this.elementObservers.get(el);
@@ -46,13 +47,19 @@ export class ResizeManager {
       observer.observe(el);
     }
 
+    // Add the callback to the existing set
     entry.callbacks.add(cb);
 
-    return (): void => {
-      entry!.callbacks.delete(cb);
+    // Capture references locally for safe cleanup
+    const callbacksRef = entry.callbacks;
+    const observerRef = entry.observer;
 
-      if (entry!.callbacks.size === 0) {
-        entry!.observer.disconnect();
+    return (): void => {
+      callbacksRef.delete(cb);
+
+      // If no callbacks remain, disconnect the observer and clean up
+      if (callbacksRef.size === 0) {
+        observerRef.disconnect();
         this.elementObservers.delete(el);
       }
     };
