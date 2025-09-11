@@ -1,15 +1,8 @@
-// ============================================================================
 // src/spaceface/app/bin/main.ts
-// ============================================================================
 
-import { generateId, eventBus, DomReadyPromise, InactivityWatcher, ServiceWorkerManager } from './_bin.js';
+import { generateId, eventBus, DomReadyPromise, InactivityWatcher, ServiceWorkerManager, IFloatingImagesManager } from './symlink.js';
 
-import type { IFloatingImagesManager } from '../../system/types/features.js';
-
-// ============================================================================
 // AppConfig
-// ============================================================================
-
 interface AppConfigOptions {
     features?: Record<string, any>;
     debug?: boolean;
@@ -41,10 +34,7 @@ export class AppConfig {
     }
 }
 
-// ============================================================================
 // Spaceface
-// ============================================================================
-
 interface FeatureModuleMap {
     partialLoader: any;
     slideplayer: any;
@@ -122,10 +112,10 @@ export class Spaceface {
 
     private defineFeatureModules(): FeatureModuleMap {
         return {
-            partialLoader: () => import('../../system/bin/PartialLoader.js'),
-            slideplayer: () => import('../../system/features/SlidePlayer/SlidePlayer.js'),
-            screensaver: () => import('../../system/features/Screensaver/ScreensaverController.js'),
-            serviceWorker: () => import('../../system/bin/ServiceWorkerManager.js'),
+            partialLoader: () => import('../system/bin/PartialLoader.js'),
+            slideplayer: () => import('../system/features/SlidePlayer/SlidePlayer.js'),
+            screensaver: () => import('../system/features/Screensaver/ScreensaverController.js'),
+            serviceWorker: () => import('../system/bin/ServiceWorkerManager.js'),
         };
     }
 
@@ -288,10 +278,7 @@ export class Spaceface {
         }
     }
 
-    // ========================================================================
     // Main init
-    // ========================================================================
-
     public async init(): Promise<void> {
         try {
             this.log('info', `App initialization started (Page: ${this.pageType})`);
@@ -331,10 +318,7 @@ export class Spaceface {
     }
 }
 
-// ============================================================================
 // Dev Event Logging
-// ============================================================================
-
 const isDev = ['localhost', '127.0.0.1'].some(host =>
     window.location.hostname.includes(host),
 );
@@ -358,10 +342,7 @@ if (isDev) {
     });
 }
 
-// ============================================================================
 // Initialize App
-// ============================================================================
-
 const app = new Spaceface({
     features: {
         partialLoader: { enabled: true, debug: true, baseUrl: '/', cacheEnabled: true },
