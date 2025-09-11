@@ -1,10 +1,25 @@
+// src/spaceface/system/bin/DomReadyPromise.ts
+
 export const VERSION = 'nextworld-1.0.0';
 
 import { WaitForElementOptions } from '../types/bin.js';
 
+/**
+ * Utility class for DOM readiness and waiting for elements to appear.
+ * Provides:
+ * - A promise for when the DOM is ready (`DOMContentLoaded`).
+ * - A helper to wait until specific elements are present in the DOM.
+ */
 export class DomReadyPromise {
+    /** Cached promise that resolves once the DOM is ready */
     static #readyPromise: Promise<void> | null = null;
 
+    /**
+     * Returns a promise that resolves when the DOM is fully loaded.
+     * Equivalent to listening for `DOMContentLoaded`, but safe to call multiple times.
+     *
+     * @returns Promise that resolves once the DOM is ready.
+     */
     static ready(): Promise<void> {
         if (!this.#readyPromise) {
             this.#readyPromise = document.readyState !== 'loading'
@@ -16,6 +31,18 @@ export class DomReadyPromise {
         return this.#readyPromise;
     }
 
+    /**
+     * Waits for one or more DOM elements to appear in the document.
+     * Uses a `MutationObserver` to detect added nodes, with optional timeout and abort support.
+     *
+     * @typeParam T - Type of element(s) expected (extends Element).
+     *
+     * @param selectors - CSS selector string or array of selectors to wait for.
+     * @param options - Options to control timeout, root element, and abort signal.
+     * @returns Promise that resolves with the found element (if one selector) or array of elements (if multiple).
+     * @throws DOMException `"TimeoutError"` if elements are not found within the timeout.
+     * @throws DOMException `"AbortError"` if the operation is aborted via `AbortSignal`.
+     */
     static waitForElement<T extends Element>(
         selectors: string | string[],
         options: WaitForElementOptions = {}
