@@ -1,3 +1,5 @@
+import { debounce, throttle, CancellableFunction } from './timing.js'; // your debounce/throttle utils
+
 export const VERSION = 'nextworld-1.1.0' as const;
 
 type ResizeCallback = () => void;
@@ -15,15 +17,32 @@ export class ResizeManager {
 
   /**
    * Register a callback for window resize events.
+   * Optionally debounce or throttle the callback.
    * Returns a cleanup function to remove the listener.
    */
-  onWindow(cb: ResizeCallback): () => void {
-    const handler = () => cb();
+  onWindow(
+    cb: ResizeCallback,
+    options?: { debounceMs?: number; throttleMs?: number }
+  ): () => void {
+    let wrappedCb: CancellableFunction<() => void>;
+
+    if (options?.debounceMs != null) {
+      wrappedCb = debounce(cb, options.debounceMs);
+    } else if (options?.throttleMs != null) {
+      wrappedCb = throttle(cb, options.throttleMs);
+    } else {
+      // Use original callback directly and add a dummy cancel()
+      wrappedCb = cb as CancellableFunction<() => void>;
+      wrappedCb.cancel = () => {};
+    }
+
+    const handler = () => wrappedCb();
     this.windowCallbacks.set(cb, handler);
     window.addEventListener("resize", handler);
 
     return (): void => {
       window.removeEventListener("resize", handler);
+      wrappedCb.cancel?.();
       this.windowCallbacks.delete(cb);
     };
   }
@@ -47,17 +66,13 @@ export class ResizeManager {
       observer.observe(el);
     }
 
-    // Add the callback to the existing set
     entry.callbacks.add(cb);
 
-    // Capture references locally for safe cleanup
     const callbacksRef = entry.callbacks;
     const observerRef = entry.observer;
 
     return (): void => {
       callbacksRef.delete(cb);
-
-      // If no callbacks remain, disconnect the observer and clean up
       if (callbacksRef.size === 0) {
         observerRef.disconnect();
         this.elementObservers.delete(el);
@@ -77,13 +92,11 @@ export class ResizeManager {
    * Cleanup all registered window and element callbacks.
    */
   destroy(): void {
-    // Remove window listeners
     for (const [cb, handler] of this.windowCallbacks.entries()) {
       window.removeEventListener("resize", handler);
     }
     this.windowCallbacks.clear();
 
-    // Disconnect element observers
     for (const entry of this.elementObservers.values()) {
       entry.observer.disconnect();
     }
