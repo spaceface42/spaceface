@@ -1,15 +1,12 @@
-// ============================================================================
 // src/spaceface/system/bin/EventBinder.ts
-// ============================================================================
 
-export const VERSION = 'nextworld-1.0.0';
+export const VERSION = 'nextworld-1.2.2';
 
 import {
   DomBinding,
   EventBinderStats,
   IEventBinder,
-  UnsubscribeFn,
-  IBusBinding // now reuses the one from types/bin.ts
+  IBusBinding
 } from "../types/bin.js";
 
 import { eventBus } from "./EventBus.js";
