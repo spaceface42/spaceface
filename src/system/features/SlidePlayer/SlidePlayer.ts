@@ -1,3 +1,5 @@
+// src/spaceface/features/SlidePlayer/SlidePlayer.ts
+//
 export const VERSION = 'nextworld-1.2.0';
 
 import { eventBus } from '../../bin/EventBus.js';

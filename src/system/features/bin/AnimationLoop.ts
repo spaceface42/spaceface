@@ -1,4 +1,4 @@
-export const VERSION = 'nextworld-1.2.1';
+export const VERSION = 'nextworld-1.2.1' as const;
 
 type FrameCallback = () => void;
 

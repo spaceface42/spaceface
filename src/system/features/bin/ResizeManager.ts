@@ -1,4 +1,4 @@
-export const VERSION = 'nextworld-1.1.0';
+export const VERSION = 'nextworld-1.1.0' as const;
 
 type ResizeCallback = () => void;
 

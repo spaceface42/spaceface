@@ -9,7 +9,7 @@
  * Provides a single utility class for safely attaching and
  * detaching event handlers in a structured way.
  */
-export const VERSION = 'nextworld-1.2.2';
+export const VERSION = 'nextworld-1.2.2' as const;
 
 import {
   DomBinding,

@@ -1,4 +1,6 @@
-export const VERSION = 'nextworld-1.2.1';
+// src/spaceface/features/FloatingImages/FloatingImagesManager.ts
+
+export const VERSION = 'nextworld-1.2.1' as const;
 
 import { FloatingImage } from './FloatingImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';

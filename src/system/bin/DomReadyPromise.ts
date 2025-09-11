@@ -1,6 +1,6 @@
 // src/spaceface/system/bin/DomReadyPromise.ts
 
-export const VERSION = 'nextworld-1.0.0';
+export const VERSION = 'nextworld-1.0.0' as const;
 
 import { WaitForElementOptions } from '../types/bin.js';
 

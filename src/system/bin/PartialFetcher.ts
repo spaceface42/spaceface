@@ -1,6 +1,6 @@
 // src/spaceface/system/bin/PartialFetcher.ts
 
-export const VERSION = 'nextworld-1.0.0';
+export const VERSION = 'nextworld-1.0.0' as const;
 
 import { eventBus } from "./EventBus.js";
 import { EventBinder } from "./EventBinder.js";

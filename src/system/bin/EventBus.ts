@@ -1,6 +1,6 @@
 // src/spaceface/system/bin/EventBus.ts
 
-export const VERSION = 'nextworld-1.2.0';
+export const VERSION = 'nextworld-1.2.0' as const;
 
 import {
     UnsubscribeFn,
