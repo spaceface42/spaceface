@@ -5,8 +5,8 @@ export const VERSION = 'nextworld-1.2.1' as const;
 import { clamp } from '../bin/math.js';
 
 import type {
-    IContainerDimensions,
-    IFloatingImageOptions
+    ContainerDimensionsInterface,
+    FloatingImageOptionsInterface
 } from '../../types/features.js';
 
 const DAMPING = 0.85;
@@ -21,9 +21,9 @@ export class FloatingImage {
     private y: number;
     private vx: number;
     private vy: number;
-    private options: Required<IFloatingImageOptions>;
+    private options: Required<FloatingImageOptionsInterface>;
 
-    constructor(element: HTMLElement, dims: IContainerDimensions, options: IFloatingImageOptions = {}) {
+    constructor(element: HTMLElement, dims: ContainerDimensionsInterface, options: FloatingImageOptionsInterface = {}) {
         this.element = element;
         this.options = { useSubpixel: true, debug: false, ...options };
         this.size = { width: element.offsetWidth, height: element.offsetHeight };
@@ -50,7 +50,7 @@ export class FloatingImage {
         return true;
     }
 
-    update(multiplier: number, dims: IContainerDimensions, applyPosition = true): boolean {
+    update(multiplier: number, dims: ContainerDimensionsInterface, applyPosition = true): boolean {
         if (!this.element) return false;
 
         this.x += this.vx * multiplier;
@@ -82,7 +82,7 @@ export class FloatingImage {
         return true;
     }
 
-    resetPosition(dims: IContainerDimensions) {
+    resetPosition(dims: ContainerDimensionsInterface) {
         this.x = Math.random() * (dims.width - this.size.width);
         this.y = Math.random() * (dims.height - this.size.height);
         this.updatePosition(); // must be called
@@ -95,7 +95,7 @@ export class FloatingImage {
         this.size.height = this.element.offsetHeight;
     }
 
-    clampPosition(dims: IContainerDimensions) {
+    clampPosition(dims: ContainerDimensionsInterface) {
         this.x = clamp(this.x, 0, dims.width - this.size.width);
         this.y = clamp(this.y, 0, dims.height - this.size.height);
     }

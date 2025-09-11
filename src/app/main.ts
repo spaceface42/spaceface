@@ -1,6 +1,6 @@
 // src/spaceface/app/bin/main.ts
 
-import { generateId, eventBus, DomReadyPromise, InactivityWatcher, ServiceWorkerManager, IFloatingImagesManager } from './symlink.js';
+import { generateId, eventBus, DomReadyPromise, InactivityWatcher, ServiceWorkerManager, FloatingImagesManagerInterface } from './symlink.js';
 
 // AppConfig
 interface AppConfigOptions {
@@ -58,7 +58,7 @@ export class Spaceface {
     private featureModules: FeatureModuleMap;
     private featureCache: Map<keyof FeatureModuleMap, any>;
     private inactivityWatcher: InactivityWatcher | null;
-    private screensaverController: IFloatingImagesManager | null;
+    private screensaverController: FloatingImagesManagerInterface | null;
     private slideshows: any[] = [];
     private swManager?: ServiceWorkerManager;
     private _partialUnsub?: () => void;

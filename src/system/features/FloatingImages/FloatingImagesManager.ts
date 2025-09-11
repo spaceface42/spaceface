@@ -9,11 +9,11 @@ import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
 import { animationLoop } from '../bin/AnimationLoop.js';
 
 import type {
-    IFloatingImagesManagerOptions,
-    IContainerDimensions,
-    IFloatingImagesManager
+    FloatingImagesManagerOptionsInterface,
+    ContainerDimensionsInterface,
+    FloatingImagesManagerInterface
 } from '../../types/features.js';
-export class FloatingImagesManager implements IFloatingImagesManager {
+export class FloatingImagesManager implements FloatingImagesManagerInterface {
     readonly container: HTMLElement;
     performanceMonitor: PerformanceMonitor;
     images: FloatingImage[] = [];
@@ -30,7 +30,7 @@ export class FloatingImagesManager implements IFloatingImagesManager {
     containerHeight!: number;
     debug: boolean;
 
-    constructor(container: HTMLElement, options: IFloatingImagesManagerOptions = {}) {
+    constructor(container: HTMLElement, options: FloatingImagesManagerOptionsInterface = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
 
@@ -76,7 +76,7 @@ export class FloatingImagesManager implements IFloatingImagesManager {
         } catch { /* ignore */ }
     }
 
-    private addExistingImage(el: HTMLElement, dims: IContainerDimensions) {
+    private addExistingImage(el: HTMLElement, dims: ContainerDimensionsInterface) {
         if (this.images.length >= this.maxImages) return;
         const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
         this.images.push(floatingImage);

@@ -9,15 +9,15 @@ import { PartialFetcher } from "../../bin/PartialFetcher.js";
 import { FloatingImagesManager } from "../FloatingImages/FloatingImagesManager.js";
 
 import type {
-  IScreensaverControllerOptions,
-  IFloatingImagesManager
+  ScreensaverControllerOptionsInterface,
+  FloatingImagesManagerInterface
 } from "../../types/features.js";
 
 export class ScreensaverController {
   private readonly partialUrl: string;
   private readonly targetSelector: string;
   private readonly inactivityDelay: number;
-  private screensaverManager: IFloatingImagesManager | null = null;
+  private screensaverManager: FloatingImagesManagerInterface | null = null;
   private watcher: InactivityWatcher | null = null;
   private _destroyed = false;
   private eventBinder: EventBinder;
@@ -28,7 +28,7 @@ export class ScreensaverController {
   private _onActivity: () => void;
 
   constructor(
-    options: IScreensaverControllerOptions & {
+    options: ScreensaverControllerOptionsInterface & {
       watcher?: InactivityWatcher;
       partialFetcher?: typeof PartialFetcher;
     }
