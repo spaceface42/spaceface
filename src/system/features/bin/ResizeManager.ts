@@ -1,6 +1,6 @@
 import { debounce, throttle, CancellableFunction } from './timing.js'; // your debounce/throttle utils
 
-export const VERSION = 'nextworld-1.1.0' as const;
+export const VERSION = 'nextworld-1.2.0' as const;
 
 type ResizeCallback = () => void;
 
@@ -18,7 +18,6 @@ export class ResizeManager {
   /**
    * Register a callback for window resize events.
    * Optionally debounce or throttle the callback.
-   * Returns a cleanup function to remove the listener.
    */
   onWindow(
     cb: ResizeCallback,
@@ -31,7 +30,6 @@ export class ResizeManager {
     } else if (options?.throttleMs != null) {
       wrappedCb = throttle(cb, options.throttleMs);
     } else {
-      // Use original callback directly and add a dummy cancel()
       wrappedCb = cb as CancellableFunction<() => void>;
       wrappedCb.cancel = () => {};
     }
@@ -49,10 +47,13 @@ export class ResizeManager {
 
   /**
    * Register a callback for an element's resize events.
-   * Reuses existing ResizeObserver for the element if available.
-   * Returns a cleanup function to remove the observer/callback.
+   * Optionally debounce or throttle the callback.
    */
-  onElement(el: Element, cb: ResizeCallback): () => void {
+  onElement(
+    el: Element,
+    cb: ResizeCallback,
+    options?: { debounceMs?: number; throttleMs?: number }
+  ): () => void {
     let entry = this.elementObservers.get(el);
 
     if (!entry) {
@@ -66,13 +67,26 @@ export class ResizeManager {
       observer.observe(el);
     }
 
-    entry.callbacks.add(cb);
+    // Wrap the callback if debounce or throttle is specified
+    let wrappedCb: CancellableFunction<() => void>;
+
+    if (options?.debounceMs != null) {
+      wrappedCb = debounce(cb, options.debounceMs);
+    } else if (options?.throttleMs != null) {
+      wrappedCb = throttle(cb, options.throttleMs);
+    } else {
+      wrappedCb = cb as CancellableFunction<() => void>;
+      wrappedCb.cancel = () => {};
+    }
+
+    entry.callbacks.add(wrappedCb);
 
     const callbacksRef = entry.callbacks;
     const observerRef = entry.observer;
 
     return (): void => {
-      callbacksRef.delete(cb);
+      callbacksRef.delete(wrappedCb);
+      wrappedCb.cancel?.();
       if (callbacksRef.size === 0) {
         observerRef.disconnect();
         this.elementObservers.delete(el);
