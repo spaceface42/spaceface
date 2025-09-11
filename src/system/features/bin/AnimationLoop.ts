@@ -1,3 +1,5 @@
+// src/spaceface/system/features/bin/AnimationLoop.ts
+
 export const VERSION = 'nextworld-1.2.1' as const;
 
 type FrameCallback = () => void;

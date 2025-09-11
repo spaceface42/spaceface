@@ -1,3 +1,5 @@
+// src/spaceface/system/features/bin/timing.ts
+
 export const VERSION = 'nextworld-1.0.0' as const;
 
 /** Generic type: function with cancel method */

@@ -1,3 +1,5 @@
+// src/spaceface/system/features/bin/AsyncImageLoader.ts
+
 export const VERSION = 'nextworld-1.2.0' as const;
 
 import {
