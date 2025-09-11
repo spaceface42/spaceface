@@ -1,0 +1,21 @@
+<div class="progress-bar" spx-persist>
+<style>
+.progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: .2rem;
+    background: lightgray;
+    animation: move 13s linear infinite;
+    z-index: 1;
+}
+@keyframes move {
+    0% { 
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+}
+</style>
+</div>
