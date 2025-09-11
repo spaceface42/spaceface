@@ -2,52 +2,74 @@ export const VERSION = 'nextworld-1.1.0';
 
 type ResizeCallback = () => void;
 
-interface IElementObserverEntry {
+interface ElementObserverEntryInterface {
   observer: ResizeObserver;
   callbacks: Set<ResizeCallback>;
 }
 
+type ElementSize = { width: number; height: number };
+
 export class ResizeManager {
   private windowCallbacks: Map<ResizeCallback, EventListener> = new Map();
-  private elementObservers: Map<Element, IElementObserverEntry> = new Map();
+  private elementObservers: Map<Element, ElementObserverEntryInterface> = new Map();
 
+  /**
+   * Register a callback for window resize events.
+   * Returns a cleanup function to remove the listener.
+   */
   onWindow(cb: ResizeCallback): () => void {
     const handler = () => cb();
     this.windowCallbacks.set(cb, handler);
     window.addEventListener("resize", handler);
-    return () => {
+
+    return (): void => {
       window.removeEventListener("resize", handler);
       this.windowCallbacks.delete(cb);
     };
   }
 
+  /**
+   * Register a callback for an element's resize events.
+   * Returns a cleanup function to remove the observer.
+   */
   onElement(el: Element, cb: ResizeCallback): () => void {
     let entry = this.elementObservers.get(el);
+
     if (!entry) {
+      const callbacks = new Set<ResizeCallback>();
       const observer = new ResizeObserver(() => {
-        entry!.callbacks.forEach(fn => fn());
+        callbacks.forEach(fn => fn());
       });
-      entry = { observer, callbacks: new Set() };
+
+      entry = { observer, callbacks };
       this.elementObservers.set(el, entry);
       observer.observe(el);
     }
+
     entry.callbacks.add(cb);
 
-    return () => {
+    return (): void => {
       entry!.callbacks.delete(cb);
-      if (entry.callbacks.size === 0) {
-        entry.observer.disconnect();
+
+      if (entry!.callbacks.size === 0) {
+        entry!.observer.disconnect();
         this.elementObservers.delete(el);
       }
     };
   }
 
-  getElement(el: HTMLElement) {
+  /**
+   * Get current size of an element.
+   */
+  getElement(el: HTMLElement): ElementSize {
     const rect = el.getBoundingClientRect();
     return { width: rect.width, height: rect.height };
   }
 
-  destroy() {
+  /**
+   * Cleanup all registered window and element callbacks.
+   */
+  destroy(): void {
     // Remove window listeners
     for (const [cb, handler] of this.windowCallbacks.entries()) {
       window.removeEventListener("resize", handler);
@@ -62,5 +84,5 @@ export class ResizeManager {
   }
 }
 
-// singleton instance
+// Singleton instance
 export const resizeManager = new ResizeManager();
