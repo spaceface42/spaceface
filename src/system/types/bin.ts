@@ -5,7 +5,7 @@ export type WaitForElementOptions = {
   signal?: AbortSignal;
 };
 
-// eventbinder
+// EventBinder
 export type DomBinding = {
   target: EventTarget;
   event: string;
@@ -13,11 +13,13 @@ export type DomBinding = {
   options: AddEventListenerOptions;
   controller: AbortController;
 };
+
 export type EventBinderStats = {
   busEvents: number;
   domEvents: number;
   totalEvents: number;
 };
+
 export interface IEventBinder {
   bindBus(event: string, handler: (...args: any[]) => void): void;
   bindDOM(
@@ -30,26 +32,31 @@ export interface IEventBinder {
   getStats(): EventBinderStats;
   hasBindings(): boolean;
 }
+
+// EventBus
 export type UnsubscribeFn = () => void;
+
 export interface IBusBinding {
   event: string;
   handler: (...args: any[]) => void;
   unsubscribe: UnsubscribeFn;
 }
 
-// eventbus
 export interface IListener<T = any> {
   fn: (payload: T) => any;
   priority: number;
 }
+
 export interface IAnyListener {
   fn: (event: string, payload: any) => any;
   priority: number;
 }
+
 export interface IEventBusErrorPayload {
   message: string;
   error: any;
 }
+
 export interface IEventBus {
   on<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
   once<T = any>(event: string, fn: (payload: T) => any, priority?: number): void;
@@ -73,11 +80,13 @@ export interface IPartialLoaderOptions {
   timeout?: number;
   retryAttempts?: number;
 }
+
 export interface IPartialLoadResult {
   success: boolean;
   url: string;
   cached: boolean;
 }
+
 export interface IPartialInfo {
   id?: string;
   url: string;
@@ -88,11 +97,13 @@ export interface IPartialInfo {
 export interface AsyncImageLoaderOptions {
   includePicture?: boolean;
 }
+
 export interface ISourceData {
   srcset: string;
   type: string;
   media: string;
 }
+
 export interface IImageMetadata {
   element: HTMLImageElement;
   src: string;
@@ -100,6 +111,7 @@ export interface IImageMetadata {
   href: string | null;
   sources: ISourceData[];
 }
+
 export interface IImageLoadResult {
   element: HTMLImageElement;
   loaded: boolean;
@@ -131,4 +143,5 @@ export interface IPerformanceSettings {
   speedMultiplier: number;
   useSubpixel: boolean;
 }
+
 export type PerformanceLevel = 'high' | 'medium' | 'low';
