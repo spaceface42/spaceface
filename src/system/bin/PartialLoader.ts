@@ -8,7 +8,8 @@ import { eventBus } from "./EventBus.js";
 import {
     PartialLoaderOptionsInterface,
     PartialLoadResultInterface,
-    PartialInfoInterface
+    PartialInfoInterface,
+    PartialEventPayload
 } from "../types/bin.js";
 
 export class PartialLoader {
@@ -53,7 +54,7 @@ export class PartialLoader {
             }
         }
 
-        eventBus.emit("partials:allLoaded", { count: results.length });
+        eventBus.emit<PartialEventPayload>("partials:allLoaded", { url: "", cached: false });
         return results;
     }
 
@@ -74,7 +75,8 @@ export class PartialLoader {
             if (this.options.cacheEnabled && this.cache.has(url)) {
                 this.insertHTML(container, this.cache.get(url)!);
                 this.loadedPartials.set(id || url, true);
-                eventBus.emit("partial:loaded", { url, cached: true });
+
+                eventBus.emit<PartialEventPayload>("partial:loaded", { url, html: this.cache.get(url)!, cached: true });
                 return { success: true, url, cached: true };
             }
 
@@ -86,14 +88,16 @@ export class PartialLoader {
 
             this.insertHTML(container, html);
             this.loadedPartials.set(id || url, true);
-            eventBus.emit("partial:loaded", { url, cached: false });
+
+            eventBus.emit<PartialEventPayload>("partial:loaded", { url, html, cached: false });
             return { success: true, url, cached: false };
         } catch (error) {
             this.showError(container, error as Error);
-            eventBus.emit("partial:error", { url, error });
+            eventBus.emit<PartialEventPayload>("partial:error", { url, error });
             throw error;
         } finally {
             this.loadingPromises.delete(url);
+            eventBus.emit<PartialEventPayload>("partial:load:complete", { url });
         }
     }
 
@@ -183,5 +187,17 @@ export class PartialLoader {
         );
         observer.observe(container, { childList: true, subtree: true });
         return observer;
+    }
+
+    /**
+     * Exposed method so PartialFetcher can reuse loader's cache + retry
+     */
+    async fetchWithLoaderCache(url: string): Promise<string> {
+        if (this.options.cacheEnabled && this.cache.has(url)) {
+            return this.cache.get(url)!;
+        }
+        const html = await this.fetchPartial(url);
+        if (this.options.cacheEnabled) this.cache.set(url, html);
+        return html;
     }
 }

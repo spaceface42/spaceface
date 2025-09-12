@@ -1,6 +1,6 @@
 // src/spaceface/features/Screensaver/ScreensaverController.ts
 
-export const VERSION = 'nextworld-1.0.0' as const;
+export const VERSION = 'nextworld-1.2.0' as const;
 
 import { eventBus } from "../../bin/EventBus.js";
 import { EventBinder } from "../../bin/EventBinder.js";
@@ -17,6 +17,8 @@ export class ScreensaverController {
   private readonly partialUrl: string;
   private readonly targetSelector: string;
   private readonly inactivityDelay: number;
+  private readonly onError?: (message: string, error: unknown) => void;
+
   private screensaverManager: FloatingImagesManagerInterface | null = null;
   private watcher: InactivityWatcher | null = null;
   private _destroyed = false;
@@ -39,6 +41,7 @@ export class ScreensaverController {
 
     this.watcher = options.watcher ?? null;
     this.partialFetcher = options.partialFetcher ?? PartialFetcher;
+    this.onError = options.onError;
 
     this.eventBinder = new EventBinder(true);
     this._onInactivity = this.showScreensaver.bind(this);
@@ -73,10 +76,7 @@ export class ScreensaverController {
         message: "Bound user inactivity/active events"
       });
     } catch (error) {
-      eventBus.emit("screensaver:error", {
-        message: "Failed to initialize inactivity watcher",
-        error
-      });
+      this.handleError("Failed to initialize inactivity watcher", error);
     }
   }
 
@@ -91,9 +91,7 @@ export class ScreensaverController {
 
       const container = document.querySelector<HTMLElement>(this.targetSelector);
       if (!container) {
-        eventBus.emit("screensaver:error", {
-          message: `Target selector "${this.targetSelector}" not found`
-        });
+        this.handleError(`Target selector "${this.targetSelector}" not found`, null);
         return;
       }
 
@@ -115,10 +113,7 @@ export class ScreensaverController {
         message: "Screensaver displayed"
       });
     } catch (error) {
-      eventBus.emit("screensaver:error", {
-        message: "Failed to load or show screensaver",
-        error
-      });
+      this.handleError("Failed to load or show screensaver", error);
     }
   }
 
@@ -135,10 +130,7 @@ export class ScreensaverController {
         }, 500);
       }
     } catch (error) {
-      eventBus.emit("screensaver:error", {
-        message: "Failed to hide screensaver",
-        error
-      });
+      this.handleError("Failed to hide screensaver", error);
     }
   }
 
@@ -155,5 +147,10 @@ export class ScreensaverController {
       level: "info",
       message: "ScreensaverController destroyed"
     });
+  }
+
+  private handleError(message: string, error: unknown): void {
+    eventBus.emit("screensaver:error", { message, error });
+    this.onError?.(message, error);
   }
 }

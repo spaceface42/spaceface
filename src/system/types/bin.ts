@@ -93,6 +93,40 @@ export interface PartialInfoInterface {
   container: Element | ParentNode;
 }
 
+// PartialFetcher
+export interface PartialLoaderLike {
+  load(
+    input: HTMLLinkElement | PartialInfoInterface | (HTMLLinkElement | PartialInfoInterface)[]
+  ): Promise<PartialLoadResultInterface[]>;
+  loadContainer?(container?: ParentNode): Promise<PartialLoadResultInterface[]>;
+  watch?(container: HTMLElement | Document): MutationObserver | void;
+  isPartialLoaded?(id: string): boolean;
+}
+
+export interface PartialFetchOptionsInterface {
+  replace?: boolean;
+  signal?: AbortSignal;
+  withBindings?: (binder: EventBinderInterface) => void;
+  debugBindings?: boolean;
+
+  /**
+   * Optional reference to a PartialLoader instance to use caching and retry logic.
+   * Should implement `PartialLoaderLike`.
+   */
+  loader?: PartialLoaderLike;
+}
+
+/**
+ * Payload structure for PartialFetcher/PartialLoader events
+ */
+export interface PartialEventPayload {
+  url: string;
+  targetSelector?: string;
+  html?: string;
+  cached?: boolean;
+  error?: any;
+}
+
 // asyncimageloader
 export interface AsyncImageLoaderOptions {
   includePicture?: boolean;
@@ -127,14 +161,6 @@ export interface InactivityWatcherOptionsInterface {
   passive?: boolean;
   pauseOnHidden?: boolean;
   emitLeadingActive?: boolean;
-}
-
-// partialfetcher
-export interface PartialFetchOptionsInterface {
-  replace?: boolean;
-  signal?: AbortSignal;
-  withBindings?: (binder: EventBinderInterface) => void;
-  debugBindings?: boolean;
 }
 
 // PerformanceMonitor

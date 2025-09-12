@@ -1,60 +1,66 @@
-// src/spaceface/system/bin/PartialFetcher.ts
-
+// src/system/bin/PartialFetcher.ts
 export const VERSION = 'nextworld-1.0.0' as const;
 
 import { eventBus } from "./EventBus.js";
-import { EventBinder } from "./EventBinder.js";
-import { PartialFetchOptionsInterface } from "../types/bin.js";
+import { PartialLoader } from "./PartialLoader.js";
+import type { PartialFetchOptionsInterface, PartialEventPayload, PartialLoaderLike } from "../types/bin.js";
 
 export class PartialFetcher {
-    /**
-     * Loads HTML from a URL and injects it into the target element.
-     * Emits lifecycle events: partial:load:start, partial:load:success, partial:load:error, partial:load:complete
-     */
+    /** default internal loader instance */
+    private static loader: PartialLoaderLike;
+
+    private static getLoader(): PartialLoaderLike {
+        if (!this.loader) {
+            this.loader = new PartialLoader();
+        }
+        return this.loader;
+    }
+
+    private static logDebug(msg: string, data?: unknown) {
+        console.debug(`[PartialFetcher] ${msg}`, data);
+    }
+
     static async load(
         url: string,
         targetSelector: string,
         options: PartialFetchOptionsInterface = {}
-    ): Promise<{ container: HTMLElement; html: string }> {
-        const { replace = true, signal, withBindings, debugBindings = false } = options;
+    ): Promise<void> {
+        const loader = options.loader ?? this.getLoader();
+        try {
+            this.logDebug("Fetching partial", { url, targetSelector });
 
-        const runLoad = async (): Promise<{ container: HTMLElement; html: string }> => {
-            const basePayload = { url, targetSelector };
-            eventBus.emit("partial:load:start", basePayload);
+            const container = document.querySelector<HTMLElement>(targetSelector);
+            if (!container) throw new Error(`Target ${targetSelector} not found`);
 
-            try {
-                const fetchOptions = signal ? { signal } : undefined;
-                const response = await fetch(url, fetchOptions);
-                if (!response.ok) throw new Error(`Fetch failed with status ${response.status}`);
+            await loader.load([{ url, container }]);
 
-                const html = (await response.text()).trim();
-                const container = document.querySelector<HTMLElement>(targetSelector);
-                if (!container) throw new Error(`Target container not found: ${targetSelector}`);
-
-                const template = document.createElement("template");
-                template.innerHTML = html;
-
-                if (replace) container.replaceChildren(...template.content.childNodes);
-                else container.append(...template.content.childNodes);
-
-                eventBus.emit("partial:load:success", { ...basePayload, html });
-                return { container, html };
-            } catch (error) {
-                eventBus.emit("partial:load:error", { ...basePayload, error });
-                throw error;
-            } finally {
-                eventBus.emit("partial:load:complete", basePayload);
-            }
-        };
-
-        if (typeof withBindings === "function") {
-            return EventBinder.withAutoUnbind(async (binder) => {
-                if (signal) binder.attachTo(signal);
-                withBindings(binder);
-                return runLoad();
-            }, debugBindings);
-        } else {
-            return runLoad();
+            eventBus.emit<PartialEventPayload>("partial:loaded", { url, targetSelector, cached: false });
+        } catch (error) {
+            eventBus.emit<PartialEventPayload>("partial:error", { url, error });
+            throw error;
+        } finally {
+            eventBus.emit<PartialEventPayload>("partial:load:complete", { url, targetSelector });
         }
+    }
+
+    static async preload(urls: string[], loader?: PartialLoaderLike): Promise<void[]> {
+        const activeLoader = loader ?? this.getLoader();
+        return Promise.all(
+            urls.map(async (url) => {
+                try {
+                    await activeLoader.load([{ url, container: document.createElement("div") }]);
+                    eventBus.emit<PartialEventPayload>("partial:loaded", { url, cached: true });
+                } catch (error) {
+                    eventBus.emit<PartialEventPayload>("partial:error", { url, error });
+                } finally {
+                    eventBus.emit<PartialEventPayload>("partial:load:complete", { url });
+                }
+            })
+        );
+    }
+
+    static watch(container: HTMLElement | Document = document.body, loader?: PartialLoaderLike) {
+        const activeLoader = loader ?? this.getLoader();
+        return activeLoader.watch?.(container);
     }
 }
