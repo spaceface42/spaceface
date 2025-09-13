@@ -22,7 +22,7 @@
         "liveServer.settings.CustomBrowser": "chrome",
         "liveServer.settings.multiRootWorkspaceName": "spaceface",
         "liveServer.settings.root": "/docs",
-        "cSpell.words": ["slideplayer", "spaceface"],
+        "cSpell.words": ["slideplayer", "spaceface", "nextworld"],
         "powershell.cwd": "spaceface"
     }
 }
