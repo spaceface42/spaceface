@@ -63,6 +63,14 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     }
 
     private updateContainerDimensions() {
+        if (!this.container.isConnected) {
+            this.containerWidth = 0;
+            this.containerHeight = 0;
+            if (this.debug) {
+                console.warn('FloatingImagesManager: Container is not in the DOM.');
+            }
+            return;
+        }
         const dims = resizeManager.getElement(this.container);
         this.containerWidth = dims.width;
         this.containerHeight = dims.height;
@@ -84,6 +92,12 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
 
     private handleResize() {
         if (this._destroyed) return;
+        if (!this.container.isConnected) {
+            if (this.debug) {
+                console.warn('FloatingImagesManager: Resize event ignored, container is not in the DOM.');
+            }
+            return;
+        }
         this.updateContainerDimensions();
         const dims = { width: this.containerWidth, height: this.containerHeight };
         this.images.forEach(img => {
