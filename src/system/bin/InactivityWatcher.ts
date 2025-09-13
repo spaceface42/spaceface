@@ -18,11 +18,13 @@ export class InactivityWatcher extends EventWatcher {
     private lastActiveAt: number;
     private timer?: number;
     private userIsInactive: boolean = false;
+    private throttledReset: () => void;
 
     constructor(target: EventTarget, options: InactivityWatcherOptionsInterface) {
         super(target, options.debug ?? false);
         this.inactivityDelay = options.inactivityDelay;
         this.lastActiveAt = Date.now();
+        this.throttledReset = throttle(() => this.resetTimer(), 200);
 
         this.log(`Initialized with inactivityDelay=${this.inactivityDelay}ms`);
 
@@ -37,23 +39,19 @@ export class InactivityWatcher extends EventWatcher {
     }
 
     protected addEventListeners(): void {
-        const throttledReset = throttle(() => this.resetTimer(), 200);
+        this.target.addEventListener('mousemove', this.throttledReset);
+        this.target.addEventListener('keydown', this.throttledReset);
+        this.target.addEventListener('scroll', this.throttledReset);
+        this.target.addEventListener('visibilitychange', this.throttledReset);
 
-        // Track user activity
-        this.target.addEventListener('mousemove', throttledReset);
-        this.target.addEventListener('keydown', throttledReset);
-        this.target.addEventListener('scroll', throttledReset);
-        this.target.addEventListener('visibilitychange', throttledReset);
-
-        // Start the inactivity timer
         this.resetTimer();
     }
 
     protected removeEventListeners(): void {
-        this.target.removeEventListener('mousemove', this.resetTimer);
-        this.target.removeEventListener('keydown', this.resetTimer);
-        this.target.removeEventListener('scroll', this.resetTimer);
-        this.target.removeEventListener('visibilitychange', this.resetTimer);
+        this.target.removeEventListener('mousemove', this.throttledReset);
+        this.target.removeEventListener('keydown', this.throttledReset);
+        this.target.removeEventListener('scroll', this.throttledReset);
+        this.target.removeEventListener('visibilitychange', this.throttledReset);
 
         if (this.timer) clearTimeout(this.timer);
     }
