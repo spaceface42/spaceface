@@ -1,5 +1,4 @@
 // src/spaceface/system/bin/PartialUtils.ts
-import { eventBus } from "./EventBus.js";
 
 export async function fetchPartialWithRetry(
     url: string,
