@@ -1,6 +1,5 @@
 // src/spaceface/system/bin/PartialLoader.ts
-
-export const VERSION = 'nextworld-1.0.0' as const;
+export const VERSION = 'nextworld-1.0.1' as const;
 
 import { debounce } from "../features/bin/timing.js";
 import { eventBus } from "./EventBus.js";
@@ -29,8 +28,11 @@ export class PartialLoader {
         };
     }
 
+    /** emit debug events instead of console.debug */
     private logDebug(msg: string, data?: unknown) {
-        if (this.options.debug) console.debug(`[PartialLoader] ${msg}`, data);
+        if (this.options.debug) {
+            eventBus.emit("log:debug", { scope: "PartialLoader", message: msg, data });
+        }
     }
 
     async load(
@@ -55,6 +57,7 @@ export class PartialLoader {
         }
 
         eventBus.emit<PartialEventPayload>("partials:allLoaded", { url: "", cached: false });
+        this.logDebug("All partials loaded", { count: results.length });
         return results;
     }
 
@@ -77,6 +80,7 @@ export class PartialLoader {
                 this.loadedPartials.set(id || url, true);
 
                 eventBus.emit<PartialEventPayload>("partial:loaded", { url, html: this.cache.get(url)!, cached: true });
+                this.logDebug("Partial loaded from cache", { url, id });
                 return { success: true, url, cached: true };
             }
 
@@ -90,14 +94,17 @@ export class PartialLoader {
             this.loadedPartials.set(id || url, true);
 
             eventBus.emit<PartialEventPayload>("partial:loaded", { url, html, cached: false });
+            this.logDebug("Partial loaded", { url, id });
             return { success: true, url, cached: false };
         } catch (error) {
             this.showError(container, error as Error);
             eventBus.emit<PartialEventPayload>("partial:error", { url, error });
+            this.logDebug("Partial load failed", { url, id, error });
             throw error;
         } finally {
             this.loadingPromises.delete(url);
             eventBus.emit<PartialEventPayload>("partial:load:complete", { url });
+            this.logDebug("Partial load complete", { url, id });
         }
     }
 
@@ -150,6 +157,8 @@ export class PartialLoader {
         } else {
             container.appendChild(div);
         }
+
+        eventBus.emit("log:error", { scope: "PartialLoader", message: "Partial load failed", error });
     }
 
     isPartialLoaded(id: string) {
@@ -186,18 +195,19 @@ export class PartialLoader {
             debounce(() => this.loadContainer(container), 100)
         );
         observer.observe(container, { childList: true, subtree: true });
+        this.logDebug("Watching container for partials", { container });
         return observer;
     }
 
-    /**
-     * Exposed method so PartialFetcher can reuse loader's cache + retry
-     */
+    /** Exposed method so PartialFetcher can reuse loader's cache + retry */
     async fetchWithLoaderCache(url: string): Promise<string> {
         if (this.options.cacheEnabled && this.cache.has(url)) {
+            this.logDebug("Fetching from cache", { url });
             return this.cache.get(url)!;
         }
         const html = await this.fetchPartial(url);
         if (this.options.cacheEnabled) this.cache.set(url, html);
+        this.logDebug("Fetched and cached partial", { url });
         return html;
     }
 }

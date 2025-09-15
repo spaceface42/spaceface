@@ -1,5 +1,4 @@
 // src/spaceface/features/Screensaver/ScreensaverController.ts
-
 export const VERSION = 'nextworld-1.2.0' as const;
 
 import { eventBus } from "../../bin/EventBus.js";
@@ -17,6 +16,7 @@ export class ScreensaverController {
   private readonly partialUrl: string;
   private readonly targetSelector: string;
   private readonly inactivityDelay: number;
+  private readonly debug: boolean;
   private readonly onError?: (message: string, error: unknown) => void;
 
   private screensaverManager: FloatingImagesManagerInterface | null = null;
@@ -33,29 +33,49 @@ export class ScreensaverController {
     options: ScreensaverControllerOptionsInterface & {
       watcher?: InactivityWatcher;
       partialFetcher?: typeof PartialFetcher;
+      debug?: boolean;
     }
   ) {
     this.partialUrl = options.partialUrl;
     this.targetSelector = options.targetSelector;
     this.inactivityDelay = options.inactivityDelay ?? 12000;
+    this.debug = !!options.debug;
 
     this.watcher = options.watcher ?? null;
     this.partialFetcher = options.partialFetcher ?? PartialFetcher;
     this.onError = options.onError;
 
-    this.eventBinder = new EventBinder(true);
+    this.eventBinder = new EventBinder(this.debug);
     this._onInactivity = this.showScreensaver.bind(this);
     this._onActivity = this.hideScreensaver.bind(this);
 
-    eventBus.emit("screensaver:log", {
-      level: "info",
-      message: "ScreensaverController initialized",
-      details: {
-        partialUrl: this.partialUrl,
-        targetSelector: this.targetSelector,
-        inactivityDelay: this.inactivityDelay
-      }
+    this.log('info', 'ScreensaverController initialized', {
+      partialUrl: this.partialUrl,
+      targetSelector: this.targetSelector,
+      inactivityDelay: this.inactivityDelay
     });
+  }
+
+  /** Centralized logging with debug and level support */
+  private log(
+    level: 'debug' | 'info' | 'warn' | 'error',
+    message: string,
+    data?: unknown
+  ) {
+    if (!this.debug && level === 'debug') return;
+
+    eventBus.emit("screensaver:log", { level, message, data });
+
+    if (this.debug) {
+      const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {
+        debug: 'debug',
+        info: 'info',
+        warn: 'warn',
+        error: 'error'
+      };
+      const method = consoleMethodMap[level] ?? 'log';
+      (console as any)[method](`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+    }
   }
 
   async init(): Promise<void> {
@@ -71,12 +91,9 @@ export class ScreensaverController {
       this.eventBinder.bindBus("user:inactive", this._onInactivity);
       this.eventBinder.bindBus("user:active", this._onActivity);
 
-      eventBus.emit("screensaver:log", {
-        level: "info",
-        message: "Bound user inactivity/active events"
-      });
+      this.log('info', 'Bound user inactivity/active events');
     } catch (error) {
-      this.handleError("Failed to initialize inactivity watcher", error);
+      this.handleError('Failed to initialize inactivity watcher', error);
     }
   }
 
@@ -95,25 +112,22 @@ export class ScreensaverController {
         return;
       }
 
-      container.style.opacity = "0";
-      container.style.display = "";
+      container.style.opacity = '0';
+      container.style.display = '';
       void container.offsetWidth; // force reflow
-      container.style.transition = "opacity 0.5s ease";
-      container.style.opacity = "1";
+      container.style.transition = 'opacity 0.5s ease';
+      container.style.opacity = '1';
 
       if (!this.screensaverManager) {
-        this.screensaverManager = new FloatingImagesManager(container, { debug: true });
+        this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
       } else {
         this.screensaverManager.destroy();
-        this.screensaverManager = new FloatingImagesManager(container, { debug: true });
+        this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
       }
 
-      eventBus.emit("screensaver:log", {
-        level: "info",
-        message: "Screensaver displayed"
-      });
+      this.log('info', 'Screensaver displayed');
     } catch (error) {
-      this.handleError("Failed to load or show screensaver", error);
+      this.handleError('Failed to load or show screensaver', error);
     }
   }
 
@@ -123,14 +137,16 @@ export class ScreensaverController {
     try {
       const container = document.querySelector<HTMLElement>(this.targetSelector);
       if (container) {
-        container.style.transition = "opacity 0.5s ease";
-        container.style.opacity = "0";
+        container.style.transition = 'opacity 0.5s ease';
+        container.style.opacity = '0';
         setTimeout(() => {
-          container.style.display = "none";
+          container.style.display = 'none';
         }, 500);
       }
+
+      this.log('debug', 'Screensaver hidden');
     } catch (error) {
-      this.handleError("Failed to hide screensaver", error);
+      this.handleError('Failed to hide screensaver', error);
     }
   }
 
@@ -143,14 +159,12 @@ export class ScreensaverController {
     this.eventBinder.unbindAll();
     this._partialLoaded = false;
 
-    eventBus.emit("screensaver:log", {
-      level: "info",
-      message: "ScreensaverController destroyed"
-    });
+    this.log('info', 'ScreensaverController destroyed');
   }
 
   private handleError(message: string, error: unknown): void {
     eventBus.emit("screensaver:error", { message, error });
     this.onError?.(message, error);
+    this.log('error', message, error);
   }
 }

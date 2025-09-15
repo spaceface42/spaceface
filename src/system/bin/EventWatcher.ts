@@ -1,6 +1,7 @@
 // src/spaceface/system/bin/EventWatcher.ts
-
 export const VERSION = 'nextworld-1.2.0' as const;
+
+import { eventBus } from "./EventBus.js";
 
 export abstract class EventWatcher {
     protected readonly target: EventTarget;
@@ -19,8 +20,15 @@ export abstract class EventWatcher {
         this.debug = debug;
     }
 
-    protected log(...args: any[]) {
-        if (this.debug) console.log(`[${this.constructor.name}]`, ...args);
+    /** Centralized logging via eventBus */
+    protected log(message: string, data?: unknown) {
+        if (this.debug) {
+            eventBus.emit("log:debug", {
+                scope: this.constructor.name,
+                message,
+                data,
+            });
+        }
     }
 
     protected checkDestroyed() {

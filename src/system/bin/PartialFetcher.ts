@@ -1,5 +1,5 @@
 // src/system/bin/PartialFetcher.ts
-export const VERSION = 'nextworld-1.0.0' as const;
+export const VERSION = 'nextworld-1.0.1' as const;
 
 import { eventBus } from "./EventBus.js";
 import { PartialLoader } from "./PartialLoader.js";
@@ -16,8 +16,9 @@ export class PartialFetcher {
         return this.loader;
     }
 
+    /** emit debug logs via EventBus instead of console.debug */
     private static logDebug(msg: string, data?: unknown) {
-        console.debug(`[PartialFetcher] ${msg}`, data);
+        eventBus.emit("log:debug", { scope: "PartialFetcher", message: msg, data });
     }
 
     static async load(
@@ -35,8 +36,10 @@ export class PartialFetcher {
             await loader.load([{ url, container }]);
 
             eventBus.emit<PartialEventPayload>("partial:loaded", { url, targetSelector, cached: false });
+            this.logDebug("Partial loaded successfully", { url, targetSelector });
         } catch (error) {
             eventBus.emit<PartialEventPayload>("partial:error", { url, error });
+            this.logDebug("Partial load error", { url, error });
             throw error;
         } finally {
             eventBus.emit<PartialEventPayload>("partial:load:complete", { url, targetSelector });
@@ -50,8 +53,10 @@ export class PartialFetcher {
                 try {
                     await activeLoader.load([{ url, container: document.createElement("div") }]);
                     eventBus.emit<PartialEventPayload>("partial:loaded", { url, cached: true });
+                    this.logDebug("Partial preloaded", { url });
                 } catch (error) {
                     eventBus.emit<PartialEventPayload>("partial:error", { url, error });
+                    this.logDebug("Preload error", { url, error });
                 } finally {
                     eventBus.emit<PartialEventPayload>("partial:load:complete", { url });
                 }
@@ -61,6 +66,7 @@ export class PartialFetcher {
 
     static watch(container: HTMLElement | Document = document.body, loader?: PartialLoaderLike) {
         const activeLoader = loader ?? this.getLoader();
+        this.logDebug("Watching container for partials", { container });
         return activeLoader.watch?.(container);
     }
 }

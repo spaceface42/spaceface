@@ -95,6 +95,8 @@ export class Spaceface {
 
     public log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]): void {
         if (!this.debug && level === 'debug') return;
+
+        // Emit to eventBus for unified logging
         eventBus.emit(Spaceface.EVENT_LOG, { level, args });
 
         // Dev console logging
@@ -156,6 +158,8 @@ export class Spaceface {
             this.inactivityWatcher = InactivityWatcher.getInstance({
                 inactivityDelay: screensaver.delay ?? 3000,
             });
+
+            this.log('debug', `InactivityWatcher initialized with delay=${screensaver.delay ?? 3000}ms`);
         } catch (err) {
             this.log('error', "Failed to initialize InactivityWatcher", err);
         }
@@ -310,73 +314,47 @@ export class Spaceface {
         }
     }
 
-
-
-
-    public destroyXXX(): void {
+    public destroy(): void {
+        // --- Unsubscribe partial loader ---
         if (this._partialUnsub) {
             this._partialUnsub();
             this._partialUnsub = undefined;
         }
-    }
 
+        if (this._partialObserver) {
+            if (this._partialObserver.disconnect) this._partialObserver.disconnect();
+            this._partialObserver = undefined;
+        }
 
-public destroy(): void {
-    // --- Unsubscribe partial loader ---
-    if (this._partialUnsub) {
-        this._partialUnsub();
-        this._partialUnsub = undefined;
-    }
+        // --- Destroy slideshows ---
+        if (this.slideshows?.length) {
+            this.slideshows.forEach(slideshow => {
+                if (slideshow.destroy) slideshow.destroy();
+            });
+            this.slideshows = [];
+        }
 
-    if (this._partialObserver) {
-        if (this._partialObserver.disconnect) this._partialObserver.disconnect();
-        this._partialObserver = undefined;
-    }
+        // --- Destroy inactivity watcher ---
+        if (this.inactivityWatcher?.destroy) {
+            this.inactivityWatcher.destroy();
+            this.inactivityWatcher = null;
+        }
 
-    // --- Destroy slideshows ---
-    if (this.slideshows?.length) {
-        this.slideshows.forEach(slideshow => {
-            if (slideshow.destroy) slideshow.destroy();
-        });
-        this.slideshows = [];
-    }
+        // --- Destroy screensaver controller ---
+        if (this.screensaverController?.destroy) {
+            this.screensaverController.destroy();
+            this.screensaverController = null;
+        }
 
-    // --- Destroy inactivity watcher ---
-    if (this.inactivityWatcher?.destroy) {
-        this.inactivityWatcher.destroy();
-        this.inactivityWatcher = null;
-    }
-
-    // --- Destroy screensaver controller ---
-    if (this.screensaverController?.destroy) {
-        this.screensaverController.destroy();
-        this.screensaverController = null;
-    }
-
-    // --- Clear feature module cache ---
-    if (this.featureCache) {
+        // --- Clear feature module cache ---
         this.featureCache.clear();
+
+        // --- Remove dynamically added DOM elements ---
+        const screensaverEl = document.querySelector('[id^="screensaver"]');
+        if (screensaverEl) screensaverEl.remove();
+
+        this.log('info', 'Spaceface destroyed, all resources released.');
     }
-
-    // --- Remove dynamically added DOM elements ---
-    const screensaverEl = document.querySelector('[id^="screensaver"]');
-    if (screensaverEl) screensaverEl.remove();
-
-    // --- Unbind all events via EventBinder (if you use one globally) ---
-    if ((window as any).eventBinder?.unbindAll) {
-        (window as any).eventBinder.unbindAll();
-    }
-
-    // --- Optional: log cleanup ---
-    this.log('info', 'Spaceface destroyed, all resources released.');
-}
-
-
-
-
-
-
-
 }
 
 // Dev Event Logging
@@ -389,17 +367,17 @@ if (isDev) {
         if (!payload) return console.log(`[spaceface onAny] Event: ${eventName} – no payload!`);
         if (typeof payload === 'string') return console.log(`[spaceface onAny] Event: ${eventName} [LOG]`, payload);
 
-        const { level = 'log', message, args, ...otherDetails } = payload;
-        const fullMessage = message ?? args ?? otherDetails ?? '(no details)';
-        const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error' | 'log', keyof Console> = {
+        const { level = 'log', args, ...otherDetails } = payload;
+        const fullMessage = args ?? otherDetails ?? '(no details)';
+        const methodMap: Record<'debug' | 'info' | 'warn' | 'error' | 'log', keyof Console> = {
             debug: 'debug',
             info: 'info',
             warn: 'warn',
             error: 'error',
             log: 'log',
         };
-        const method = consoleMethodMap[level as keyof typeof consoleMethodMap] ?? 'log';
-        (console as any)[method](`[ spaceface onAny ] Event: ${eventName} [${level.toUpperCase()}] –`, fullMessage);
+        const method = methodMap[level as keyof typeof methodMap] ?? 'log';
+        (console as any)[method](`[SPCFC *] Event: ${eventName} [${level.toUpperCase()}] –`, fullMessage);
     });
 }
 
@@ -415,14 +393,7 @@ const app = new Spaceface({
 
 app.init();
 
-
 window.addEventListener('beforeunload', () => {
     app.destroy();
-    console.log('_________________ [spaceface] App destroyed on beforeunload');
+    app.log('info', 'App destroyed on beforeunload');
 });
-
-
-
-
-
-
