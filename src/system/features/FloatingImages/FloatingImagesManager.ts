@@ -1,5 +1,4 @@
 // src/spaceface/features/FloatingImages/FloatingImagesManager.ts
-
 export const VERSION = 'nextworld-1.2.1' as const;
 
 import { FloatingImage } from './FloatingImage.js';
@@ -7,12 +6,14 @@ import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
 import { resizeManager } from '../bin/ResizeManager.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
 import { animationLoop } from '../bin/AnimationLoop.js';
+import { eventBus } from '../../bin/EventBus.js';
 
 import type {
     FloatingImagesManagerOptionsInterface,
     ContainerDimensionsInterface,
     FloatingImagesManagerInterface
 } from '../../types/features.js';
+
 export class FloatingImagesManager implements FloatingImagesManagerInterface {
     readonly container: HTMLElement;
     performanceMonitor: PerformanceMonitor;
@@ -55,6 +56,27 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         }
 
         this.initializeImages();
+        this.log('info', 'FloatingImagesManager initialized', {
+            container: this.container,
+            maxImages: this.maxImages
+        });
+    }
+
+    private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: unknown) {
+        if (!this.debug && level === 'debug') return;
+
+        eventBus.emit('floatingImages:log', { level, message, data });
+
+        if (this.debug) {
+            const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {
+                debug: 'debug',
+                info: 'info',
+                warn: 'warn',
+                error: 'error',
+            };
+            const method = consoleMethodMap[level] ?? 'log';
+            (console as any)[method](`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+        }
     }
 
     private setupResizeHandling() {
@@ -66,9 +88,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         if (!this.container.isConnected) {
             this.containerWidth = 0;
             this.containerHeight = 0;
-            if (this.debug) {
-                console.warn('FloatingImagesManager: Container is not in the DOM.');
-            }
+            this.log('warn', 'Container is not in the DOM, dimensions set to 0');
             return;
         }
         const dims = resizeManager.getElement(this.container);
@@ -81,7 +101,10 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
             const imgElements = await this.imageLoader.waitForImagesToLoad('.floating-image');
             const dims = { width: this.containerWidth, height: this.containerHeight };
             imgElements.slice(0, this.maxImages).forEach(el => this.addExistingImage(el, dims));
-        } catch { /* ignore */ }
+            this.log('info', 'Images initialized', { count: this.images.length });
+        } catch (err) {
+            this.log('error', 'Failed to initialize images', err);
+        }
     }
 
     private addExistingImage(el: HTMLElement, dims: ContainerDimensionsInterface) {
@@ -93,9 +116,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private handleResize() {
         if (this._destroyed) return;
         if (!this.container.isConnected) {
-            if (this.debug) {
-                console.warn('FloatingImagesManager: Resize event ignored, container is not in the DOM.');
-            }
+            this.log('warn', 'Resize event ignored, container not in DOM');
             return;
         }
         this.updateContainerDimensions();
@@ -105,6 +126,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
             img.clampPosition(dims);
             img.updatePosition();
         });
+        this.log('debug', 'Container resized', dims);
     }
 
     private animate() {
@@ -116,25 +138,22 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         const multiplier = this.speedMultiplier;
         const dims = { width: this.containerWidth, height: this.containerHeight };
 
-        // Update images and filter out any that return false (destroyed/expired)
         this.images = this.images.filter(img => img.update(multiplier, dims));
     }
 
     public resetAllImagePositions() {
         const dims = { width: this.containerWidth, height: this.containerHeight };
         this.images.forEach(img => img.resetPosition(dims));
+        this.log('debug', 'All image positions reset', dims);
     }
 
     public reinitializeImages() {
         if (this._destroyed) return;
 
-        // Destroy old images
         this.images.forEach(img => img.destroy());
         this.images.length = 0;
 
         const dims = { width: this.containerWidth, height: this.containerHeight };
-
-        // Re-use existing DOM elements
         const imgElements = Array.from(this.container.querySelectorAll<HTMLElement>('.floating-image'))
             .slice(0, this.maxImages);
 
@@ -142,6 +161,8 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
             const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
             this.images.push(floatingImage);
         });
+
+        this.log('info', 'Images reinitialized', { count: this.images.length });
     }
 
     destroy() {
@@ -149,7 +170,6 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
 
         this._destroyed = true;
 
-        // Remove callback safely
         if (animationLoop.has(this.animateCallback)) {
             animationLoop.remove(this.animateCallback);
         }
@@ -160,5 +180,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.images.forEach(img => img.destroy());
         this.images.length = 0;
         this.imageLoader.destroy();
+
+        this.log('info', 'FloatingImagesManager destroyed');
     }
 }
