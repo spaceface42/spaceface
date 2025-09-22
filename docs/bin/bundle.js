@@ -2209,7 +2209,7 @@ if (isDev) {
 }
 var app = new Spaceface({
   features: {
-    partialLoader: { enabled: true, debug: true, baseUrl: "/", cacheEnabled: true },
+    partialLoader: { enabled: true, debug: false, baseUrl: "/", cacheEnabled: true },
     slideplayer: { interval: 5e3, includePicture: false, showDots: false },
     screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" },
     serviceWorker: true

@@ -1,5 +1,4 @@
 // src/spaceface/features/SlidePlayer/SlidePlayer.ts
-//
 export const VERSION = 'nextworld-1.2.0';
 
 import { eventBus } from '../../bin/EventBus.js';
@@ -15,6 +14,7 @@ interface ISlidePlayerOptions {
   startPaused?: boolean;
   enableBusEvents?: boolean;
   autoplay?: boolean;
+  debug?: boolean;
 }
 
 type PauseReason = 'manual' | 'hover' | 'hidden' | 'inactivity';
@@ -31,6 +31,7 @@ export class SlidePlayer {
   private autoCreateDots: boolean;
   private enableBusEvents: boolean;
   private autoplay: boolean;
+  private debug: boolean;
 
   private slides: HTMLElement[] = [];
   private dots: HTMLDivElement[] = [];
@@ -63,7 +64,8 @@ export class SlidePlayer {
       autoCreateDots = false,
       startPaused = false,
       enableBusEvents = true,
-      autoplay = true
+      autoplay = true,
+      debug = false
     }: ISlidePlayerOptions = {}
   ) {
     this.container = this.resolveContainer(containerOrSelector);
@@ -73,15 +75,33 @@ export class SlidePlayer {
     this.autoCreateDots = autoCreateDots;
     this.enableBusEvents = enableBusEvents;
     this.autoplay = autoplay;
+    this.debug = debug;
 
     this.loader = new AsyncImageLoader(this.container, { includePicture });
-    this.binder = new EventBinder(true);
+    this.binder = new EventBinder(this.debug);
 
     if (startPaused) this.pauseReasons.add('manual');
 
     this.animateCallback = () => this.animate();
-
     this.ready = this.init();
+
+    this.log('info', 'SlidePlayer initialized', { container: this.container, interval, autoplay, debug });
+  }
+
+  /** ---- Centralized logging ---- */
+  private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: unknown) {
+    if (!this.debug && level === 'debug') return;
+
+    eventBus.emit('slideplayer:log', { level, message, data });
+    if (this.debug) {
+      const methodMap: Record<typeof level, keyof Console> = {
+        debug: 'debug',
+        info: 'info',
+        warn: 'warn',
+        error: 'error'
+      };
+      (console as any)[methodMap[level]]?.(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+    }
   }
 
   private resolveContainer(containerOrSelector: string | HTMLElement): HTMLElement {
@@ -92,12 +112,13 @@ export class SlidePlayer {
     return container;
   }
 
+  /** ---- Initialization ---- */
   private async init(): Promise<void> {
     await this.loader.waitForImagesToLoad();
 
     this.refreshSlides();
     if (!this.slides.length) {
-      console.warn('[SlidePlayer] No .slide elements found in container.');
+      this.log('warn', 'No .slide elements found in container.');
       return;
     }
 
@@ -106,14 +127,14 @@ export class SlidePlayer {
     this.setActiveSlide(0);
     this.lastTickTime = performance.now();
 
-    // Screensaver / inactivity integration
     if (this.enableBusEvents) {
       this.binder.bindBus('user:inactive', () => this.togglePause('inactivity', true));
       this.binder.bindBus('user:active', () => this.togglePause('inactivity', false));
     }
 
-    // Start RAF loop only if not paused
-    if (!this.isPaused()) animationLoop.add(this.animateCallback);
+    if (!this.isPaused() && this.autoplay) {
+      animationLoop.add(this.animateCallback);
+    }
   }
 
   /** ---- RAF Animation ---- */
@@ -130,30 +151,33 @@ export class SlidePlayer {
   }
 
   /** ---- Pause / Resume ---- */
-private togglePause(reason: PauseReason, shouldPause: boolean): void {
+  private togglePause(reason: PauseReason, shouldPause: boolean): void {
     if (shouldPause) this.pauseReasons.add(reason);
     else this.pauseReasons.delete(reason);
 
     this.emitPauseResumeIfChanged();
 
-    // Only update RAF if state really changed
     if (this.isPaused()) {
-        if (animationLoop.has(this.animateCallback)) animationLoop.remove(this.animateCallback);
+      if (animationLoop.has(this.animateCallback)) animationLoop.remove(this.animateCallback);
+      this.log('debug', `Paused due to: ${Array.from(this.pauseReasons).join(', ')}`);
     } else {
-        if (!animationLoop.has(this.animateCallback)) animationLoop.add(this.animateCallback);
+      if (!animationLoop.has(this.animateCallback)) animationLoop.add(this.animateCallback);
+      this.log('debug', 'Resumed playback');
     }
-}
-
+  }
 
   private emitPauseResumeIfChanged(): void {
     const nowPaused = this.isPaused();
     if (nowPaused !== this.lastPauseState) {
       this.lastPauseState = nowPaused;
-      this.emit(nowPaused ? 'slideplayer:paused' : 'slideplayer:resumed', {
-        reasons: Array.from(this.pauseReasons)
-      });
+      const event = nowPaused ? 'slideplayer:paused' : 'slideplayer:resumed';
+      this.emit(event, { reasons: Array.from(this.pauseReasons) });
     }
   }
+
+  public play(): void { this.togglePause('manual', false); }
+  public pause(): void { this.togglePause('manual', true); }
+  public isPaused(): boolean { return this.pauseReasons.size > 0; }
 
   /** ---- Slide Navigation ---- */
   public goToSlide(index: number, restart: boolean = true): void {
@@ -173,12 +197,10 @@ private togglePause(reason: PauseReason, shouldPause: boolean): void {
     this.goToSlide(prevIndex, restart);
   }
 
-  public play(): void { this.togglePause('manual', false); }
-  public pause(): void { this.togglePause('manual', true); }
-  public isPaused(): boolean { return this.pauseReasons.size > 0; }
-
   /** ---- Slides / Dots ---- */
-  private refreshSlides(): void { this.slides = Array.from(this.container.querySelectorAll<HTMLElement>('.slide')); }
+  private refreshSlides(): void {
+    this.slides = Array.from(this.container.querySelectorAll<HTMLElement>('.slide'));
+  }
 
   private setupDots(): void {
     this.dotsWrapper = this.container.querySelector(this.dotsSelector);
@@ -196,11 +218,13 @@ private togglePause(reason: PauseReason, shouldPause: boolean): void {
       dot.dataset.index = i.toString();
       this.binder.bindDOM(dot, 'click', () => this.goToSlide(i));
       this.dotsWrapper!.appendChild(dot);
-      return dot as HTMLDivElement;
+      return dot;
     });
   }
 
-  private updateDots(index: number): void { this.dots.forEach((dot, i) => dot.classList.toggle('active', i === index)); }
+  private updateDots(index: number): void {
+    this.dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+  }
 
   private setActiveSlide(index: number): void {
     const prev = this.currentIndex;
@@ -208,6 +232,7 @@ private togglePause(reason: PauseReason, shouldPause: boolean): void {
     this.currentIndex = index;
     this.slides[this.currentIndex]?.classList.add('active');
     this.updateDots(index);
+
     if (prev !== index) this.emit('slideplayer:slideChanged', { index }, 'slideplayer:slide-changed');
   }
 
@@ -269,6 +294,8 @@ private togglePause(reason: PauseReason, shouldPause: boolean): void {
     const dx = this.pointerEndX - this.pointerStartX;
     const dy = this.pointerEndY - this.pointerStartY;
     if (Math.abs(dx) >= SlidePlayer.SWIPE_THRESHOLD && Math.abs(dy) < SlidePlayer.VERTICAL_TOLERANCE) {
+      const direction = dx < 0 ? 'next' : 'prev';
+      this.log('debug', `Swipe detected`, { dx, dy, direction });
       dx < 0 ? this.next() : this.prev();
     }
   }
@@ -281,13 +308,17 @@ private togglePause(reason: PauseReason, shouldPause: boolean): void {
   public destroy(): void {
     if (this.isDestroyed) return;
     this.isDestroyed = true;
+
     animationLoop.remove(this.animateCallback);
     this.binder.unbindAll();
     this.loader.destroy();
+
     this.slides = [];
     this.dots = [];
     this.dotsWrapper = null;
     this.pauseReasons.clear();
+
+    this.log('info', 'SlidePlayer destroyed');
   }
 
   /** ---- Public getters ---- */
