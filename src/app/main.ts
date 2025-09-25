@@ -1,6 +1,13 @@
 // src/spaceface/app/bin/main.ts
 
-import { generateId, eventBus, DomReadyPromise, InactivityWatcher, ServiceWorkerManager, FloatingImagesManagerInterface } from './symlink.js';
+import {
+    generateId,
+    eventBus,
+    DomReadyPromise,
+    InactivityWatcher,
+    ServiceWorkerManager,
+    FloatingImagesManagerInterface
+} from './symlink.js';
 
 // AppConfig
 interface AppConfigOptions {
