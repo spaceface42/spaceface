@@ -28,8 +28,9 @@ export class FloatingImage {
         this.options = { useSubpixel: true, debug: false, ...options };
         this.size = { width: element.offsetWidth, height: element.offsetHeight };
 
-        this.x = Math.random() * (dims.width - this.size.width);
-        this.y = Math.random() * (dims.height - this.size.height);
+        // guard against negative ranges if container is smaller than image
+        this.x = Math.random() * Math.max(0, dims.width - this.size.width);
+        this.y = Math.random() * Math.max(0, dims.height - this.size.height);
 
         this.vx = (Math.random() - 0.5) * 3;
         this.vy = (Math.random() - 0.5) * 3;
@@ -58,14 +59,17 @@ export class FloatingImage {
 
         if (this.x <= 0 || this.x + this.size.width >= dims.width) {
             this.vx = -this.vx * DAMPING;
-            this.vx = Math.abs(this.vx) < MIN_VELOCITY ? Math.sign(this.vx) * MIN_VELOCITY : this.vx;
-            this.x = clamp(this.x, 0, dims.width - this.size.width);
+            // preserve direction when enforcing minimum velocity
+            const signX = this.vx >= 0 ? 1 : -1;
+            this.vx = Math.abs(this.vx) < MIN_VELOCITY ? signX * MIN_VELOCITY : this.vx;
+            this.x = clamp(this.x, 0, Math.max(0, dims.width - this.size.width));
         }
 
         if (this.y <= 0 || this.y + this.size.height >= dims.height) {
             this.vy = -this.vy * DAMPING;
-            this.vy = Math.abs(this.vy) < MIN_VELOCITY ? Math.sign(this.vy) * MIN_VELOCITY : this.vy;
-            this.y = clamp(this.y, 0, dims.height - this.size.height);
+            const signY = this.vy >= 0 ? 1 : -1;
+            this.vy = Math.abs(this.vy) < MIN_VELOCITY ? signY * MIN_VELOCITY : this.vy;
+            this.y = clamp(this.y, 0, Math.max(0, dims.height - this.size.height));
         }
 
         this.vx += (Math.random() - 0.5) * VELOCITY_JITTER;
@@ -83,8 +87,8 @@ export class FloatingImage {
     }
 
     resetPosition(dims: ContainerDimensionsInterface) {
-        this.x = Math.random() * (dims.width - this.size.width);
-        this.y = Math.random() * (dims.height - this.size.height);
+        this.x = Math.random() * Math.max(0, dims.width - this.size.width);
+        this.y = Math.random() * Math.max(0, dims.height - this.size.height);
         this.updatePosition(); // must be called
     }
 
