@@ -6,14 +6,14 @@ import { eventBus } from "./EventBus.js";
 export abstract class EventWatcher {
     protected readonly target: EventTarget;
     protected readonly debug: boolean;
-    protected listening = false;
     protected destroyed = false;
 
     // DOM listeners storage
     private domListeners: { type: string; handler: EventListenerOrEventListenerObject }[] = [];
 
     constructor(target: EventTarget, debug: boolean = false) {
-        if (!(target instanceof EventTarget)) {
+        // Use duck-typing so code runs in environments where EventTarget isn't constructible
+        if (!target || typeof (target as any).addEventListener !== "function" || typeof (target as any).removeEventListener !== "function") {
             throw new Error(`${this.constructor.name}: target must be a valid EventTarget.`);
         }
         this.target = target;
@@ -43,6 +43,9 @@ export abstract class EventWatcher {
         try {
             this.removeAllDomListeners();
             this.removeEventListeners();
+        } catch (err) {
+            // ensure we mark destroyed and surface debug info without throwing
+            this.log("Error while destroying watcher", err);
         } finally {
             this.destroyed = true;
         }
