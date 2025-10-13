@@ -15,7 +15,7 @@ export async function fetchPartialWithRetry(
 
     try {
         const res = await fetch(url, { signal: controller.signal, headers: { Accept: "text/html" } });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
         const html = (await res.text()).trim();
         if (!html) throw new Error("Empty response");
 
@@ -24,10 +24,18 @@ export async function fetchPartialWithRetry(
         return html;
     } catch (err) {
         if (retryAttempts > 1) {
-            await delay(Math.min((4 - retryAttempts) ** 2 * 100, 5000));
+            // Exponential backoff with full jitter:
+            // attempt = 1..N (calculated from retryAttempts decreasing)
+            const attempt = Math.max(1, 4 - retryAttempts); // 1,2,3...
+            // base grows exponentially (100ms, 200ms, 400ms, ...)
+            const base = Math.min(5000, 100 * Math.pow(2, attempt - 1));
+            // full jitter: random between 0 and base, capped
+            const wait = Math.min(Math.random() * base, 5000);
+            await delay(wait);
             return fetchPartialWithRetry(url, timeout, retryAttempts - 1, cache);
         }
-        throw err;
+        // include URL in final error
+        throw new Error(`Failed to fetch partial ${url}: ${(err as Error)?.message ?? String(err)}`);
     } finally {
         clearTimeout(timeoutId);
     }
@@ -37,7 +45,9 @@ export function insertHTML(container: ParentNode | Element, html: string, replac
     const template = document.createElement("template");
     template.innerHTML = html;
 
-    if (container instanceof HTMLLinkElement) {
+    // If container is an Element and attached to the DOM, replace it when requested;
+    // otherwise append into the element or parent node.
+    if (container instanceof Element && replace && container.parentElement) {
         container.replaceWith(...template.content.childNodes);
     } else if (container instanceof Element) {
         if (replace) container.innerHTML = "";
@@ -53,7 +63,7 @@ export function showPartialError(container: ParentNode | Element, error: Error, 
     div.textContent = "Partial load failed";
     if (debug) div.textContent += `: ${error.message}`;
 
-    if (container instanceof HTMLLinkElement) {
+    if (container instanceof Element && container.parentElement) {
         container.replaceWith(div);
     } else if (container instanceof Element) {
         container.innerHTML = "";
