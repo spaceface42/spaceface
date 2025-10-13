@@ -56,310 +56,194 @@ export class Spaceface {
     static EVENT_TELEMETRY = 'telemetry';
 
     public appConfig: AppConfig;
-    public config: Record<string, any>;
-    public features: Record<string, any>;
     public debug: boolean;
     public pageType: string;
     public startTime: number;
 
-    private featureModules: FeatureModuleMap;
-    private featureCache: Map<keyof FeatureModuleMap, any>;
-    private inactivityWatcher: InactivityWatcher | null;
-    private screensaverController: FloatingImagesManagerInterface | null;
+    private featureModules: Record<string, () => Promise<any>>;
+    private featureCache: Map<string, any> = new Map();
+    private inactivityWatcher: InactivityWatcher | null = null;
+    private screensaverController: FloatingImagesManagerInterface | null = null;
     private slideshows: any[] = [];
     private swManager?: ServiceWorkerManager;
     private _partialUnsub?: () => void;
     private _partialObserver?: any;
 
-    constructor(options: SpacefaceOptions = {}) {
+    constructor(options: AppConfigOptions = {}) {
         this.appConfig = new AppConfig(options);
-        this.config = this.appConfig.config;
-        this.features = this.config.features ?? {};
-        this.debug = !!this.config.debug;
-
+        this.debug = !!this.appConfig.config.debug;
         this.pageType = this.resolvePageType();
         this.startTime = performance.now();
 
-        this.featureModules = this.defineFeatureModules();
-        this.featureCache = new Map();
-        this.inactivityWatcher = null;
-        this.screensaverController = null;
-
-        this.validateConfig();
-
-        // Prefetch feature modules
-        (Object.keys(this.featureModules) as (keyof FeatureModuleMap)[]).forEach((name) =>
-            this.loadFeatureModule(name),
-        );
-    }
-
-    private validateConfig(): void {
-        if (!this.config || typeof this.config !== 'object') {
-            throw new Error('Invalid or missing configuration object');
-        }
-        if (!this.config.features) this.log('warn', 'No features specified in config');
-    }
-
-    public log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]): void {
-        if (!this.debug && level === 'debug') return;
-
-        // Emit to eventBus for unified logging
-        eventBus.emit(Spaceface.EVENT_LOG, { level, args });
-
-        // Dev console logging
-        if (this.debug) {
-            const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {
-                debug: 'debug',
-                info: 'info',
-                warn: 'warn',
-                error: 'error',
-            };
-            const method = consoleMethodMap[level] ?? 'log';
-            (console as any)[method](`[spaceface] [${level.toUpperCase()}]`, ...args);
-        }
-    }
-
-    private defineFeatureModules(): FeatureModuleMap {
-        return {
+        this.featureModules = {
             partialLoader: () => import('../system/bin/PartialLoader.js'),
             slideplayer: () => import('../system/features/SlidePlayer/SlidePlayer.js'),
             screensaver: () => import('../system/features/Screensaver/ScreensaverController.js'),
             serviceWorker: () => import('../system/bin/ServiceWorkerManager.js'),
         };
+
+        if (!this.appConfig.config.features) this.log('warn', 'No features specified in config');
+        Object.keys(this.featureModules).forEach(name => this.loadFeatureModule(name));
+    }
+
+    public log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]): void {
+        if (!this.debug && level === 'debug') return;
+        eventBus.emit(Spaceface.EVENT_LOG, { level, args });
+        if (this.debug) {
+            const method = { debug: 'debug', info: 'info', warn: 'warn', error: 'error' }[level] ?? 'log';
+            (console as any)[method](`[spaceface] [${level.toUpperCase()}]`, ...args);
+        }
     }
 
     private resolvePageType(): string {
-        const path = window.location.pathname;
         const body = document.body;
         if (body.dataset.page) return body.dataset.page;
+        const path = window.location.pathname;
         if (path === '/') return 'home';
         if (path === '/app') return 'app';
         return 'default';
     }
 
-    private async loadFeatureModule<K extends keyof FeatureModuleMap>(name: K): Promise<any> {
-        if (!this.featureModules[name] || this.featureCache.has(name)) {
-            return this.featureCache.get(name) ?? null;
-        }
-
+    private async loadFeatureModule(name: string): Promise<any> {
+        if (this.featureCache.has(name)) return this.featureCache.get(name);
         try {
-            const module = await this.featureModules[name]();
+            const module = await this.featureModules[name]?.();
             this.featureCache.set(name, module);
+            return module;
         } catch (err) {
             this.log('error', `Failed to load module "${name}"`, err);
             this.featureCache.set(name, null);
-        }
-
-        return this.featureCache.get(name);
-    }
-
-    // ========================================================================
-    // Feature initializers
-    // ========================================================================
-
-    public async initInactivityWatcher(): Promise<void> {
-        try {
-            const { screensaver } = this.features;
-            if (!screensaver || this.inactivityWatcher) return;
-
-            this.inactivityWatcher = InactivityWatcher.getInstance({
-                inactivityDelay: screensaver.delay ?? 3000,
-            });
-
-            this.log('debug', `InactivityWatcher initialized with delay=${screensaver.delay ?? 3000}ms`);
-        } catch (err) {
-            this.log('error', "Failed to initialize InactivityWatcher", err);
-        }
-    }
-
-    public async initSlidePlayer(): Promise<void> {
-        try {
-            const { slideplayer } = this.features;
-            if (!slideplayer) return;
-
-            const module = await this.loadFeatureModule('slideplayer');
-            const SlidePlayer = module?.SlidePlayer;
-            if (!SlidePlayer) return;
-
-            this.slideshows = [];
-            for (const node of document.querySelectorAll('.slideshow-container')) {
-                const slideshow = new SlidePlayer(node, {
-                    interval: slideplayer.interval ?? 5000,
-                    includePicture: slideplayer.includePicture ?? false,
-                });
-                if (slideshow.ready?.then) await slideshow.ready;
-                this.slideshows.push(slideshow);
-            }
-            this.log('info', `${this.slideshows.length} SlidePlayer instance(s) loaded`);
-        } catch (err) {
-            this.log('error', "Failed to initialize SlidePlayer", err);
-        }
-    }
-
-    public async initScreensaver(): Promise<void> {
-        try {
-            const { screensaver } = this.features;
-            if (!screensaver?.partialUrl) {
-                this.log('error', "Screensaver configuration is missing or incomplete");
-                return;
-            }
-
-            const module = await this.loadFeatureModule('screensaver');
-            const ScreensaverController = module?.ScreensaverController;
-            if (!ScreensaverController) return;
-
-            const id = generateId('screensaver', 9);
-            const container = Object.assign(document.createElement('div'), {
-                id,
-                style:
-                    'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999; display: none;',
-            });
-            document.body.appendChild(container);
-
-            this.screensaverController = new ScreensaverController({
-                partialUrl: screensaver.partialUrl,
-                targetSelector: `#${id}`,
-                ...(screensaver.delay !== undefined && { inactivityDelay: screensaver.delay }),
-            });
-
-            if (this.screensaverController?.init) {
-                await this.screensaverController.init();
-            }
-
-            eventBus.emit('screensaver:initialized', id);
-            this.log('info', 'Screensaver initialized:', id);
-        } catch (err) {
-            this.log('error', "Failed to initialize screensaver", err);
-        }
-    }
-
-    public async initServiceWorker(): Promise<void> {
-        try {
-            if (!this.features.serviceWorker) return;
-
-            const module = await this.loadFeatureModule('serviceWorker');
-            const Manager = module?.default;
-            if (!Manager) return;
-
-            const swManager = new Manager('/sw.js', {}, {
-                strategy: { images: 'cache-first', others: 'network-first' },
-            });
-
-            await swManager.register();
-            swManager.configure();
-            this.swManager = swManager;
-            this.log('info', 'Service Worker registered and configured');
-        } catch (err) {
-            this.log('error', "Service Worker registration failed", err);
-        }
-    }
-
-    public async initPartialLoader(): Promise<any> {
-        try {
-            const config = this.features.partialLoader;
-            if (!config?.enabled) return null;
-
-            const module = await this.loadFeatureModule('partialLoader');
-            const PartialLoader = module?.PartialLoader;
-            if (!PartialLoader) return null;
-
-            const loader = new PartialLoader({
-                debug: config.debug ?? this.debug,
-                baseUrl: config.baseUrl ?? '/',
-                cacheEnabled: config.cacheEnabled ?? true,
-            });
-
-            await loader.loadContainer(document);
-            this._partialObserver = loader.watch(document);
-
-            this.log('info', 'PartialLoader initialized');
-            return loader;
-        } catch (err) {
-            this.log('error', "PartialLoader initialization failed", err);
             return null;
         }
     }
 
-    public async initPageFeatures(): Promise<void> {
-        try {
-            this.log('info', `Initializing features for page type: ${this.pageType}`);
-            this.log('info', `Page features initialized for: ${this.pageType}`);
-        } catch (err) {
-            this.log('error', `Page feature initialization failed for ${this.pageType}`, err);
+    public async initInactivityWatcher(): Promise<void> {
+        const screensaver = this.appConfig.config.features?.screensaver;
+        if (!screensaver || this.inactivityWatcher) return;
+        this.inactivityWatcher = InactivityWatcher.getInstance({
+            inactivityDelay: screensaver.delay ?? 3000,
+        });
+        this.log('debug', `InactivityWatcher initialized with delay=${screensaver.delay ?? 3000}ms`);
+    }
+
+    public async initSlidePlayer(): Promise<void> {
+        const slideplayer = this.appConfig.config.features?.slideplayer;
+        if (!slideplayer) return;
+        const module = await this.loadFeatureModule('slideplayer');
+        const SlidePlayer = module?.SlidePlayer;
+        if (!SlidePlayer) return;
+        this.slideshows = [];
+        document.querySelectorAll('.slideshow-container').forEach(node => {
+            const slideshow = new SlidePlayer(node, {
+                interval: slideplayer.interval ?? 5000,
+                includePicture: slideplayer.includePicture ?? false,
+            });
+            if (slideshow.ready?.then) slideshow.ready.then(() => {});
+            this.slideshows.push(slideshow);
+        });
+        this.log('info', `${this.slideshows.length} SlidePlayer instance(s) loaded`);
+    }
+
+    public async initScreensaver(): Promise<void> {
+        const screensaver = this.appConfig.config.features?.screensaver;
+        if (!screensaver?.partialUrl) {
+            this.log('error', "Screensaver configuration is missing or incomplete");
+            return;
+        }
+        const module = await this.loadFeatureModule('screensaver');
+        const ScreensaverController = module?.ScreensaverController;
+        if (!ScreensaverController) return;
+        const id = generateId('screensaver', 9);
+        const container = Object.assign(document.createElement('div'), {
+            id,
+            style: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999; display: none;',
+        });
+        document.body.appendChild(container);
+        this.screensaverController = new ScreensaverController({
+            partialUrl: screensaver.partialUrl,
+            targetSelector: `#${id}`,
+            ...(screensaver.delay !== undefined && { inactivityDelay: screensaver.delay }),
+        });
+        await this.screensaverController?.init?.();
+        eventBus.emit('screensaver:initialized', id);
+        this.log('info', 'Screensaver initialized:', id);
+    }
+
+    public async initServiceWorker(): Promise<void> {
+        if (!this.appConfig.config.features?.serviceWorker) return;
+        const module = await this.loadFeatureModule('serviceWorker');
+        const Manager = module?.default;
+        if (!Manager) return;
+        this.swManager = new Manager('/sw.js', {}, {
+            strategy: { images: 'cache-first', others: 'network-first' },
+        });
+        if (this.swManager) {
+            await this.swManager.register();
+            this.swManager.configure();
+            this.log('info', 'Service Worker registered and configured');
         }
     }
 
-    // Main init
-    public async init(): Promise<void> {
-        try {
-            this.log('info', `App initialization started (Page: ${this.pageType})`);
-            document.documentElement.classList.add('js-enabled', `page-${this.pageType}`);
-
-            await DomReadyPromise.ready();
-            this.log('info', 'DOM ready');
-
-            const featurePromises = [
-                this.initInactivityWatcher(),
-                this.initPartialLoader(),
-                this.initSlidePlayer(),
-                this.initScreensaver(),
-                this.initServiceWorker(),
-            ];
-
-            await Promise.allSettled(featurePromises);
-            await this.initPageFeatures();
-
-            const duration = (performance.now() - this.startTime).toFixed(2);
-            this.log('info', `App initialized in ${duration}ms`);
-            eventBus.emit(Spaceface.EVENT_TELEMETRY, {
-                type: 'init:duration',
-                value: duration,
-                page: this.pageType,
-            });
-        } catch (err) {
-            this.log('error', "Critical app initialization error", err);
+    public async initPartialLoader(): Promise<any> {
+        const config = this.appConfig.config.features?.partialLoader;
+        if (!config?.enabled) return null;
+        const module = await this.loadFeatureModule('partialLoader');
+        const PartialLoader = module?.PartialLoader;
+        if (!PartialLoader) return null;
+        const loader = new PartialLoader({
+            debug: config.debug ?? this.debug,
+            baseUrl: config.baseUrl ?? '/',
+            cacheEnabled: config.cacheEnabled ?? true,
+        });
+        await loader.loadContainer(document);
+        // loader.watch may return an observer object or an unsubscribe function.
+        const watchResult = loader.watch?.(document);
+        if (typeof watchResult === 'function') {
+            this._partialUnsub = watchResult;
+            this._partialObserver = undefined;
+        } else {
+            this._partialObserver = watchResult;
+            this._partialUnsub = undefined;
         }
+        this.log('info', 'PartialLoader initialized');
+        return loader;
+    }
+
+    public async init(): Promise<void> {
+        this.log('info', `App initialization started (Page: ${this.pageType})`);
+        document.documentElement.classList.add('js-enabled', `page-${this.pageType}`);
+        await DomReadyPromise.ready();
+        this.log('info', 'DOM ready');
+        await Promise.allSettled([
+            this.initInactivityWatcher(),
+            this.initPartialLoader(),
+            this.initSlidePlayer(),
+            this.initScreensaver(),
+            this.initServiceWorker(),
+        ]);
+        this.log('info', `Page features initialized for: ${this.pageType}`);
+        const duration = (performance.now() - this.startTime).toFixed(2);
+        this.log('info', `App initialized in ${duration}ms`);
+        eventBus.emit(Spaceface.EVENT_TELEMETRY, {
+            type: 'init:duration',
+            value: duration,
+            page: this.pageType,
+        });
     }
 
     public destroy(): void {
-        // --- Unsubscribe partial loader ---
-        if (this._partialUnsub) {
-            this._partialUnsub();
-            this._partialUnsub = undefined;
-        }
-
-        if (this._partialObserver) {
-            if (this._partialObserver.disconnect) this._partialObserver.disconnect();
-            this._partialObserver = undefined;
-        }
-
-        // --- Destroy slideshows ---
-        if (this.slideshows?.length) {
-            this.slideshows.forEach(slideshow => {
-                if (slideshow.destroy) slideshow.destroy();
-            });
-            this.slideshows = [];
-        }
-
-        // --- Destroy inactivity watcher ---
-        if (this.inactivityWatcher?.destroy) {
-            this.inactivityWatcher.destroy();
-            this.inactivityWatcher = null;
-        }
-
-        // --- Destroy screensaver controller ---
-        if (this.screensaverController?.destroy) {
-            this.screensaverController.destroy();
-            this.screensaverController = null;
-        }
-
-        // --- Clear feature module cache ---
+        this._partialUnsub?.();
+        this._partialUnsub = undefined;
+        this._partialObserver?.disconnect?.();
+        this._partialObserver = undefined;
+        this.slideshows.forEach(slideshow => slideshow.destroy?.());
+        this.slideshows = [];
+        this.inactivityWatcher?.destroy?.();
+        this.inactivityWatcher = null;
+        this.screensaverController?.destroy?.();
+        this.screensaverController = null;
         this.featureCache.clear();
-
-        // --- Remove dynamically added DOM elements ---
-        const screensaverEl = document.querySelector('[id^="screensaver"]');
-        if (screensaverEl) screensaverEl.remove();
-
+        document.querySelector('[id^="screensaver"]')?.remove();
         this.log('info', 'Spaceface destroyed, all resources released.');
     }
 }
