@@ -26,7 +26,8 @@ export class AnimationLoop {
     private start() {
         if (this.running || this.callbacks.size === 0) return;
         this.running = true;
-        this._loop();
+        // schedule first frame rather than invoking immediately
+        this._rafId = requestAnimationFrame(this._loop);
     }
 
     private stop() {
@@ -40,7 +41,8 @@ export class AnimationLoop {
 
     private _loop = () => {
         if (!this.running) return;
-        for (const cb of this.callbacks) {
+        // iterate a snapshot so callbacks can add/remove themselves safely
+        for (const cb of Array.from(this.callbacks)) {
             try { cb(); } catch (err) { console.error('AnimationLoop callback error:', err); }
         }
         this._rafId = requestAnimationFrame(this._loop);
