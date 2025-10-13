@@ -40,7 +40,9 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.maxImages = options.maxImages ?? perfSettings.maxImages;
 
         this.intersectionObserver = new IntersectionObserver(entries => {
-            this.isInViewport = entries[0].isIntersecting;
+            const entry = entries[0];
+            if (!entry) return;
+            this.isInViewport = !!entry.isIntersecting;
         }, { threshold: 0 });
         this.intersectionObserver.observe(this.container);
 
@@ -100,7 +102,11 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         try {
             const imgElements = await this.imageLoader.waitForImagesToLoad('.floating-image');
             const dims = { width: this.containerWidth, height: this.containerHeight };
-            imgElements.slice(0, this.maxImages).forEach(el => this.addExistingImage(el, dims));
+            // if destroyed while awaiting, avoid adding images
+            imgElements.slice(0, this.maxImages).forEach(el => {
+                if (this._destroyed) return;
+                this.addExistingImage(el, dims);
+            });
             this.log('info', 'Images initialized', { count: this.images.length });
         } catch (err) {
             this.log('error', 'Failed to initialize images', err);
@@ -149,6 +155,10 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
 
     public reinitializeImages() {
         if (this._destroyed) return;
+        if (!this.container.isConnected) {
+            this.log('warn', 'reinitializeImages: container not in DOM, skipping');
+            return;
+        }
 
         this.images.forEach(img => img.destroy());
         this.images.length = 0;
@@ -176,10 +186,18 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
 
         this.unsubscribeWindow?.();
         this.unsubscribeElement?.();
+        // clear unsubscribe refs to avoid keeping closures alive
+        this.unsubscribeWindow = undefined;
+        this.unsubscribeElement = undefined;
+
         this.intersectionObserver.disconnect();
         this.images.forEach(img => img.destroy());
         this.images.length = 0;
         this.imageLoader.destroy();
+
+        // reset container dims
+        this.containerWidth = 0;
+        this.containerHeight = 0;
 
         this.log('info', 'FloatingImagesManager destroyed');
     }
