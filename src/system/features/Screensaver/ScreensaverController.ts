@@ -25,6 +25,10 @@ export class ScreensaverController {
   private eventBinder: EventBinder;
   private _partialLoaded = false;
   private partialFetcher: typeof PartialFetcher;
+  // avoid duplicate concurrent partial loads
+  private _loadPromise?: Promise<void>;
+  private _hideTimeout: number | null = null;
+  private _bound = false;
 
   private _onInactivity: () => void;
   private _onActivity: () => void;
@@ -80,6 +84,7 @@ export class ScreensaverController {
 
   async init(): Promise<void> {
     if (this._destroyed) return;
+    if (this._bound) return;
 
     try {
       if (!this.watcher) {
@@ -90,6 +95,7 @@ export class ScreensaverController {
 
       this.eventBinder.bindBus("user:inactive", this._onInactivity);
       this.eventBinder.bindBus("user:active", this._onActivity);
+      this._bound = true;
 
       this.log('info', 'Bound user inactivity/active events');
     } catch (error) {
@@ -102,8 +108,13 @@ export class ScreensaverController {
 
     try {
       if (!this._partialLoaded) {
-        await this.partialFetcher.load(this.partialUrl, this.targetSelector);
-        this._partialLoaded = true;
+        if (!this._loadPromise) {
+          this._loadPromise = this.partialFetcher
+            .load(this.partialUrl, this.targetSelector)
+            .then(() => { this._partialLoaded = true; })
+            .finally(() => { this._loadPromise = undefined; });
+        }
+        await this._loadPromise;
       }
 
       const container = document.querySelector<HTMLElement>(this.targetSelector);
@@ -139,8 +150,12 @@ export class ScreensaverController {
       if (container) {
         container.style.transition = 'opacity 0.5s ease';
         container.style.opacity = '0';
-        setTimeout(() => {
+        if (this._hideTimeout) {
+          clearTimeout(this._hideTimeout);
+        }
+        this._hideTimeout = window.setTimeout(() => {
           container.style.display = 'none';
+          this._hideTimeout = null;
         }, 500);
       }
 
@@ -155,9 +170,16 @@ export class ScreensaverController {
     this._destroyed = true;
 
     this.hideScreensaver();
-    this.screensaverManager?.destroy();
+    try { this.screensaverManager?.destroy(); } catch (err) { this.log('warn', 'screensaverManager.destroy() failed', err); }
     this.eventBinder.unbindAll();
     this._partialLoaded = false;
+    if (this._hideTimeout) {
+      clearTimeout(this._hideTimeout);
+      this._hideTimeout = null;
+    }
+    // clear pending load ref to avoid holding Promise after destroy
+    this._loadPromise = undefined;
+    this._bound = false;
 
     this.log('info', 'ScreensaverController destroyed');
   }
