@@ -54,6 +54,7 @@ export class SlidePlayer {
 
   private lastPauseState: boolean = false;
   public readonly ready: Promise<void>;
+  public initError: unknown = null;
 
   constructor(
     containerOrSelector: string | HTMLElement,
@@ -83,7 +84,14 @@ export class SlidePlayer {
     if (startPaused) this.pauseReasons.add('manual');
 
     this.animateCallback = () => this.animate();
-    this.ready = this.init();
+    // Ensure init always resolves to avoid unhandled rejection.
+    // If init fails we capture the error in initError for callers to inspect.
+    this.ready = this.init()
+      .catch((err) => {
+        this.initError = err;
+        this.log('error', 'SlidePlayer init failed', err);
+      })
+      .then(() => {});
 
     this.log('info', 'SlidePlayer initialized', { container: this.container, interval, autoplay, debug });
   }
@@ -127,10 +135,7 @@ export class SlidePlayer {
     this.setActiveSlide(0);
     this.lastTickTime = performance.now();
 
-    if (this.enableBusEvents) {
-      this.binder.bindBus('user:inactive', () => this.togglePause('inactivity', true));
-      this.binder.bindBus('user:active', () => this.togglePause('inactivity', false));
-    }
+    // bus bindings handled by bindActivityEvents() to avoid duplication
 
     if (!this.isPaused() && this.autoplay) {
       animationLoop.add(this.animateCallback);
@@ -259,8 +264,12 @@ export class SlidePlayer {
       const ev = e as PointerEvent;
       this.pointerEndX = ev.clientX; this.pointerEndY = ev.clientY;
     });
-    this.binder.bindDOM(this.container, 'pointerup', () => {
+    // listen for pointerup/pointercancel on window so release outside container is handled
+    this.binder.bindDOM(window, 'pointerup', () => {
       if (this.isPointerDown) { this.handleSwipe(); this.isPointerDown = false; }
+    });
+    this.binder.bindDOM(window, 'pointercancel', () => {
+      this.isPointerDown = false;
     });
     this.binder.bindDOM(this.container, 'pointerleave', () => this.isPointerDown = false);
     this.binder.bindDOM(this.container, 'mouseenter', () => this.togglePause('hover', true));
@@ -282,8 +291,10 @@ export class SlidePlayer {
   }
 
   private bindActivityEvents(): void {
-    this.binder.bindBus('user:inactive', () => this.togglePause('inactivity', true));
-    this.binder.bindBus('user:active', () => this.togglePause('inactivity', false));
+    if (this.enableBusEvents) {
+      this.binder.bindBus('user:inactive', () => this.togglePause('inactivity', true));
+      this.binder.bindBus('user:active', () => this.togglePause('inactivity', false));
+    }
   }
 
   private bindUnloadEvent(): void {
