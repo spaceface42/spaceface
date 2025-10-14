@@ -8,8 +8,8 @@ export abstract class EventWatcher {
     protected readonly debug: boolean;
     protected destroyed = false;
 
-    // DOM listeners storage
-    private domListeners: { type: string; handler: EventListenerOrEventListenerObject }[] = [];
+    // DOM listeners storage (store options so removal is exact)
+    private domListeners: { type: string; handler: EventListenerOrEventListenerObject; options?: boolean | AddEventListenerOptions }[] = [];
 
     constructor(target: EventTarget, debug: boolean = false) {
         // Use duck-typing so code runs in environments where EventTarget isn't constructible
@@ -20,15 +20,43 @@ export abstract class EventWatcher {
         this.debug = debug;
     }
 
-    /** Centralized logging via eventBus */
-    protected log(message: string, data?: unknown) {
-        if (this.debug) {
+    /**
+     * Centralized logging.
+     *
+     * Supports two call forms for backward compatibility:
+     *  - log(level, message, data?)
+     *  - log(message, data?)        // treated as debug-level (legacy)
+     */
+    protected log(levelOrMessage: 'debug' | 'info' | 'warn' | 'error' | string, messageOrData?: unknown, data?: unknown) {
+        // If first arg is a recognized level and second arg is a string -> new form
+        const levels = ['debug', 'info', 'warn', 'error'];
+        if (typeof levelOrMessage === 'string' && levels.includes(levelOrMessage) && typeof messageOrData === 'string') {
+            const level = levelOrMessage as 'debug' | 'info' | 'warn' | 'error';
+            const message = messageOrData as string;
+            const payload = data;
+            if (!this.debug && level === 'debug') return;
+            try {
+                eventBus.emit("log", { scope: this.constructor.name, level, message, data: payload });
+            } catch (_) { /* ignore eventBus errors */ }
+            if (this.debug) {
+                const method = { debug: 'debug', info: 'info', warn: 'warn', error: 'error' }[level] ?? 'log';
+                (console as any)[method](`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+            }
+            return;
+        }
+
+        // Backward-compatible form: log(message, data?)
+        const message = levelOrMessage as string;
+        const payload = messageOrData;
+        if (!this.debug) return;
+        try {
             eventBus.emit("log:debug", {
                 scope: this.constructor.name,
                 message,
-                data,
+                data: payload,
             });
-        }
+        } catch (_) { /* ignore eventBus errors */ }
+        (console as any).debug?.(`[${this.constructor.name}] [DEBUG]`, message, payload);
     }
 
     protected checkDestroyed() {
@@ -39,28 +67,34 @@ export abstract class EventWatcher {
 
     public destroy() {
         if (this.destroyed) return;
-        this.log("Destroying watcher");
+        this.log('info', "Destroying watcher");
         try {
             this.removeAllDomListeners();
             this.removeEventListeners();
         } catch (err) {
             // ensure we mark destroyed and surface debug info without throwing
-            this.log("Error while destroying watcher", err);
+            this.log('error', "Error while destroying watcher", err);
         } finally {
             this.destroyed = true;
         }
     }
 
     /** Add a DOM listener and store it for later removal */
-    protected addDomListener(type: string, handler: EventListenerOrEventListenerObject) {
-        this.target.addEventListener(type, handler);
-        this.domListeners.push({ type, handler });
+    protected addDomListener(type: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) {
+        if (this.destroyed) return;
+        this.target.addEventListener(type, handler, options);
+        this.domListeners.push({ type, handler, options });
     }
 
     /** Remove all stored DOM listeners */
     protected removeAllDomListeners() {
-        for (const { type, handler } of this.domListeners) {
-            this.target.removeEventListener(type, handler);
+        for (const { type, handler, options } of this.domListeners) {
+            try {
+                // removeEventListener accepts the same boolean/options used to add the listener
+                this.target.removeEventListener(type, handler, options as any);
+            } catch (e) {
+                // ignore errors during cleanup
+            }
         }
         this.domListeners = [];
     }

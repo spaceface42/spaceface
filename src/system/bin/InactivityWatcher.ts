@@ -34,26 +34,36 @@ export class InactivityWatcher extends EventWatcher {
     static getInstance(options: InactivityWatcherOptionsInterface & { target?: EventTarget }): InactivityWatcher {
         if (!this._instance) {
             this._instance = new InactivityWatcher(options.target ?? document, options);
+            return this._instance;
+        }
+        // If requested options differ, allow updating runtime inactivityDelay
+        if (typeof options.inactivityDelay === 'number' && this._instance.inactivityDelay !== options.inactivityDelay) {
+            this._instance.inactivityDelay = options.inactivityDelay;
+            this._instance.log(`Updated inactivityDelay to ${this._instance.inactivityDelay}ms`);
+            // reset timer with new delay
+            this._instance.resetTimer();
         }
         return this._instance;
     }
 
     protected addEventListeners(): void {
-        this.target.addEventListener('mousemove', this.throttledReset);
-        this.target.addEventListener('keydown', this.throttledReset);
-        this.target.addEventListener('scroll', this.throttledReset);
-        this.target.addEventListener('visibilitychange', this.throttledReset);
+        // register via EventWatcher helper so listeners are tracked for cleanup
+        this.addDomListener('mousemove', this.throttledReset);
+        this.addDomListener('keydown', this.throttledReset);
+        this.addDomListener('scroll', this.throttledReset);
+        this.addDomListener('visibilitychange', this.throttledReset);
 
         this.resetTimer();
     }
 
     protected removeEventListeners(): void {
-        this.target.removeEventListener('mousemove', this.throttledReset);
-        this.target.removeEventListener('keydown', this.throttledReset);
-        this.target.removeEventListener('scroll', this.throttledReset);
-        this.target.removeEventListener('visibilitychange', this.throttledReset);
+        // remove tracked DOM listeners
+        this.removeAllDomListeners();
 
-        if (this.timer) clearTimeout(this.timer);
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = undefined;
+        }
     }
 
     private resetTimer() {

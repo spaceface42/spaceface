@@ -62,14 +62,19 @@ export class EventBinder implements EventBinderInterface {
    * Attach binder lifetime to an AbortSignal.
    * All bindings will be unbound automatically when the signal aborts.
    * @param signal AbortSignal to link binder lifetime to
+   * @returns unsubscribe function that removes the abort listener
    */
-  attachTo(signal: AbortSignal): void {
+  attachTo(signal: AbortSignal): () => void {
     if (signal.aborted) {
       this.unbindAll();
-      return;
+      return () => {};
     }
     const listener = () => this.unbindAll();
     signal.addEventListener("abort", listener, { once: true });
+    // return an unsubscribe so callers (eg tests) can remove the attachment without aborting the signal
+    return () => {
+      try { signal.removeEventListener("abort", listener); } catch { /* ignore */ }
+    };
   }
 
   /**
@@ -104,13 +109,9 @@ export class EventBinder implements EventBinderInterface {
     handler: EventListenerOrEventListenerObject,
     options: AddEventListenerOptions | boolean = false
   ): void {
-    if (!(target instanceof EventTarget)) {
+    // Duck-typing check so this works in non-browser/test runtimes where EventTarget instanceof may fail
+    if (!target || typeof (target as any).addEventListener !== "function" || typeof (target as any).removeEventListener !== "function") {
       this.logger.warn(`Invalid DOM target for bindDOM: ${String(target)}`);
-      return;
-    }
-
-    if (this.domBindings.find(b => b.target === target && b.event === event && b.handler === handler)) {
-      this.debug("dom:bind:duplicate", { event, handler, target });
       return;
     }
 
@@ -120,10 +121,22 @@ export class EventBinder implements EventBinderInterface {
         ? { capture: options, signal: controller.signal }
         : { ...options, signal: controller.signal };
 
+    // simple options equality (compare capture/passive/once) to avoid duplicate bindings with identical semantics
+    const optionsEqual = (a?: AddEventListenerOptions, b?: AddEventListenerOptions) =>
+      (!!a === !!b) &&
+      ((a?.capture ?? false) === (b?.capture ?? false)) &&
+      ((a?.passive ?? false) === (b?.passive ?? false)) &&
+      ((a?.once ?? false) === (b?.once ?? false));
+
+    if (this.domBindings.find(b => b.target === target && b.event === event && b.handler === handler && optionsEqual(b.options, normalizedOptions))) {
+      this.debug("dom:bind:duplicate", { event, handler, target, options: normalizedOptions });
+      return;
+    }
+
     try {
-      target.addEventListener(event, handler, normalizedOptions);
+      (target as EventTarget).addEventListener(event, handler, normalizedOptions);
       this.domBindings.push({ target, event, handler, options: normalizedOptions, controller });
-      this.debug("dom:bind", { event, handler, target });
+      this.debug("dom:bind", { event, handler, target, options: normalizedOptions });
     } catch (err) {
       this.logger.error(`Failed to bind DOM event "${event}": ${err instanceof Error ? err.message : String(err)}`);
     }

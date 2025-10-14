@@ -23,13 +23,14 @@ export class EventBus implements EventBusInterface {
         return () => this.off(event, fn);
     }
 
-    once<T = any>(event: string, fn: (payload: T) => any, priority = 0) {
+    once<T = any>(event: string, fn: (payload: T) => any, priority = 0): UnsubscribeFn {
         const wrapper = (payload: T) => {
             this.off(event, wrapper);
             fn(payload);
         };
         this.onceWrappers.set(fn, wrapper);
         this.on(event, wrapper, priority);
+        return () => this.off(event, fn);
     }
 
     onAny(fn: (event: string, payload: any) => any, priority = 0): UnsubscribeFn {
@@ -54,20 +55,22 @@ export class EventBus implements EventBusInterface {
     emit<T = any>(event: string, payload?: T) {
         if (!event) return this._handleError("Event name is undefined or empty", new Error());
 
-        const list = this.listeners[event] ?? [];
+        // iterate a snapshot so listeners can add/remove themselves safely
+        const list = [...(this.listeners[event] ?? [])];
         for (const l of list) try { l.fn(payload); } catch (err) { this._handleError(`Error in listener for "${event}"`, err); }
 
-        for (const l of this.anyListeners) try { l.fn(event, payload); } catch (err) { this._handleError(`Error in any-listener for "${event}"`, err); }
+        const anyList = [...this.anyListeners];
+        for (const l of anyList) try { l.fn(event, payload); } catch (err) { this._handleError(`Error in any-listener for "${event}"`, err); }
     }
 
     async emitAsync<T = any>(event: string, payload?: T): Promise<any[]> {
         if (!event) { this._handleError("Event name is undefined or empty", new Error()); return []; }
 
         const results: any[] = [];
-        const list = this.listeners[event] ?? [];
-
+        const list = [...(this.listeners[event] ?? [])];
         for (const l of list) try { results.push(await l.fn(payload)); } catch (err) { this._handleError(`Async error in listener for "${event}"`, err); }
-        for (const l of this.anyListeners) try { results.push(await l.fn(event, payload)); } catch (err) { this._handleError(`Async error in any-listener for "${event}"`, err); }
+        const anyList = [...this.anyListeners];
+        for (const l of anyList) try { results.push(await l.fn(event, payload)); } catch (err) { this._handleError(`Async error in any-listener for "${event}"`, err); }
 
         return results;
     }
