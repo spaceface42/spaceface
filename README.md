@@ -1,4 +1,10 @@
 Spaceface
+
+A proudly overengineered, no-thrills, no-framework TypeScript oddity.
+It handles screensavers and partial HTML fetching — because reloading the whole page is so last century.
+No React. No clutter. No apologies.
+Just handcrafted logic and a sprinkle of cosmic minimalism.
+
 A tiny TypeScript feature library for display-focused web apps (slideshows, screensavers, floating imagery, partial HTML loading and small runtime utilities).
 
 What it provides
