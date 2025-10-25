@@ -1,4 +1,5 @@
 // src/spaceface/features/FloatingImages/FloatingImagesManager.ts
+
 export const VERSION = 'nextworld-1.2.1' as const;
 
 import { FloatingImage } from './FloatingImage.js';
