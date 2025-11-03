@@ -1,3 +1,5 @@
+// src/spaceface/system/types/features.ts
+
 // FloatingImagesManager
 export interface FloatingImagesManagerOptionsInterface {
     maxImages?: number;

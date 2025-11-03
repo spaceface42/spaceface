@@ -1,3 +1,5 @@
+// src/spaceface/system/types/bin.ts
+
 // domready
 export type WaitForElementOptions = {
   timeout?: number;

@@ -1,4 +1,5 @@
 // src/spaceface/features/Screensaver/ScreensaverController.ts
+
 export const VERSION = 'nextworld-1.2.0' as const;
 
 import { eventBus } from "../../bin/EventBus.js";

@@ -1,3 +1,5 @@
+// src/spaceface/app/bin/symlinks.ts
+
 export { DomReadyPromise } from "../system/bin/DomReadyPromise.js";
 export { InactivityWatcher } from "../system/bin/InactivityWatcher.js";
 export { eventBus } from "../system/bin/EventBus.js";
