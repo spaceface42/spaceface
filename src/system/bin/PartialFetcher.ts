@@ -6,19 +6,16 @@ import { PartialLoader } from "./PartialLoader.js";
 import type { PartialFetchOptionsInterface, PartialEventPayload, PartialLoaderLike } from "../types/bin.js";
 
 export class PartialFetcher {
-    /** default internal loader instance */
+    /** Default internal loader instance */
     private static loader: PartialLoaderLike;
 
     private static getLoader(): PartialLoaderLike {
-        if (!this.loader) {
-            this.loader = new PartialLoader();
-        }
-        return this.loader;
+        return this.loader ?? (this.loader = new PartialLoader());
     }
 
-    /** emit debug logs via EventBus instead of console.debug */
-    private static logDebug(msg: string, data?: unknown) {
-        eventBus.emit("log:debug", { scope: "PartialFetcher", message: msg, data });
+    /** Emit debug logs via EventBus */
+    private static logDebug(message: string, data?: unknown) {
+        eventBus.emit("log", { scope: "PartialFetcher", level: "debug", message, data });
     }
 
     static async load(
@@ -27,14 +24,12 @@ export class PartialFetcher {
         options: PartialFetchOptionsInterface = {}
     ): Promise<void> {
         const loader = options.loader ?? this.getLoader();
+        const container = document.querySelector<HTMLElement>(targetSelector);
+        if (!container) throw new Error(`Target ${targetSelector} not found`);
+
         try {
             this.logDebug("Fetching partial", { url, targetSelector });
-
-            const container = document.querySelector<HTMLElement>(targetSelector);
-            if (!container) throw new Error(`Target ${targetSelector} not found`);
-
             await loader.load([{ url, container }]);
-
             eventBus.emit<PartialEventPayload>("partial:loaded", { url, targetSelector, cached: false });
             this.logDebug("Partial loaded successfully", { url, targetSelector });
         } catch (error) {
@@ -42,23 +37,25 @@ export class PartialFetcher {
             this.logDebug("Partial load error", { url, error });
             throw error;
         } finally {
-            eventBus.emit<PartialEventPayload>("partial:load:complete", { url, targetSelector });
+            eventBus.emit<PartialEventPayload>("partial:load:complete", { url, targetSelector, error: false });
         }
     }
 
     static async preload(urls: string[], loader?: PartialLoaderLike): Promise<void[]> {
         const activeLoader = loader ?? this.getLoader();
+        const dummyContainer = document.createElement("div");
+
         return Promise.all(
             urls.map(async (url) => {
                 try {
-                    await activeLoader.load([{ url, container: document.createElement("div") }]);
+                    this.logDebug("Preloading partial", { url });
+                    await activeLoader.load([{ url, container: dummyContainer }]);
                     eventBus.emit<PartialEventPayload>("partial:loaded", { url, cached: true });
-                    this.logDebug("Partial preloaded", { url });
                 } catch (error) {
                     eventBus.emit<PartialEventPayload>("partial:error", { url, error });
                     this.logDebug("Preload error", { url, error });
                 } finally {
-                    eventBus.emit<PartialEventPayload>("partial:load:complete", { url });
+                    eventBus.emit<PartialEventPayload>("partial:load:complete", { url, error: false });
                 }
             })
         );
