@@ -11,20 +11,24 @@ Spaceface is organized into modular utilities and feature controllers:
 - **CSS and Styling**: Styles are modular and located in `spaceface/spacesuit/`. Key files include `main.css`, `layout.css`, and `variables.css`.
 
 ### Data Flow and Communication
+
 - **Event-Driven Architecture**: The `EventBus` and `EventBinder` are central to communication between components. Use them for app-level wiring with automatic cleanup.
 - **Partial Loading**: `PartialFetcher` and `PartialLoader` handle dynamic HTML content loading, reducing full-page reloads.
 
 ## Developer Workflows
 
 ### Building the Project
+
 - Install dependencies: `npm install`
 - Build the project: `node ./bin/build.js`
 
 ### Debugging
+
 - Use the `EventLogger` utility in `sources/system/bin/` to log and debug event flows.
 - CSS debugging tools are available in `spaceface/spacesuit/debug/`.
 
 ### Testing
+
 - No explicit test framework is defined. Add tests in `sources/system/features/` or `sources/system/bin/` as needed.
 
 ## Project-Specific Conventions
@@ -41,25 +45,27 @@ Spaceface is organized into modular utilities and feature controllers:
 ## Examples
 
 ### Creating a SlidePlayer
+
 ```typescript
-import { SlidePlayer } from './sources/system/features/SlidePlayer';
+import { SlidePlayer } from "./sources/system/features/SlidePlayer";
 
 const player = new SlidePlayer();
 await player.ready;
 if (player.initError) {
-  console.error('Failed to initialize SlidePlayer:', player.initError);
+    console.error("Failed to initialize SlidePlayer:", player.initError);
 }
 ```
 
 ### Using EventBus
+
 ```typescript
-import { EventBus } from './sources/system/bin/EventBus';
+import { EventBus } from "./sources/system/bin/EventBus";
 
 const bus = new EventBus();
-bus.on('custom-event', (data) => {
-  console.log('Received custom-event:', data);
+bus.on("custom-event", (data) => {
+    console.log("Received custom-event:", data);
 });
-bus.emit('custom-event', { key: 'value' });
+bus.emit("custom-event", { key: "value" });
 ```
 
 ## Key Files and Directories
