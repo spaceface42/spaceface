@@ -1,12 +1,15 @@
 // src/spaceface/system/bin/PartialUtils.ts
+export const VERSION = 'nextworld-1.3.0' as const;
 
 export async function fetchPartialWithRetry(
     url: string,
     timeout = 10000,
     retryAttempts = 3,
-    cache?: Map<string, string>
+    cache?: Map<string, string>,
+    debug = false
 ): Promise<string> {
     if (cache?.has(url)) {
+        if (debug) console.debug("Fetching from cache", { url });
         return cache.get(url)!;
     }
 
@@ -18,20 +21,23 @@ export async function fetchPartialWithRetry(
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
+        if (debug) console.debug("Fetching partial", { url, timeout, retryAttempts });
         const res = await fetch(url, { signal: controller.signal, headers: { Accept: "text/html" } });
         if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
         const html = (await res.text()).trim();
         if (!html) throw new Error("Empty response");
 
         cache?.set(url, html);
+        if (debug) console.debug("Partial fetched successfully", { url });
         return html;
     } catch (err) {
         if (retryAttempts > 1) {
             const attempt = Math.max(1, 4 - retryAttempts); // 1, 2, 3...
             const base = Math.min(5000, 100 * Math.pow(2, attempt - 1));
             const wait = Math.min(Math.random() * base, 5000);
+            if (debug) console.debug("Retrying fetch", { url, attempt, wait });
             await delay(wait);
-            return fetchPartialWithRetry(url, timeout, retryAttempts - 1, cache);
+            return fetchPartialWithRetry(url, timeout, retryAttempts - 1, cache, debug);
         }
         throw new Error(`Failed to fetch partial ${url} after ${4 - retryAttempts} retries: ${(err as Error)?.message ?? String(err)}`);
     } finally {
@@ -39,10 +45,11 @@ export async function fetchPartialWithRetry(
     }
 }
 
-export function insertHTML(container: ParentNode | Element, html: string, replace = true) {
+export function insertHTML(container: ParentNode | Element, html: string, replace = true, debug = false) {
     const template = document.createElement("template");
     template.innerHTML = html;
 
+    if (debug) console.debug("Inserting HTML into container", { container, replace });
     updateContainer(container, template.content.childNodes, replace);
 }
 
@@ -52,6 +59,7 @@ export function showPartialError(container: ParentNode | Element, error: Error, 
     div.textContent = "Partial load failed";
     if (debug) div.textContent += `: ${error.message}`;
 
+    if (debug) console.debug("Displaying error in container", { container, error });
     updateContainer(container, [div], true);
 }
 

@@ -1,6 +1,6 @@
 // src/spaceface/features/FloatingImages/FloatingImagesManager.ts
 
-export const VERSION = 'nextworld-1.2.1' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 import { FloatingImage } from './FloatingImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
@@ -8,6 +8,7 @@ import { resizeManager } from '../bin/ResizeManager.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
 import { animationLoop } from '../bin/AnimationLoop.js';
 import { eventBus } from '../../bin/EventBus.js';
+import { debounce } from '../bin/timing.js';
 
 import type {
     FloatingImagesManagerOptionsInterface,
@@ -120,21 +121,25 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.images.push(floatingImage);
     }
 
-    private handleResize() {
-        if (this._destroyed) return;
-        if (!this.container.isConnected) {
-            this.log('warn', 'Resize event ignored, container not in DOM');
-            return;
+    private handleResize = debounce(() => {
+        try {
+            if (this._destroyed) return;
+            if (!this.container.isConnected) {
+                this.log('warn', 'Resize event ignored, container not in DOM');
+                return;
+            }
+            this.updateContainerDimensions();
+            const dims = { width: this.containerWidth, height: this.containerHeight };
+            this.images.forEach(img => {
+                img.updateSize();
+                img.clampPosition(dims);
+                img.updatePosition();
+            });
+            this.log('debug', 'Container resized', dims);
+        } catch (error) {
+            this.log('error', 'Error during handleResize', error);
         }
-        this.updateContainerDimensions();
-        const dims = { width: this.containerWidth, height: this.containerHeight };
-        this.images.forEach(img => {
-            img.updateSize();
-            img.clampPosition(dims);
-            img.updatePosition();
-        });
-        this.log('debug', 'Container resized', dims);
-    }
+    }, 200);
 
     private animate() {
         if (this._destroyed) return;
@@ -155,25 +160,29 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     }
 
     public reinitializeImages() {
-        if (this._destroyed) return;
-        if (!this.container.isConnected) {
-            this.log('warn', 'reinitializeImages: container not in DOM, skipping');
-            return;
+        try {
+            if (this._destroyed) return;
+            if (!this.container.isConnected) {
+                this.log('warn', 'reinitializeImages: container not in DOM, skipping');
+                return;
+            }
+
+            this.images.forEach(img => img.destroy());
+            this.images.length = 0;
+
+            const dims = { width: this.containerWidth, height: this.containerHeight };
+            const imgElements = Array.from(this.container.querySelectorAll<HTMLElement>('.floating-image'))
+                .slice(0, this.maxImages);
+
+            imgElements.forEach(el => {
+                const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
+                this.images.push(floatingImage);
+            });
+
+            this.log('info', 'Images reinitialized', { count: this.images.length });
+        } catch (error) {
+            this.log('error', 'Error during reinitializeImages', error);
         }
-
-        this.images.forEach(img => img.destroy());
-        this.images.length = 0;
-
-        const dims = { width: this.containerWidth, height: this.containerHeight };
-        const imgElements = Array.from(this.container.querySelectorAll<HTMLElement>('.floating-image'))
-            .slice(0, this.maxImages);
-
-        imgElements.forEach(el => {
-            const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
-            this.images.push(floatingImage);
-        });
-
-        this.log('info', 'Images reinitialized', { count: this.images.length });
     }
 
     destroy() {
