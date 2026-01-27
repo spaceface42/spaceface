@@ -1,5 +1,5 @@
 // src/system/bin/PartialFetcher.ts
-export const VERSION = 'nextworld-1.0.1' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 import { eventBus } from "./EventBus.js";
 import { PartialLoader } from "./PartialLoader.js";
@@ -9,15 +9,29 @@ export class PartialFetcher {
     /** Default internal loader instance */
     private static loader: PartialLoaderLike;
 
+    /**
+     * Get or create the default loader instance.
+     * @returns The default loader instance.
+     */
     private static getLoader(): PartialLoaderLike {
         return this.loader ?? (this.loader = new PartialLoader());
     }
 
-    /** Emit debug logs via EventBus */
-    private static logDebug(message: string, data?: unknown) {
+    /**
+     * Emit debug logs via EventBus.
+     * @param message The debug message.
+     * @param data Additional data to log.
+     */
+    private static logDebug(message: string, data?: unknown): void {
         eventBus.emit("log", { scope: "PartialFetcher", level: "debug", message, data });
     }
 
+    /**
+     * Load a partial HTML into a target container.
+     * @param url The URL of the partial to load.
+     * @param targetSelector The CSS selector of the target container.
+     * @param options Additional options for the loader.
+     */
     static async load(
         url: string,
         targetSelector: string,
@@ -41,6 +55,12 @@ export class PartialFetcher {
         }
     }
 
+    /**
+     * Preload multiple partials without rendering them.
+     * @param urls The URLs of the partials to preload.
+     * @param loader Optional custom loader instance.
+     * @returns A promise that resolves when all partials are preloaded.
+     */
     static async preload(urls: string[], loader?: PartialLoaderLike): Promise<void[]> {
         const activeLoader = loader ?? this.getLoader();
         const dummyContainer = document.createElement("div");
@@ -61,7 +81,13 @@ export class PartialFetcher {
         );
     }
 
-    static watch(container: HTMLElement | Document = document.body, loader?: PartialLoaderLike) {
+    /**
+     * Watch a container for dynamic partial loading.
+     * @param container The container to watch.
+     * @param loader Optional custom loader instance.
+     * @returns The result of the loader's watch method.
+     */
+    static watch(container: HTMLElement | Document = document.body, loader?: PartialLoaderLike): unknown {
         const activeLoader = loader ?? this.getLoader();
         this.logDebug("Watching container for partials", { container });
         return activeLoader.watch?.(container);

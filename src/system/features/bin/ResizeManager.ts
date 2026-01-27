@@ -1,8 +1,8 @@
 // src/spaceface/system/features/bin/ResizeManager.ts
 
-import { debounce, throttle, CancellableFunction } from './timing.js';
+export const VERSION = 'nextworld-1.3.0' as const;
 
-export const VERSION = 'nextworld-1.2.0' as const;
+import { debounce, throttle, CancellableFunction } from './timing.js';
 
 type WindowResizeCallback = () => void;
 type ElementResizeCallback = (entry: ResizeObserverEntry) => void;
@@ -18,26 +18,38 @@ export class ResizeManager {
   private windowCallbacks: Map<WindowResizeCallback, EventListener> = new Map();
   private elementObservers: Map<Element, ElementObserverEntryInterface> = new Map();
 
+  private logDebug(message: string, data?: unknown): void {
+    // Disable debug output for resize events
+    // if (message.includes("resize")) return;
+    console.debug(`[ResizeManager] ${message}`, data);
+  }
+
+  private wrapCallback<T extends (...args: any[]) => void>(
+    cb: T,
+    options?: { debounceMs?: number; throttleMs?: number }
+  ): CancellableFunction<T> {
+    if (options?.debounceMs != null) {
+      return debounce(cb as (...args: any[]) => void, options.debounceMs) as CancellableFunction<T>;
+    } else if (options?.throttleMs != null) {
+      return throttle(cb as (...args: any[]) => void, options.throttleMs) as CancellableFunction<T>;
+    } else {
+      const wrappedCb = cb as CancellableFunction<T>;
+      wrappedCb.cancel = () => {};
+      return wrappedCb;
+    }
+  }
+
   /**
    * Register a callback for window resize events.
    * Optionally debounce or throttle the callback.
    */
   onWindow(
     cb: WindowResizeCallback,
-    options?: { debounceMs?: number; throttleMs?: number }
+    options: { debounceMs: number } = { debounceMs: 200 }
   ): () => void {
-    let wrappedCb: CancellableFunction<WindowResizeCallback>;
-
-    if (options?.debounceMs != null) {
-      wrappedCb = debounce(cb, options.debounceMs);
-    } else if (options?.throttleMs != null) {
-      wrappedCb = throttle(cb, options.throttleMs);
-    } else {
-      wrappedCb = cb as CancellableFunction<WindowResizeCallback>;
-      wrappedCb.cancel = () => {};
-    }
-
+    const wrappedCb = debounce(cb, options.debounceMs);
     const handler = () => wrappedCb();
+
     this.windowCallbacks.set(cb, handler);
     window.addEventListener("resize", handler);
 
@@ -57,13 +69,18 @@ export class ResizeManager {
     cb: ElementResizeCallback,
     options?: { debounceMs?: number; throttleMs?: number }
   ): () => void {
-    let entry = this.elementObservers.get(el) as ElementObserverEntryInterface | undefined;
+    this.logDebug("Registering element resize callback", { el, cb, options });
+    let entry = this.elementObservers.get(el);
 
     if (!entry) {
       const callbacks = new Set<CancellableFunction<ElementResizeCallback>>();
       const observer = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        callbacks.forEach(fn => fn(entry));
+        try {
+          const entry = entries[0];
+          callbacks.forEach(fn => fn(entry));
+        } catch (error) {
+          this.logDebug("ResizeObserver callback error", { error });
+        }
       });
 
       entry = { observer, callbacks };
@@ -71,28 +88,15 @@ export class ResizeManager {
       observer.observe(el);
     }
 
-    // Wrap the callback if debounce or throttle is specified
-    let wrappedCb: CancellableFunction<ElementResizeCallback>;
-
-    if (options?.debounceMs != null) {
-      wrappedCb = debounce(cb, options.debounceMs);
-    } else if (options?.throttleMs != null) {
-      wrappedCb = throttle(cb, options.throttleMs);
-    } else {
-      wrappedCb = cb as CancellableFunction<ElementResizeCallback>;
-      wrappedCb.cancel = () => {};
-    }
-
+    const wrappedCb = this.wrapCallback(cb, options);
     entry.callbacks.add(wrappedCb);
 
-    const callbacksRef = entry!.callbacks;
-    const observerRef = entry!.observer;
-
     return (): void => {
-      callbacksRef.delete(wrappedCb);
+      this.logDebug("Removing element resize callback", { el, cb });
+      entry!.callbacks.delete(wrappedCb);
       wrappedCb.cancel?.();
-      if (callbacksRef.size === 0) {
-        observerRef.disconnect();
+      if (entry!.callbacks.size === 0) {
+        entry!.observer.disconnect();
         this.elementObservers.delete(el);
       }
     };
@@ -102,27 +106,34 @@ export class ResizeManager {
    * Get current size of an element.
    */
   getElement(el: Element): ElementSize {
-    const rect = el.getBoundingClientRect();
-    return { width: rect.width, height: rect.height };
+    try {
+      const rect = el.getBoundingClientRect();
+      // this.logDebug("Getting element size", { el, rect });
+      return { width: rect.width, height: rect.height };
+    } catch (error) {
+      // this.logDebug("Error getting element size", { el, error });
+      throw new Error("ResizeManager: Failed to get element size.");
+    }
   }
 
   /**
    * Cleanup all registered window and element callbacks.
    */
   destroy(): void {
+    this.logDebug("Destroying ResizeManager");
     for (const [cb, handler] of this.windowCallbacks.entries()) {
       window.removeEventListener("resize", handler);
     }
     this.windowCallbacks.clear();
 
     for (const entry of this.elementObservers.values()) {
-      // disconnect observer and cancel any pending debounced/throttled callbacks
       entry.observer.disconnect();
       for (const fn of entry.callbacks) {
         fn.cancel?.();
       }
     }
     this.elementObservers.clear();
+    this.logDebug("ResizeManager destroyed");
   }
 }
 

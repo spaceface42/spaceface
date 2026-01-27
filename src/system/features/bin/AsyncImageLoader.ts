@@ -1,6 +1,6 @@
 // src/spaceface/system/features/bin/AsyncImageLoader.ts
 
-export const VERSION = 'nextworld-1.2.0' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 import {
   AsyncImageLoaderOptions,
@@ -23,14 +23,18 @@ export class AsyncImageLoader {
     this.includePicture = options.includePicture ?? false;
   }
 
-  private ensureActive(): void {
+  private logDebug(message: string, data?: unknown): void {
+    console.debug(`[AsyncImageLoader] ${message}`, data);
+  }
+
+  private ensureActive(methodName: string): void {
     if (this.destroyed || !this.container) {
-      throw new Error("AsyncImageLoader: Instance destroyed.");
+      throw new Error(`AsyncImageLoader: Instance destroyed. Method: ${methodName}`);
     }
   }
 
   public getImages(selector = "img"): HTMLImageElement[] {
-    this.ensureActive();
+    this.ensureActive("getImages");
     if (!selector.trim()) return [];
 
     const images = new Set<HTMLImageElement>();
@@ -59,31 +63,49 @@ export class AsyncImageLoader {
   // ---------- Implementation ----------
   public async waitForImagesToLoad(
     selector = "img",
-    includeFailed = false
+    includeFailed = false,
+    timeout = 10000
   ): Promise<HTMLImageElement[] | ImageLoadResultInterface[]> {
+    this.logDebug("Waiting for images to load", { selector, includeFailed, timeout });
     const images = this.getImages(selector);
 
     const results = await Promise.all(
       images.map(img => {
-        if (this.cache.has(img)) return { element: img, loaded: true };
+        if (this.cache.has(img)) {
+          this.logDebug("Image already cached", { img });
+          return { element: img, loaded: true };
+        }
 
         if (img.complete && img.naturalWidth > 0) {
           this.cache.set(img, true);
+          this.logDebug("Image already loaded", { img });
           return { element: img, loaded: true };
         }
 
         return new Promise<ImageLoadResultInterface>(resolve => {
+          const timer = setTimeout(() => {
+            this.logDebug("Image load timeout", { img });
+            resolve({ element: img, loaded: false });
+          }, timeout);
+
           img.addEventListener(
             "load",
             () => {
+              clearTimeout(timer);
               this.cache.set(img, true);
+              this.logDebug("Image loaded successfully", { img });
               resolve({ element: img, loaded: true });
             },
             { once: true }
           );
+
           img.addEventListener(
             "error",
-            () => resolve({ element: img, loaded: false }),
+            () => {
+              clearTimeout(timer);
+              this.logDebug("Image failed to load", { img });
+              resolve({ element: img, loaded: false });
+            },
             { once: true }
           );
         });
@@ -120,6 +142,11 @@ export class AsyncImageLoader {
         sources
       };
     });
+  }
+
+  public clearCache(): void {
+    this.logDebug("Clearing image cache");
+    this.cache = new WeakMap();
   }
 
   public destroy(): void {

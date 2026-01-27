@@ -1,6 +1,6 @@
 // src/spaceface/system/bin/DomReadyPromise.ts
 
-export const VERSION = 'nextworld-1.1.0' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 import { WaitForElementOptions } from '../types/bin.js';
 
@@ -21,7 +21,7 @@ export class DomReadyPromise {
         if (!this.#readyPromise) {
             this.#readyPromise = document.readyState !== 'loading'
                 ? Promise.resolve()
-                : new Promise(resolve => {
+                : new Promise<void>(resolve => {
                     document.addEventListener('DOMContentLoaded', () => resolve(), { once: true });
                 });
         }
@@ -36,23 +36,16 @@ export class DomReadyPromise {
         options: WaitForElementOptions = {}
     ): Promise<T | T[]> {
         const { timeout = 5000, root = document, signal } = options;
-        const selectorList = Array.isArray(selectors) ? selectors : [selectors];
-
         if (timeout <= 0) {
-            throw new TypeError('Timeout must be greater than 0');
+            return Promise.reject(new TypeError('Timeout must be greater than 0'));
         }
+
+        const selectorList = Array.isArray(selectors) ? selectors : [selectors];
+        const foundElements: Map<string, T> = new Map();
 
         return new Promise((resolve, reject) => {
             let timeoutId: number | undefined;
-            const foundElements: Map<string, T> = new Map();
-
-            const cleanup = () => {
-                observer.disconnect();
-                if (timeoutId !== undefined) clearTimeout(timeoutId);
-                signal?.removeEventListener('abort', onAbort);
-            };
-
-            const checkAndResolve = () => {
+            const observer = new MutationObserver(() => {
                 for (const selector of selectorList) {
                     if (!foundElements.has(selector)) {
                         const el = root.querySelector<T>(selector);
@@ -61,8 +54,16 @@ export class DomReadyPromise {
                 }
                 if (foundElements.size === selectorList.length) {
                     cleanup();
-                    resolve(selectorList.length === 1 ? foundElements.get(selectorList[0])! : Array.from(foundElements.values()));
+                    resolve(selectorList.length === 1
+                        ? foundElements.get(selectorList[0])!
+                        : Array.from(foundElements.values()));
                 }
+            });
+
+            const cleanup = () => {
+                observer.disconnect();
+                if (timeoutId !== undefined) clearTimeout(timeoutId);
+                signal?.removeEventListener('abort', onAbort);
             };
 
             const onAbort = () => {
@@ -70,24 +71,11 @@ export class DomReadyPromise {
                 reject(new DOMException('waitForElement aborted', 'AbortError'));
             };
 
-            // Abort signal handling
             if (signal?.aborted) return onAbort();
             signal?.addEventListener('abort', onAbort, { once: true });
 
-            // Initial check before observing
-            checkAndResolve();
-
-            // Observe DOM mutations
-            const observer = new MutationObserver(mutations => {
-                for (const mutation of mutations) {
-                    if (mutation.addedNodes.length > 0) {
-                        checkAndResolve();
-                    }
-                }
-            });
             observer.observe(root, { childList: true, subtree: true });
 
-            // Timeout handling
             timeoutId = window.setTimeout(() => {
                 cleanup();
                 const missing = selectorList.filter(s => !foundElements.has(s));

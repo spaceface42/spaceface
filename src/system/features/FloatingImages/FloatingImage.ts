@@ -1,6 +1,6 @@
 // src/spaceface/features/FloatingImages/FloatingImage.ts
 
-export const VERSION = 'nextworld-1.2.1' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 import { clamp } from '../bin/math.js';
 
@@ -43,26 +43,47 @@ export class FloatingImage {
         this.updatePosition();
     }
 
+    private logDebug(message: string, data?: unknown): void {
+        if (this.options.debug) {
+            console.debug(`[FloatingImage] ${message}`, data);
+        }
+    }
+
     updatePosition(): boolean {
-        if (!this.element) return false;
+        if (!this.element) {
+            this.logDebug("updatePosition called on destroyed element");
+            return false;
+        }
         const x = this.options.useSubpixel ? this.x : Math.round(this.x);
         const y = this.options.useSubpixel ? this.y : Math.round(this.y);
         this.element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        this.logDebug("Position updated", { x, y });
         return true;
     }
 
     update(multiplier: number, dims: ContainerDimensionsInterface, applyPosition = true): boolean {
-        if (!this.element) return false;
+        if (!this.element) {
+            this.logDebug("update called on destroyed element");
+            return false;
+        }
 
         this.x += this.vx * multiplier;
         this.y += this.vy * multiplier;
 
+        this.handleCollisions(dims);
+        this.applyVelocityJitter();
+
+        if (applyPosition) return this.updatePosition();
+        return true;
+    }
+
+    private handleCollisions(dims: ContainerDimensionsInterface): void {
         if (this.x <= 0 || this.x + this.size.width >= dims.width) {
             this.vx = -this.vx * DAMPING;
-            // preserve direction when enforcing minimum velocity
             const signX = this.vx >= 0 ? 1 : -1;
             this.vx = Math.abs(this.vx) < MIN_VELOCITY ? signX * MIN_VELOCITY : this.vx;
             this.x = clamp(this.x, 0, Math.max(0, dims.width - this.size.width));
+            this.logDebug("Horizontal collision handled", { x: this.x, vx: this.vx });
         }
 
         if (this.y <= 0 || this.y + this.size.height >= dims.height) {
@@ -70,8 +91,11 @@ export class FloatingImage {
             const signY = this.vy >= 0 ? 1 : -1;
             this.vy = Math.abs(this.vy) < MIN_VELOCITY ? signY * MIN_VELOCITY : this.vy;
             this.y = clamp(this.y, 0, Math.max(0, dims.height - this.size.height));
+            this.logDebug("Vertical collision handled", { y: this.y, vy: this.vy });
         }
+    }
 
+    private applyVelocityJitter(): void {
         this.vx += (Math.random() - 0.5) * VELOCITY_JITTER;
         this.vy += (Math.random() - 0.5) * VELOCITY_JITTER;
 
@@ -80,10 +104,8 @@ export class FloatingImage {
             const scale = MAX_SPEED / Math.sqrt(speedSquared);
             this.vx *= scale;
             this.vy *= scale;
+            this.logDebug("Velocity clamped", { vx: this.vx, vy: this.vy });
         }
-
-        if (applyPosition) return this.updatePosition();
-        return true;
     }
 
     resetPosition(dims: ContainerDimensionsInterface) {

@@ -1,6 +1,6 @@
 // src/spaceface/system/bin/InactivityWatcher.ts
 
-export const VERSION = 'nextworld-1.2.1' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 import { EventWatcher } from './EventWatcher.js';
 import { eventBus } from './EventBus.js';
@@ -20,34 +20,37 @@ export class InactivityWatcher extends EventWatcher {
     private userIsInactive: boolean = false;
     private throttledReset: () => void;
 
-    constructor(target: EventTarget, options: InactivityWatcherOptionsInterface) {
+    /**
+     * Private constructor to enforce singleton pattern.
+     * @param target The target to monitor for activity.
+     * @param options Configuration options for the watcher.
+     */
+    private constructor(target: EventTarget, options: InactivityWatcherOptionsInterface) {
         super(target, options.debug ?? false);
         this.inactivityDelay = options.inactivityDelay;
         this.lastActiveAt = Date.now();
         this.throttledReset = throttle(() => this.resetTimer(), 200);
 
         this.log(`Initialized with inactivityDelay=${this.inactivityDelay}ms`);
-
         this.addEventListeners();
     }
 
+    /**
+     * Get the singleton instance of the InactivityWatcher.
+     * @param options Configuration options for the watcher.
+     * @returns The singleton instance.
+     */
     static getInstance(options: InactivityWatcherOptionsInterface & { target?: EventTarget }): InactivityWatcher {
         if (!this._instance) {
             this._instance = new InactivityWatcher(options.target ?? document, options);
-            return this._instance;
-        }
-        // If requested options differ, allow updating runtime inactivityDelay
-        if (typeof options.inactivityDelay === 'number' && this._instance.inactivityDelay !== options.inactivityDelay) {
-            this._instance.inactivityDelay = options.inactivityDelay;
-            this._instance.log(`Updated inactivityDelay to ${this._instance.inactivityDelay}ms`);
-            // reset timer with new delay
-            this._instance.resetTimer();
         }
         return this._instance;
     }
 
+    /**
+     * Add event listeners to monitor user activity.
+     */
     protected addEventListeners(): void {
-        // register via EventWatcher helper so listeners are tracked for cleanup
         this.addDomListener('mousemove', this.throttledReset);
         this.addDomListener('keydown', this.throttledReset);
         this.addDomListener('scroll', this.throttledReset);
@@ -56,8 +59,10 @@ export class InactivityWatcher extends EventWatcher {
         this.resetTimer();
     }
 
+    /**
+     * Remove all event listeners and clear the timer.
+     */
     protected removeEventListeners(): void {
-        // remove tracked DOM listeners
         this.removeAllDomListeners();
 
         if (this.timer) {
@@ -66,7 +71,10 @@ export class InactivityWatcher extends EventWatcher {
         }
     }
 
-    private resetTimer() {
+    /**
+     * Reset the inactivity timer and emit an active event if the user was inactive.
+     */
+    private resetTimer(): void {
         const now = Date.now();
         this.lastActiveAt = now;
 
@@ -75,7 +83,7 @@ export class InactivityWatcher extends EventWatcher {
             eventBus.emit('user:active', {
                 lastActiveAt: this.lastActiveAt,
                 inactivityDelay: this.inactivityDelay,
-                visible: document.visibilityState === 'visible'
+                visible: document.visibilityState === 'visible',
             });
             this.log('User is active');
         }
@@ -84,14 +92,17 @@ export class InactivityWatcher extends EventWatcher {
         this.timer = window.setTimeout(() => this.setInactive(), this.inactivityDelay);
     }
 
-    private setInactive() {
+    /**
+     * Mark the user as inactive and emit an inactive event.
+     */
+    private setInactive(): void {
         this.userIsInactive = true;
         const now = Date.now();
         eventBus.emit('user:inactive', {
             lastActiveAt: this.lastActiveAt,
             inactiveAt: now,
             inactivityDelay: this.inactivityDelay,
-            visible: document.visibilityState === 'visible'
+            visible: document.visibilityState === 'visible',
         });
         this.log('User is inactive');
     }

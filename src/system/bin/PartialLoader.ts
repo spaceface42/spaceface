@@ -1,5 +1,5 @@
 // src/spaceface/system/bin/PartialLoader.ts
-export const VERSION = 'nextworld-1.0.1' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 import { debounce } from "../features/bin/timing.js";
 import { eventBus } from "./EventBus.js";
@@ -28,13 +28,18 @@ export class PartialLoader {
         };
     }
 
-    /** emit debug events instead of console.debug */
+    /** Emit debug events instead of console.debug */
     private logDebug(msg: string, data?: unknown) {
         if (this.options.debug) {
-            eventBus.emit("log:debug", { scope: "PartialLoader", message: msg, data });
+            const logKey = `${msg}-${JSON.stringify(data)}`;
+            if (!this.loadedPartials.has(logKey)) {
+                this.loadedPartials.set(logKey, true);
+                eventBus.emit("log:debug", { scope: "PartialLoader", message: msg, data });
+            }
         }
     }
 
+    /** Load partials from links or info objects */
     async load(
         input: HTMLLinkElement | PartialInfoInterface | (HTMLLinkElement | PartialInfoInterface)[]
     ): Promise<PartialLoadResultInterface[]> {
@@ -48,10 +53,11 @@ export class PartialLoader {
                 } else {
                     results.push(await this.loadInfo(item));
                 }
-            } catch {
+            } catch (error) {
                 const url = item instanceof HTMLLinkElement
                     ? item.getAttribute("src") || ""
                     : item.url;
+                this.logDebug("Failed to load partial", { url, error });
                 results.push({ success: false, url, cached: false });
             }
         }
@@ -84,10 +90,7 @@ export class PartialLoader {
                 return { success: true, url, cached: true };
             }
 
-            const promise = this.fetchPartial(url);
-            this.loadingPromises.set(url, promise);
-
-            const html = await promise;
+            const html = await this.fetchWithRetry(url);
             if (this.options.cacheEnabled) this.cache.set(url, html);
 
             this.insertHTML(container, html);
@@ -108,6 +111,28 @@ export class PartialLoader {
         }
     }
 
+    private async fetchWithRetry(url: string, attempt = 1): Promise<string> {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.options.timeout);
+
+        try {
+            const res = await fetch(url, { signal: controller.signal, headers: { Accept: "text/html" } });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const html = (await res.text()).trim();
+            if (!html) throw new Error("Empty response");
+            return html;
+        } catch (err) {
+            if (attempt < this.options.retryAttempts) {
+                this.logDebug("Retrying fetch", { url, attempt });
+                await this.delay(Math.min(2 ** attempt * 100, 5000));
+                return this.fetchWithRetry(url, attempt + 1);
+            }
+            throw err;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
     private async fetchPartial(url: string, attempt = 1): Promise<string> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.options.timeout);
@@ -120,6 +145,7 @@ export class PartialLoader {
             return html;
         } catch (err) {
             if (attempt < this.options.retryAttempts) {
+                this.logDebug("Retrying fetch", { url, attempt });
                 await this.delay(Math.min(2 ** attempt * 100, 5000));
                 return this.fetchPartial(url, attempt + 1);
             }
@@ -141,6 +167,8 @@ export class PartialLoader {
         } else {
             container.append(...template.content.childNodes);
         }
+
+        this.logDebug("Inserted HTML into container", { container });
     }
 
     private showError(container: ParentNode | Element, error: Error) {
@@ -158,29 +186,45 @@ export class PartialLoader {
             container.appendChild(div);
         }
 
-        eventBus.emit("log:error", { scope: "PartialLoader", message: "Partial load failed", error });
+        eventBus.emit("log:error", {
+            scope: "PartialLoader",
+            message: "Partial load failed",
+            error,
+            context: {
+                url: container instanceof HTMLLinkElement ? container.href : undefined,
+                retryAttempts: this.options.retryAttempts,
+            },
+        });
+        this.logDebug("Error displayed in container", { container, error });
     }
 
     isPartialLoaded(id: string) {
         return this.loadedPartials.has(id);
     }
 
-    private resolveUrl(src: string) {
-        if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(src) || src.startsWith("//")) return src;
+    private resolveUrl(src: string): string {
+        if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(src) || src.startsWith("//")) {
+            this.logDebug("URL is already absolute", { src });
+            return src;
+        }
 
         try {
             const base = this.options.baseUrl || window.location.origin + "/";
             const url = new URL(src, base).toString();
-            return url.startsWith(window.location.origin)
+            const resolvedUrl = url.startsWith(window.location.origin)
                 ? url.slice(window.location.origin.length) || "/"
                 : url;
-        } catch {
+            this.logDebug("Resolved relative URL", { src, resolvedUrl });
+            return resolvedUrl;
+        } catch (error) {
+            this.logDebug("Failed to resolve URL", { src, error });
             return src;
         }
     }
 
-    private delay(ms: number) {
-        return new Promise(r => setTimeout(r, ms));
+    private delay(ms: number): Promise<void> {
+        this.logDebug("Delaying execution", { ms });
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     async loadContainer(container: ParentNode = document): Promise<PartialLoadResultInterface[]> {

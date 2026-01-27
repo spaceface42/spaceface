@@ -1,6 +1,6 @@
 // src/spaceface/system/features/bin/timing.ts
 
-export const VERSION = 'nextworld-1.0.0' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 /** Generic type: function with cancel method */
 export type CancellableFunction<T extends (...args: any[]) => void> = T & { cancel: () => void };
@@ -29,20 +29,25 @@ function createTimeout(): { id: number | null; set: (fn: () => void, ms: number)
 
 /**
  * Creates a debounced function that delays invoking `func` until after `delay` ms
- * have elapsed since the last call.
+ * have elapsed since the last call. Includes error handling for invalid inputs.
  *
- * @example
- * ```ts
- * const saveInput = debounce((value: string) => console.log("Saving:", value), 300);
- * saveInput("Hello");
- * saveInput.cancel(); // cancels any pending call
- * ```
+ * @param func - The function to debounce.
+ * @param delay - The number of milliseconds to delay.
+ * @param immediate - If `true`, trigger the function on the leading edge.
+ * @returns A debounced function with a `cancel` method.
  */
 export function debounce<T extends (...args: any[]) => void>(
   func: T,
   delay = 300,
   immediate = false
 ): CancellableFunction<(...args: Parameters<T>) => void> {
+  if (typeof func !== 'function') {
+    throw new TypeError('Expected a function for debounce');
+  }
+  if (typeof delay !== 'number' || delay < 0) {
+    throw new TypeError('Expected a non-negative number for delay');
+  }
+
   const timer = createTimeout();
 
   function debounced(this: ThisParameterType<T>, ...args: Parameters<T>) {
@@ -62,19 +67,25 @@ export function debounce<T extends (...args: any[]) => void>(
 
 /**
  * Creates a throttled function that invokes `func` at most once per `delay` ms.
+ * Includes error handling for invalid inputs.
  *
- * @example
- * ```ts
- * const logScroll = throttle(() => console.log("Scroll!"), 500, { leading: true, trailing: true });
- * window.addEventListener("scroll", logScroll);
- * logScroll.cancel(); // cancels any pending trailing call
- * ```
+ * @param func - The function to throttle.
+ * @param delay - The number of milliseconds to throttle calls.
+ * @param options - Options to control leading and trailing edge calls.
+ * @returns A throttled function with a `cancel` method.
  */
 export function throttle<T extends (...args: any[]) => void>(
   func: T,
   delay = 100,
   options: { leading?: boolean; trailing?: boolean } = {}
 ): CancellableFunction<(...args: Parameters<T>) => void> {
+  if (typeof func !== 'function') {
+    throw new TypeError('Expected a function for throttle');
+  }
+  if (typeof delay !== 'number' || delay < 0) {
+    throw new TypeError('Expected a non-negative number for delay');
+  }
+
   const { leading = true, trailing = true } = options;
   let lastCall = 0;
   let lastArgs: Parameters<T> | null = null;

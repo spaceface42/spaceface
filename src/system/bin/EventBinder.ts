@@ -9,7 +9,7 @@
  * Provides a single utility class for safely attaching and
  * detaching event handlers in a structured way.
  */
-export const VERSION = 'nextworld-1.2.2' as const;
+export const VERSION = 'nextworld-1.3.0' as const;
 
 import {
   DomBinding,
@@ -47,22 +47,26 @@ export class EventBinder implements EventBinderInterface {
     this.logger = new EventLogger("eventbinder");
   }
 
-  /** Emit debug info via EventBus if debug mode is enabled */
+  /**
+   * Emit debug info via EventBus if debug mode is enabled.
+   * @param method The method name where the debug is called.
+   * @param details Additional details to log.
+   */
   private debug(method: string, details: unknown): void {
     if (!this.debugMode) return;
     try {
       const payload: IEventBinderDebugPayload = { method, details };
       this.logger.debug(method, payload);
-    } catch {
-      // ignore debug errors
+    } catch (error) {
+      console.error(`Debugging failed in method: ${method}`, error);
     }
   }
 
   /**
    * Attach binder lifetime to an AbortSignal.
    * All bindings will be unbound automatically when the signal aborts.
-   * @param signal AbortSignal to link binder lifetime to
-   * @returns unsubscribe function that removes the abort listener
+   * @param signal AbortSignal to link binder lifetime to.
+   * @returns Unsubscribe function that removes the abort listener.
    */
   attachTo(signal: AbortSignal): () => void {
     if (signal.aborted) {
@@ -73,8 +77,21 @@ export class EventBinder implements EventBinderInterface {
     signal.addEventListener("abort", listener, { once: true });
     // return an unsubscribe so callers (eg tests) can remove the attachment without aborting the signal
     return () => {
-      try { signal.removeEventListener("abort", listener); } catch { /* ignore */ }
+      try {
+        signal.removeEventListener("abort", listener);
+      } catch (error) {
+        console.warn("Failed to remove abort listener", error);
+      }
     };
+  }
+
+  /**
+   * Toggle debug mode at runtime.
+   * @param enable Set to true to enable debug mode, false to disable.
+   */
+  public setDebugMode(enable: boolean): void {
+    this.debugMode = enable;
+    this.logger.info(`Debug mode ${enable ? 'enabled' : 'disabled'}`);
   }
 
   /**
