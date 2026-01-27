@@ -27,3 +27,7 @@ Spaceface is a compact, TypeScript-first toolkit that supplies focused, well-typ
 
 npm install --save-dev esbuild
 node ./bin/build.js
+
+# todo
+
+optimize system/features/\*
