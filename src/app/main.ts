@@ -157,6 +157,23 @@ export class Spaceface {
         });
     }
 
+    private emitFeatureTelemetry(
+        feature: string,
+        startTime: number,
+        status: 'success' | 'skipped' | 'error',
+        error?: unknown
+    ): void {
+        const duration = (performance.now() - startTime).toFixed(2);
+        eventBus.emit(Spaceface.EVENT_TELEMETRY, {
+            type: 'feature:init',
+            feature,
+            status,
+            duration,
+            page: this.pageType,
+            error,
+        });
+    }
+
     public destroy(): void {
         this._partialUnsub?.();
         this._partialObserver?.disconnect?.();
@@ -170,35 +187,60 @@ export class Spaceface {
 
     // Initialization methods for individual features
     public async initInactivityWatcher(): Promise<void> {
+        const start = performance.now();
         const screensaver = this.appConfig.config.features?.screensaver;
-        if (!screensaver || this.inactivityWatcher) return;
-        this.inactivityWatcher = InactivityWatcher.getInstance({
-            inactivityDelay: screensaver.delay ?? 3000,
-        });
-        this.log('debug', `InactivityWatcher initialized with delay=${screensaver.delay ?? 3000}ms`);
+        if (!screensaver || this.inactivityWatcher) {
+            this.emitFeatureTelemetry('inactivityWatcher', start, 'skipped');
+            return;
+        }
+        try {
+            this.inactivityWatcher = InactivityWatcher.getInstance({
+                inactivityDelay: screensaver.delay ?? 3000,
+            });
+            this.log('debug', `InactivityWatcher initialized with delay=${screensaver.delay ?? 3000}ms`);
+            this.emitFeatureTelemetry('inactivityWatcher', start, 'success');
+        } catch (error) {
+            this.emitFeatureTelemetry('inactivityWatcher', start, 'error', error);
+            throw error;
+        }
     }
 
     public async initSlidePlayer(): Promise<void> {
+        const start = performance.now();
         const slideplayer = this.appConfig.config.features?.slideplayer;
-        if (!slideplayer) return;
-        const module = await this.loadFeatureModule('slideplayer');
-        const SlidePlayer = module?.SlidePlayer;
-        if (!SlidePlayer) return;
-        this.slideshows = Array.from(document.querySelectorAll('.slideshow-container')).map(node => {
-            const slideshow = new SlidePlayer(node, {
-                interval: slideplayer.interval ?? 5000,
-                includePicture: slideplayer.includePicture ?? false,
+        if (!slideplayer) {
+            this.emitFeatureTelemetry('slideplayer', start, 'skipped');
+            return;
+        }
+        try {
+            const module = await this.loadFeatureModule('slideplayer');
+            const SlidePlayer = module?.SlidePlayer;
+            if (!SlidePlayer) {
+                this.emitFeatureTelemetry('slideplayer', start, 'skipped');
+                return;
+            }
+            this.slideshows = Array.from(document.querySelectorAll('.slideshow-container')).map(node => {
+                const slideshow = new SlidePlayer(node, {
+                    interval: slideplayer.interval ?? 5000,
+                    includePicture: slideplayer.includePicture ?? false,
+                });
+                slideshow.ready?.then?.(() => {});
+                return slideshow;
             });
-            slideshow.ready?.then?.(() => {});
-            return slideshow;
-        });
-        this.log('info', `${this.slideshows.length} SlidePlayer instance(s) loaded`);
+            this.log('info', `${this.slideshows.length} SlidePlayer instance(s) loaded`);
+            this.emitFeatureTelemetry('slideplayer', start, 'success');
+        } catch (error) {
+            this.emitFeatureTelemetry('slideplayer', start, 'error', error);
+            throw error;
+        }
     }
 
     public async initScreensaver(): Promise<void> {
+        const start = performance.now();
         const screensaver = this.appConfig.config.features?.screensaver;
         if (!screensaver?.partialUrl) {
             this.log('error', "Screensaver configuration is missing or incomplete");
+            this.emitFeatureTelemetry('screensaver', start, 'skipped');
             return;
         }
         try {
@@ -221,46 +263,71 @@ export class Spaceface {
             await this.screensaverController?.init?.();
             eventBus.emit('screensaver:initialized', id);
             this.log('info', 'Screensaver initialized:', id);
+            this.emitFeatureTelemetry('screensaver', start, 'success');
         } catch (error) {
             this.log('error', 'Failed to initialize screensaver:', error);
+            this.emitFeatureTelemetry('screensaver', start, 'error', error);
         }
     }
 
     public async initServiceWorker(): Promise<void> {
+        const start = performance.now();
         if (!this.appConfig.config.features?.serviceWorker) return;
-        const module = await this.loadFeatureModule('serviceWorker');
-        const Manager = module?.default;
-        if (!Manager) return;
-        this.swManager = new Manager('/sw.js', {}, {
-            strategy: { images: 'cache-first', others: 'network-first' },
-        });
-        if (this.swManager) {
-            await this.swManager.register();
-            this.swManager.configure();
-            this.log('info', 'Service Worker registered and configured');
+        try {
+            const module = await this.loadFeatureModule('serviceWorker');
+            const Manager = module?.default;
+            if (!Manager) {
+                this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
+                return;
+            }
+            this.swManager = new Manager('/sw.js', {}, {
+                strategy: { images: 'cache-first', others: 'network-first' },
+            });
+            if (this.swManager) {
+                await this.swManager.register();
+                this.swManager.configure();
+                this.log('info', 'Service Worker registered and configured');
+                this.emitFeatureTelemetry('serviceWorker', start, 'success');
+            }
+        } catch (error) {
+            this.emitFeatureTelemetry('serviceWorker', start, 'error', error);
+            throw error;
         }
     }
 
     public async initPartialLoader(): Promise<any> {
+        const start = performance.now();
         const config = this.appConfig.config.features?.partialLoader;
-        if (!config?.enabled) return null;
-        const module = await this.loadFeatureModule('partialLoader');
-        const PartialLoader = module?.PartialLoader;
-        if (!PartialLoader) return null;
-        const loader = new PartialLoader({
-            debug: config.debug ?? this.debug,
-            baseUrl: config.baseUrl ?? '/',
-            cacheEnabled: config.cacheEnabled ?? true,
-        });
-        await loader.loadContainer(document);
-        const watchResult = loader.watch?.(document);
-        if (typeof watchResult === 'function') {
-            this._partialUnsub = watchResult;
-        } else {
-            this._partialObserver = watchResult;
+        if (!config?.enabled) {
+            this.emitFeatureTelemetry('partialLoader', start, 'skipped');
+            return null;
         }
-        this.log('info', 'PartialLoader initialized');
-        return loader;
+        try {
+            const module = await this.loadFeatureModule('partialLoader');
+            const PartialLoader = module?.PartialLoader;
+            if (!PartialLoader) {
+                this.emitFeatureTelemetry('partialLoader', start, 'skipped');
+                return null;
+            }
+            const loader = new PartialLoader({
+                debug: config.debug ?? this.debug,
+                baseUrl: config.baseUrl ?? '/',
+                cacheEnabled: config.cacheEnabled ?? true,
+            });
+            await loader.loadContainer(document);
+            const watchResult = loader.watch?.(document);
+            if (typeof watchResult === 'function') {
+                this._partialUnsub = watchResult;
+            } else {
+                this._partialObserver = watchResult;
+            }
+            this.log('info', 'PartialLoader initialized');
+            this.emitFeatureTelemetry('partialLoader', start, 'success');
+            return loader;
+        } catch (error) {
+            this.emitFeatureTelemetry('partialLoader', start, 'error', error);
+            throw error;
+        }
     }
 }
 
@@ -278,6 +345,9 @@ const isDev = ['localhost', '127.0.0.1'].some(host =>
 
 if (isDev) {
     eventBus.onAny((eventName: string, payload: EventPayload) => {
+        // Filter noisy debug logs while keeping functional events visible.
+        if (eventName === 'log:debug') return;
+        if (eventName === 'log' && payload?.level === 'debug') return;
         const { level = 'log', args, ...otherDetails } = payload;
         if (!payload) return console.log(`[spaceface onAny] Event: ${eventName} – no payload!`);
         if (typeof payload === 'string') return console.log(`[spaceface onAny] Event: ${eventName} [LOG]`, payload);
