@@ -39,7 +39,7 @@ export abstract class EventWatcher {
             const payload = data;
             if (!this.debug && level === 'debug') return;
             try {
-                eventBus.emit("log", { scope: this.constructor.name, level, message, data: payload });
+                eventBus.emit("log", { scope: this.constructor.name, level, message, data: payload, time: Date.now() });
             } catch (_) { /* ignore eventBus errors */ }
             if (this.debug) {
                 const method = { debug: 'debug', info: 'info', warn: 'warn', error: 'error' }[level] ?? 'log';
@@ -64,8 +64,10 @@ export abstract class EventWatcher {
                 const sanitizedPayload = payload && typeof payload === 'object' ? JSON.parse(JSON.stringify(payload)) : payload;
                 eventBus.emit("log:debug", {
                     scope: this.constructor.name,
+                    level: 'debug',
                     message,
                     data: sanitizedPayload,
+                    time: Date.now(),
                 });
             } catch (error) {
                 console.warn("Failed to log debug event", { message, payload, error });

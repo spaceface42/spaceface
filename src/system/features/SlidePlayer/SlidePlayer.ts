@@ -101,7 +101,9 @@ export class SlidePlayer {
   private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: unknown) {
     if (!this.debug && level === 'debug') return;
 
+    const payload = { scope: 'SlidePlayer', level, message, data, time: Date.now() };
     eventBus.emit('slideplayer:log', { level, message, data });
+    eventBus.emit('log', payload);
     if (this.debug) {
       const methodMap: Record<typeof level, keyof Console> = {
         debug: 'debug',

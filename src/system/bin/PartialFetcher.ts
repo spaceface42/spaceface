@@ -23,7 +23,7 @@ export class PartialFetcher {
      * @param data Additional data to log.
      */
     private static logDebug(message: string, data?: unknown): void {
-        eventBus.emit("log", { scope: "PartialFetcher", level: "debug", message, data });
+        eventBus.emit("log", { scope: "PartialFetcher", level: "debug", message, data, time: Date.now() });
     }
 
     /**

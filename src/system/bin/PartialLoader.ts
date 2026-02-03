@@ -34,7 +34,9 @@ export class PartialLoader {
             const logKey = `${msg}-${JSON.stringify(data)}`;
             if (!this.loadedPartials.has(logKey)) {
                 this.loadedPartials.set(logKey, true);
-                eventBus.emit("log:debug", { scope: "PartialLoader", message: msg, data });
+                const payload = { scope: "PartialLoader", level: "debug", message: msg, data, time: Date.now() };
+                eventBus.emit("log:debug", payload);
+                eventBus.emit("log", payload);
             }
         }
     }

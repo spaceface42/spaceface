@@ -69,7 +69,9 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: unknown) {
         if (!this.debug && level === 'debug') return;
 
+        const payload = { scope: 'FloatingImagesManager', level, message, data, time: Date.now() };
         eventBus.emit('floatingImages:log', { level, message, data });
+        eventBus.emit('log', payload);
 
         if (this.debug) {
             const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {

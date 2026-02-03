@@ -89,7 +89,17 @@ export class Spaceface {
 
     public log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]): void {
         if (!this.debug && level === 'debug') return;
-        eventBus.emit(Spaceface.EVENT_LOG, { level, args });
+        const [first, ...rest] = args;
+        const message = typeof first === 'string' ? first : '';
+        const data = typeof first === 'string' ? (rest.length ? rest : undefined) : (args.length ? args : undefined);
+        eventBus.emit(Spaceface.EVENT_LOG, {
+            level,
+            args,
+            scope: 'Spaceface',
+            message,
+            data,
+            time: Date.now(),
+        });
         if (this.debug) {
             console[level]?.(`[spaceface] [${level.toUpperCase()}]`, ...args);
         }

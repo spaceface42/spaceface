@@ -69,7 +69,9 @@ export class ScreensaverController {
   ) {
     if (!this.debug && level === 'debug') return;
 
+    const payload = { scope: 'ScreensaverController', level, message, data, time: Date.now() };
     eventBus.emit("screensaver:log", { level, message, data });
+    eventBus.emit("log", payload);
 
     if (this.debug) {
       const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {
