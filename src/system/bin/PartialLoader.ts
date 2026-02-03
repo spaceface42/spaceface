@@ -8,7 +8,8 @@ import {
     PartialLoaderOptionsInterface,
     PartialLoadResultInterface,
     PartialInfoInterface,
-    PartialEventPayload
+    PartialEventPayload,
+    LogPayload
 } from "../types/bin.js";
 
 export class PartialLoader {
@@ -34,7 +35,13 @@ export class PartialLoader {
             const logKey = `${msg}-${JSON.stringify(data)}`;
             if (!this.loadedPartials.has(logKey)) {
                 this.loadedPartials.set(logKey, true);
-                const payload = { scope: "PartialLoader", level: "debug", message: msg, data, time: Date.now() };
+                const payload: LogPayload = {
+                    scope: "PartialLoader",
+                    level: "debug",
+                    message: msg,
+                    data,
+                    time: Date.now(),
+                };
                 eventBus.emit("log:debug", payload);
                 eventBus.emit("log", payload);
             }

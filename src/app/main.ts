@@ -8,6 +8,7 @@ import {
     ServiceWorkerManager,
     FloatingImagesManagerInterface
 } from './symlink.js';
+import type { LogPayload } from '../system/types/bin.js';
 
 // AppConfig
 interface AppConfigOptions {
@@ -92,14 +93,15 @@ export class Spaceface {
         const [first, ...rest] = args;
         const message = typeof first === 'string' ? first : '';
         const data = typeof first === 'string' ? (rest.length ? rest : undefined) : (args.length ? args : undefined);
-        eventBus.emit(Spaceface.EVENT_LOG, {
+        const payload: LogPayload & { args: any[] } = {
             level,
             args,
             scope: 'Spaceface',
             message,
             data,
             time: Date.now(),
-        });
+        };
+        eventBus.emit(Spaceface.EVENT_LOG, payload);
         if (this.debug) {
             console[level]?.(`[spaceface] [${level.toUpperCase()}]`, ...args);
         }

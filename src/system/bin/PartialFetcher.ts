@@ -3,7 +3,7 @@ export const VERSION = 'nextworld-1.3.0' as const;
 
 import { eventBus } from "./EventBus.js";
 import { PartialLoader } from "./PartialLoader.js";
-import type { PartialFetchOptionsInterface, PartialEventPayload, PartialLoaderLike } from "../types/bin.js";
+import type { PartialFetchOptionsInterface, PartialEventPayload, PartialLoaderLike, LogPayload } from "../types/bin.js";
 
 export class PartialFetcher {
     /** Default internal loader instance */
@@ -23,7 +23,14 @@ export class PartialFetcher {
      * @param data Additional data to log.
      */
     private static logDebug(message: string, data?: unknown): void {
-        eventBus.emit("log", { scope: "PartialFetcher", level: "debug", message, data, time: Date.now() });
+        const payload: LogPayload = {
+            scope: "PartialFetcher",
+            level: "debug",
+            message,
+            data,
+            time: Date.now(),
+        };
+        eventBus.emit("log", payload);
     }
 
     /**

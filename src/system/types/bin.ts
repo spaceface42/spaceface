@@ -74,6 +74,15 @@ export interface EventBusInterface {
   getListeners(event: string): Function[];
 }
 
+// Logging
+export interface LogPayload {
+  scope: string;
+  level: 'debug' | 'info' | 'warn' | 'error' | 'event';
+  message: string;
+  data?: any;
+  time?: number;
+}
+
 // partialloader
 export interface PartialLoaderOptionsInterface {
   debug?: boolean;

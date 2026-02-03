@@ -2,6 +2,7 @@
 export const VERSION = 'nextworld-1.3.0' as const;
 
 import { eventBus } from "./EventBus.js";
+import type { LogPayload } from "../types/bin.js";
 
 export abstract class EventWatcher {
     protected readonly target: EventTarget;
@@ -39,7 +40,14 @@ export abstract class EventWatcher {
             const payload = data;
             if (!this.debug && level === 'debug') return;
             try {
-                eventBus.emit("log", { scope: this.constructor.name, level, message, data: payload, time: Date.now() });
+                const logPayload: LogPayload = {
+                    scope: this.constructor.name,
+                    level,
+                    message,
+                    data: payload,
+                    time: Date.now(),
+                };
+                eventBus.emit("log", logPayload);
             } catch (_) { /* ignore eventBus errors */ }
             if (this.debug) {
                 const method = { debug: 'debug', info: 'info', warn: 'warn', error: 'error' }[level] ?? 'log';
@@ -62,13 +70,14 @@ export abstract class EventWatcher {
             this.loggedMessages.add(logKey);
             try {
                 const sanitizedPayload = payload && typeof payload === 'object' ? JSON.parse(JSON.stringify(payload)) : payload;
-                eventBus.emit("log:debug", {
+                const logPayload: LogPayload = {
                     scope: this.constructor.name,
                     level: 'debug',
                     message,
                     data: sanitizedPayload,
                     time: Date.now(),
-                });
+                };
+                eventBus.emit("log:debug", logPayload);
             } catch (error) {
                 console.warn("Failed to log debug event", { message, payload, error });
             }
