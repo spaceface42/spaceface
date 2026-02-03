@@ -155,14 +155,9 @@ export interface ImageLoadResultInterface {
 
 // InactivityWatcher
 export interface InactivityWatcherOptionsInterface {
-  inactivityDelay?: number;
-  target?: Document | HTMLElement | Window;
+  inactivityDelay: number;
+  target?: EventTarget;
   debug?: boolean;
-  events?: string[];
-  throttleMs?: number;
-  passive?: boolean;
-  pauseOnHidden?: boolean;
-  emitLeadingActive?: boolean;
 }
 
 // PerformanceMonitor

@@ -9,6 +9,7 @@ import { throttle } from '../features/bin/timing.js';
 export interface InactivityWatcherOptionsInterface {
     inactivityDelay: number;
     debug?: boolean;
+    target?: EventTarget;
 }
 
 export class InactivityWatcher extends EventWatcher {
@@ -40,7 +41,7 @@ export class InactivityWatcher extends EventWatcher {
      * @param options Configuration options for the watcher.
      * @returns The singleton instance.
      */
-    static getInstance(options: InactivityWatcherOptionsInterface & { target?: EventTarget }): InactivityWatcher {
+    static getInstance(options: InactivityWatcherOptionsInterface): InactivityWatcher {
         if (!this._instance) {
             this._instance = new InactivityWatcher(options.target ?? document, options);
         }

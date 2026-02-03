@@ -52,7 +52,12 @@ export abstract class EventWatcher {
         const message = levelOrMessage as string;
         const payload = messageOrData;
         if (!this.debug) return;
-        const logKey = `${message}-${JSON.stringify(payload)}`;
+        let logKey: string;
+        try {
+            logKey = `${message}-${JSON.stringify(payload)}`;
+        } catch {
+            logKey = `${message}-[unserializable]`;
+        }
         if (!this.loggedMessages.has(logKey)) {
             this.loggedMessages.add(logKey);
             try {
