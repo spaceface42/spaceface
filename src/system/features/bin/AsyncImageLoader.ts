@@ -83,31 +83,28 @@ export class AsyncImageLoader {
         }
 
         return new Promise<ImageLoadResultInterface>(resolve => {
+          const onLoad = () => {
+            clearTimeout(timer);
+            this.cache.set(img, true);
+            this.logDebug("Image loaded successfully", { img });
+            resolve({ element: img, loaded: true });
+          };
+
+          const onError = () => {
+            clearTimeout(timer);
+            this.logDebug("Image failed to load", { img });
+            resolve({ element: img, loaded: false });
+          };
+
           const timer = setTimeout(() => {
+            img.removeEventListener("load", onLoad);
+            img.removeEventListener("error", onError);
             this.logDebug("Image load timeout", { img });
             resolve({ element: img, loaded: false });
           }, timeout);
 
-          img.addEventListener(
-            "load",
-            () => {
-              clearTimeout(timer);
-              this.cache.set(img, true);
-              this.logDebug("Image loaded successfully", { img });
-              resolve({ element: img, loaded: true });
-            },
-            { once: true }
-          );
-
-          img.addEventListener(
-            "error",
-            () => {
-              clearTimeout(timer);
-              this.logDebug("Image failed to load", { img });
-              resolve({ element: img, loaded: false });
-            },
-            { once: true }
-          );
+          img.addEventListener("load", onLoad, { once: true });
+          img.addEventListener("error", onError, { once: true });
         });
       })
     );

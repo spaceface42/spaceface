@@ -122,8 +122,8 @@ export class FloatingImage {
     }
 
     clampPosition(dims: ContainerDimensionsInterface) {
-        this.x = clamp(this.x, 0, dims.width - this.size.width);
-        this.y = clamp(this.y, 0, dims.height - this.size.height);
+        this.x = clamp(this.x, 0, Math.max(0, dims.width - this.size.width));
+        this.y = clamp(this.y, 0, Math.max(0, dims.height - this.size.height));
     }
 
     destroy() {
