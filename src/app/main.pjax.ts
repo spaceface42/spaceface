@@ -1,4 +1,4 @@
-// src/spaceface/app/bin/main.ts
+// src/spaceface/app/bin/main.pjax.ts
 
 import {
     generateId,
@@ -9,8 +9,8 @@ import {
     FloatingImagesManagerInterface
 } from './symlink.js';
 import type { LogPayload } from '../system/types/bin.js';
+import { initPjax } from './pjax.js';
 
-// AppConfig
 interface AppConfigOptions {
     features?: Record<string, any>;
     debug?: boolean;
@@ -42,7 +42,6 @@ export class AppConfig {
     }
 }
 
-// Spaceface
 interface FeatureModuleMap {
     partialLoader: any;
     slideplayer: any;
@@ -131,11 +130,8 @@ export class Spaceface {
     }
 
     private async initializeFeatures(): Promise<void> {
-        // Run DOM-mutating features first so later initializers can find elements.
-        await this.initPartialLoader();
         await this.initSlidePlayer();
 
-        // Run the remaining features in parallel.
         const initTasks = [
             this.initInactivityWatcher(),
             this.initScreensaver(),
@@ -188,7 +184,6 @@ export class Spaceface {
         this.log('info', 'Spaceface destroyed, all resources released.');
     }
 
-    // Initialization methods for individual features
     public async initInactivityWatcher(): Promise<void> {
         const start = performance.now();
         const screensaver = this.appConfig.config.features?.screensaver;
@@ -300,88 +295,20 @@ export class Spaceface {
             throw error;
         }
     }
-
-    public async initPartialLoader(): Promise<any> {
-        const start = performance.now();
-        const config = this.appConfig.config.features?.partialLoader;
-        if (!config?.enabled) {
-            this.emitFeatureTelemetry('partialLoader', start, 'skipped');
-            return null;
-        }
-        try {
-            const module = await this.loadFeatureModule('partialLoader');
-            const PartialLoader = module?.PartialLoader;
-            if (!PartialLoader) {
-                this.emitFeatureTelemetry('partialLoader', start, 'skipped');
-                return null;
-            }
-            const loader = new PartialLoader({
-                debug: config.debug ?? this.debug,
-                baseUrl: config.baseUrl ?? '/',
-                cacheEnabled: config.cacheEnabled ?? true,
-            });
-            await loader.loadContainer(document);
-            const watchResult = loader.watch?.(document);
-            if (typeof watchResult === 'function') {
-                this._partialUnsub = watchResult;
-            } else {
-                this._partialObserver = watchResult;
-            }
-            this.log('info', 'PartialLoader initialized');
-            this.emitFeatureTelemetry('partialLoader', start, 'success');
-            return loader;
-        } catch (error) {
-            this.emitFeatureTelemetry('partialLoader', start, 'error', error);
-            throw error;
-        }
-    }
 }
 
-// Define a type for the payload
-interface EventPayload {
-    level?: string;
-    args?: any[];
-    [key: string]: any;
-}
-
-// Dev Event Logging
-const isDev = ['localhost', '127.0.0.1'].some(host =>
-    window.location.hostname.includes(host),
-);
-
-if (isDev) {
-    eventBus.onAny((eventName: string, payload: EventPayload) => {
-        // Filter noisy debug logs while keeping functional events visible.
-        if (eventName === 'log:debug') return;
-        if (eventName === 'log' && payload?.level === 'debug') return;
-        const { level = 'log', args, ...otherDetails } = payload;
-        if (!payload) return console.log(`[spaceface onAny] Event: ${eventName} – no payload!`);
-        if (typeof payload === 'string') return console.log(`[spaceface onAny] Event: ${eventName} [LOG]`, payload);
-
-        const fullMessage = args ?? otherDetails ?? '(no details)';
-        const methodMap: Record<'debug' | 'info' | 'warn' | 'error' | 'log', keyof Console> = {
-            debug: 'debug',
-            info: 'info',
-            warn: 'warn',
-            error: 'error',
-            log: 'log',
-        };
-        const method = methodMap[level as keyof typeof methodMap] ?? 'log';
-        (console as any)[method](`[SPCFC *] Event: ${eventName} [${level.toUpperCase()}] –`, fullMessage);
-    });
-}
-
-// Initialize App
+// Initialize App (PJAX-enabled)
 const app = new Spaceface({
     features: {
-        partialLoader: { enabled: true, debug: true, baseUrl: '/', cacheEnabled: true },
         slideplayer: { interval: 5000, includePicture: false, showDots: false },
         screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
         serviceWorker: true,
     },
 });
 
-app.init();
+app.init().then(() => {
+    initPjax({ containerSelector: '[data-pjax="container"]' });
+});
 
 window.addEventListener('beforeunload', () => {
     app.destroy();
