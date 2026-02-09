@@ -8,7 +8,8 @@ import {
     PartialLoaderOptionsInterface,
     PartialLoadResultInterface,
     PartialInfoInterface,
-    PartialEventPayload
+    PartialEventPayload,
+    LogPayload
 } from "../types/bin.js";
 
 export class PartialLoader {
@@ -34,7 +35,15 @@ export class PartialLoader {
             const logKey = `${msg}-${JSON.stringify(data)}`;
             if (!this.loadedPartials.has(logKey)) {
                 this.loadedPartials.set(logKey, true);
-                eventBus.emit("log:debug", { scope: "PartialLoader", message: msg, data });
+                const payload: LogPayload = {
+                    scope: "PartialLoader",
+                    level: "debug",
+                    message: msg,
+                    data,
+                    time: Date.now(),
+                };
+                eventBus.emit("log:debug", payload);
+                eventBus.emit("log", payload);
             }
         }
     }
@@ -79,8 +88,6 @@ export class PartialLoader {
 
     private async loadUrl(url: string, container: Element | ParentNode, id?: string): Promise<PartialLoadResultInterface> {
         try {
-            if (this.loadingPromises.has(url)) await this.loadingPromises.get(url)!;
-
             if (this.options.cacheEnabled && this.cache.has(url)) {
                 this.insertHTML(container, this.cache.get(url)!);
                 this.loadedPartials.set(id || url, true);
@@ -90,7 +97,13 @@ export class PartialLoader {
                 return { success: true, url, cached: true };
             }
 
-            const html = await this.fetchWithRetry(url);
+            let fetchPromise = this.loadingPromises.get(url);
+            if (!fetchPromise) {
+                fetchPromise = this.fetchWithRetry(url);
+                this.loadingPromises.set(url, fetchPromise);
+            }
+
+            const html = await fetchPromise;
             if (this.options.cacheEnabled) this.cache.set(url, html);
 
             this.insertHTML(container, html);

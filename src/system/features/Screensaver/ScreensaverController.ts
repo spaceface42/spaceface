@@ -7,6 +7,7 @@ import { EventBinder } from "../../bin/EventBinder.js";
 import { InactivityWatcher } from "../../bin/InactivityWatcher.js";
 import { PartialFetcher } from "../../bin/PartialFetcher.js";
 import { FloatingImagesManager } from "../FloatingImages/FloatingImagesManager.js";
+import type { LogPayload } from "../../types/bin.js";
 
 import type {
   ScreensaverControllerOptionsInterface,
@@ -69,7 +70,9 @@ export class ScreensaverController {
   ) {
     if (!this.debug && level === 'debug') return;
 
+    const payload: LogPayload = { scope: 'ScreensaverController', level, message, data, time: Date.now() };
     eventBus.emit("screensaver:log", { level, message, data });
+    eventBus.emit("log", payload);
 
     if (this.debug) {
       const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {

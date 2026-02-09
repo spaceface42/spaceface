@@ -28,7 +28,7 @@ export class EventLogger {
    * Suppresses logs below the specified level in production.
    */
   private shouldLog(level: LogLevel): boolean {
-    const levels = ['debug', 'info', 'warn', 'error'];
+    const levels = ['debug', 'info', 'event', 'warn', 'error'];
     const currentLevelIndex = levels.indexOf(this.devMode ? 'debug' : 'warn');
     const logLevelIndex = levels.indexOf(level);
     return logLevelIndex >= currentLevelIndex;

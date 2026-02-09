@@ -74,6 +74,15 @@ export interface EventBusInterface {
   getListeners(event: string): Function[];
 }
 
+// Logging
+export interface LogPayload {
+  scope: string;
+  level: 'debug' | 'info' | 'warn' | 'error' | 'event';
+  message: string;
+  data?: any;
+  time?: number;
+}
+
 // partialloader
 export interface PartialLoaderOptionsInterface {
   debug?: boolean;
@@ -155,14 +164,9 @@ export interface ImageLoadResultInterface {
 
 // InactivityWatcher
 export interface InactivityWatcherOptionsInterface {
-  inactivityDelay?: number;
-  target?: Document | HTMLElement | Window;
+  inactivityDelay: number;
+  target?: EventTarget;
   debug?: boolean;
-  events?: string[];
-  throttleMs?: number;
-  passive?: boolean;
-  pauseOnHidden?: boolean;
-  emitLeadingActive?: boolean;
 }
 
 // PerformanceMonitor

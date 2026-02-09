@@ -23,7 +23,35 @@ Use eventBinder / eventBus for app-level wiring with automatic cleanup.
 Elevator pitch
 Spaceface is a compact, TypeScript-first toolkit that supplies focused, well-typed utilities and small feature controllers for building resilient display UIs without a full framework — it handles event lifecycles, partial loading, animation loops and image management so you can compose robust progressive features with minimal overhead.
 
+# Code layout
+
+System code (`src/system/`)
+- Core runtime utilities (EventBus, EventBinder, EventWatcher, timers, loaders, observers).
+- Reusable feature controllers (SlidePlayer, ScreensaverController, FloatingImagesManager).
+- Intended to be framework-agnostic building blocks.
+
+App code (`src/app/`)
+- App entry points and orchestration.
+- Handles boot order, feature registration, and app-level configuration.
+- PJAX lives here by design since it depends on app DOM structure and lifecycle.
+- Shared core logic lives in `src/app/spaceface.core.ts` and is used by:
+  - `src/app/main.ts` (dev/learning)
+  - `src/app/main.prod.ts` (production)
+  - `src/app/main.pjax.ts` (PJAX-enabled)
+
 # spaceface engine
 
 npm install --save-dev esbuild
 node ./bin/build.js
+
+# build targets
+
+By default the build uses `src/app/main.pjax.ts`. To switch entry points:
+
+- `ENTRY=./src/app/main.ts node ./bin/build.js` (dev/learning)
+- `ENTRY=./src/app/main.prod.ts node ./bin/build.js` (production)
+- `ENTRY=./src/app/main.pjax.ts node ./bin/build.js` (PJAX)
+
+# todo
+
+optimize system/features/\*

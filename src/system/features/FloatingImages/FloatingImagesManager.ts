@@ -9,6 +9,7 @@ import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
 import { animationLoop } from '../bin/AnimationLoop.js';
 import { eventBus } from '../../bin/EventBus.js';
 import { debounce } from '../bin/timing.js';
+import type { LogPayload } from '../../types/bin.js';
 
 import type {
     FloatingImagesManagerOptionsInterface,
@@ -69,7 +70,9 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: unknown) {
         if (!this.debug && level === 'debug') return;
 
+        const payload: LogPayload = { scope: 'FloatingImagesManager', level, message, data, time: Date.now() };
         eventBus.emit('floatingImages:log', { level, message, data });
+        eventBus.emit('log', payload);
 
         if (this.debug) {
             const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {

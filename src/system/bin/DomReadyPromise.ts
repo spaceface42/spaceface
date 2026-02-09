@@ -45,7 +45,7 @@ export class DomReadyPromise {
 
         return new Promise((resolve, reject) => {
             let timeoutId: number | undefined;
-            const observer = new MutationObserver(() => {
+            const checkForElements = () => {
                 for (const selector of selectorList) {
                     if (!foundElements.has(selector)) {
                         const el = root.querySelector<T>(selector);
@@ -58,7 +58,9 @@ export class DomReadyPromise {
                         ? foundElements.get(selectorList[0])!
                         : Array.from(foundElements.values()));
                 }
-            });
+            };
+
+            const observer = new MutationObserver(checkForElements);
 
             const cleanup = () => {
                 observer.disconnect();
@@ -75,6 +77,8 @@ export class DomReadyPromise {
             signal?.addEventListener('abort', onAbort, { once: true });
 
             observer.observe(root, { childList: true, subtree: true });
+            // Check immediately in case elements already exist
+            checkForElements();
 
             timeoutId = window.setTimeout(() => {
                 cleanup();
