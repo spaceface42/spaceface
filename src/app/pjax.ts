@@ -74,11 +74,16 @@ export class Pjax {
 
     async load(url: string, pushState: boolean): Promise<void> {
         const container = document.querySelector<HTMLElement>(this.containerSelector);
-        if (!container) return;
+        if (!container) {
+            document.dispatchEvent(new CustomEvent('pjax:error', { detail: { url, error: new Error('PJAX container not found') } }));
+            window.location.href = url;
+            return;
+        }
 
         this.currentRequest?.abort();
         const controller = new AbortController();
         this.currentRequest = controller;
+        const requestToken = controller;
 
         container.setAttribute('data-pjax-loading', 'true');
         document.dispatchEvent(new CustomEvent('pjax:before', { detail: { url } }));
@@ -110,6 +115,9 @@ export class Pjax {
                     this.cache.set(url, { title, html, url });
                 }
             }
+
+            // Ensure only the latest request can update the DOM
+            if (this.currentRequest !== requestToken) return;
 
             container.innerHTML = html;
             document.title = title;
