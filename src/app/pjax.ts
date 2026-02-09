@@ -119,6 +119,7 @@ export class Pjax {
             // Ensure only the latest request can update the DOM
             if (this.currentRequest !== requestToken) return;
 
+            // Note: scripts inside the swapped HTML will not execute automatically.
             container.innerHTML = html;
             document.title = title;
 

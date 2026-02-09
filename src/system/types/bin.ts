@@ -54,11 +54,6 @@ export interface AnyListenerInterface {
   priority: number;
 }
 
-export interface EventBusErrorPayloadInterface {
-  message: string;
-  error: any;
-}
-
 export interface EventBusInterface {
   on<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
   once<T = any>(event: string, fn: (payload: T) => any, priority?: number): void;
@@ -115,11 +110,6 @@ export interface PartialLoaderLike {
 }
 
 export interface PartialFetchOptionsInterface {
-  replace?: boolean;
-  signal?: AbortSignal;
-  withBindings?: (binder: EventBinderInterface) => void;
-  debugBindings?: boolean;
-
   /**
    * Optional reference to a PartialLoader instance to use caching and retry logic.
    * Should implement `PartialLoaderLike`.

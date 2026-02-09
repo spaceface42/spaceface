@@ -39,6 +39,10 @@ App code (`src/app/`)
   - `src/app/main.prod.ts` (production)
   - `src/app/main.pjax.ts` (PJAX-enabled)
 
+# PJAX note
+
+PJAX swaps `innerHTML` for the container and does not execute `<script>` tags in the swapped content. If a page needs scripts, ensure they are part of the main bundle or re-initialized via `pjax:complete`.
+
 # spaceface engine
 
 npm install --save-dev esbuild

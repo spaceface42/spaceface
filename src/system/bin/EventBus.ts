@@ -4,7 +4,6 @@ import {
     UnsubscribeFn,
     ListenerInterface,
     AnyListenerInterface,
-    EventBusErrorPayloadInterface,
     EventBusInterface
 } from '../types/bin.js';
 
