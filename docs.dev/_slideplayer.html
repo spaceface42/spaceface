@@ -11,28 +11,7 @@
 <body>
 
 <!-- progressbar -->
-<div class="progress-bar" spx-persist>
-<style>
-.progress-bar {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw;
-    height: .2rem;
-    background: lightgray;
-    animation: move 13s linear infinite;
-    z-index: 1;
-}
-@keyframes move {
-    0% { 
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-}
-</style>
-</div>
-
+<link rel="partial" src="./content/partials/progressbar.html" />
 <!-- / progressbar -->
 
 <header>
@@ -153,39 +132,7 @@
 
 <!-- footer -->
 <footer>
-<style>
-footer {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 3rem;
-}
-
-.first {
-    flex: 1 1 100%;
-    font-size: 16px;
-}
-</style>
-<ul class="first">
-<li>spaceface.org</li>
-</ul>
-<ul>
-<li>sandorzsolt</li>
-<li>Privacy policy</li>
-</ul>
-<ul>
-<li><h4>contact</h4></li>
-<li>email</li>
-<li>call</li>
-<li>3</li>
-</ul>
-<ul>
-<li><h4>social</h4></li>
-<li>insta</li>
-<li>linkedin</li>
-<li>behance</li>
-</ul>
-
+<link rel="partial" src="./content/partials/footer.html" />
 </footer>
 <!-- / footer -->
 

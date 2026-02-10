@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns='http://www.w3.org/2000/svg' version='1.1' preserveAspectRatio='none' viewBox='0 0 10 10'>
+	<style>
+		polyline {
+			fill: none;
+			stroke: rgba(247,136,9,0.5);
+			stroke-width: 1px;
+			vector-effect: non-scaling-stroke;
+			shape-rendering: geometricPrecision;
+			stroke-dashoffset: 8px;
+		}
+	</style>
+<g>
+	<polyline points="10 0 0 10" />
+</g>
+</svg>
