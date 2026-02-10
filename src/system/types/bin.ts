@@ -131,6 +131,7 @@ export interface PartialEventPayload {
 // asyncimageloader
 export interface AsyncImageLoaderOptions {
   includePicture?: boolean;
+  debug?: boolean;
 }
 
 export interface SourceDataInterface {

@@ -12,6 +12,7 @@ import {
 export class AsyncImageLoader {
   private container: Element | null;
   private includePicture: boolean;
+  private debug: boolean;
   private cache = new WeakMap<HTMLImageElement, boolean>();
   private destroyed = false;
 
@@ -21,9 +22,11 @@ export class AsyncImageLoader {
     }
     this.container = container;
     this.includePicture = options.includePicture ?? false;
+    this.debug = options.debug ?? false;
   }
 
   private logDebug(message: string, data?: unknown): void {
+    if (!this.debug) return;
     console.debug(`[AsyncImageLoader] ${message}`, data);
   }
 
