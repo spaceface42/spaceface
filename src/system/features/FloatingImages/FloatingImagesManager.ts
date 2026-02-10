@@ -147,8 +147,10 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private animate() {
         if (this._destroyed) return;
 
+        if (!this.isInViewport || this.speedMultiplier === 0) return;
+
         const skipFrame = this.performanceMonitor.update();
-        if (skipFrame || !this.isInViewport || this.speedMultiplier === 0) return;
+        if (skipFrame) return;
 
         const multiplier = this.speedMultiplier;
         const dims = { width: this.containerWidth, height: this.containerHeight };
