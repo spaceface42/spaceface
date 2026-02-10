@@ -4,6 +4,12 @@ import { resolve, dirname, extname, relative, join, isAbsolute, normalize } from
 
 const inDir = resolve(process.env.HTML_IN_DIR ?? "./docs.dev");
 const outDir = resolve(process.env.HTML_OUT_DIR ?? "./docs");
+const bundleSrc = process.env.HTML_BUNDLE_SRC ?? "./bin/bundle.min.js";
+const devScriptCandidates = new Set([
+    "spaceface/app/main.pjax.js",
+    "spaceface/app/main.js",
+    "spaceface/app/main.prod.js",
+]);
 
 const skipDirs = new Set([
     resolve(inDir, "bin"),
@@ -102,6 +108,19 @@ function inlinePartials(html, htmlFile) {
     });
 }
 
+function swapBundleScript(html) {
+    const scriptRegex = /<script\b[^>]*>/gi;
+    return html.replace(scriptRegex, (tag) => {
+        const attrs = parseAttributes(tag);
+        if (!attrs.src) return tag;
+
+        const normalized = attrs.src.replace(/^\.\//, "");
+        if (!devScriptCandidates.has(normalized)) return tag;
+
+        return tag.replace(/src\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i, `src="${bundleSrc}"`);
+    });
+}
+
 function ensureDir(path) {
     mkdirSync(path, { recursive: true });
 }
@@ -117,7 +136,7 @@ function buildHtmlFiles() {
 
         ensureDir(outFolder);
         const html = readFileSync(file, "utf8");
-        const compiled = inlinePartials(html, file);
+        const compiled = swapBundleScript(inlinePartials(html, file));
         writeFileSync(outFile, compiled, "utf8");
     }
 

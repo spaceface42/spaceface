@@ -1,22 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>spaceface</title>
-  <link rel="stylesheet" href="./spaceface/spacesuit/main.css" />
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>spaceface</title>
+        <link rel="stylesheet" href="./spaceface/spacesuit/main.css" />
 
-  <script type="module" src="./spaceface/app/main.pjax.js"></script>
-</head>
-<body>
-<style>
-    body {
-        background: url('./content/matrix.gif')
-    }
-</style>
+        <script type="module" src="./bin/bundle.min.js"></script>
+    </head>
+    <body>
+        <style>
+            body {
+                background: url("./content/matrix.gif");
+            }
+        </style>
 
-<!-- progressbar -->
-<div class="progress-bar" spx-persist>
+        <!-- progressbar -->
+        <div class="progress-bar" spx-persist>
 <style>
 .progress-bar {
     position: fixed;
@@ -38,31 +38,34 @@
 </style>
 </div>
 
-<!-- / progressbar -->
+        <!-- / progressbar -->
 
-<header>
-  <nav>
-    <ul class="nav">
-      <li><a spx-target href="/" >home</a></li>
-      <li><a spx-target href="/_slideplayer.html">_slideplayer</a></li>
-    </ul>
-  </nav>
-  <img src="./spaceface/spacesuit/icons/logo-sandorzsolt.svg" width="128px" height="128px" alt="sandor zsolt graphic designer" />
-</header>
+        <header>
+            <nav>
+                <ul class="nav">
+                    <li><a spx-target href="/">home</a></li>
+                    <li>
+                        <a spx-target href="/_slideplayer.html">_slideplayer</a>
+                    </li>
+                </ul>
+            </nav>
+            <img
+                src="./spaceface/spacesuit/icons/logo-sandorzsolt.svg"
+                width="128px"
+                height="128px"
+                alt="sandor zsolt graphic designer"
+            />
+        </header>
 
-
-
-<main id="main" data-pjax="container">
-  <h1>spaceface</h1>
-  <h3>index</h3>
-<section>
-section
-</section>
-<section>
-    <p>main content</p>
-</section>
-<section>
-    <article>
+        <main id="main" data-pjax="container">
+            <h1>spaceface</h1>
+            <h3>index</h3>
+            <section>section</section>
+            <section>
+                <p>main content</p>
+            </section>
+            <section>
+                <article>
     <style>
         article {
             padding: 1rem;
@@ -78,7 +81,7 @@ section
     <p>Feel free to modify this content as needed.</p>
 </article>
 
-    <article>
+                <article>
     <style>
         article {
             padding: 1rem;
@@ -94,7 +97,7 @@ section
     <p>Feel free to modify this content as needed.</p>
 </article>
 
-    <article>
+                <article>
     <style>
         article {
             padding: 1rem;
@@ -110,13 +113,13 @@ section
     <p>Feel free to modify this content as needed.</p>
 </article>
 
-    <!-- Failed to load partial ./content/partials/NOEXISTE.html -->
-</section>
-</main>
+                <!-- Failed to load partial ./content/partials/NOEXISTE.html -->
+            </section>
+        </main>
 
-<!-- footer -->
-<footer>
-<style>
+        <!-- footer -->
+        <footer>
+            <style>
 footer {
     display: flex;
     flex-direction: row;
@@ -149,10 +152,7 @@ footer {
 <li>behance</li>
 </ul>
 
-</footer>
-<!-- / footer -->
-
-
-
-</body>
+        </footer>
+        <!-- / footer -->
+    </body>
 </html>
