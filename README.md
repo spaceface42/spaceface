@@ -56,6 +56,19 @@ By default the build uses `src/app/main.pjax.ts`. To switch entry points:
 - `ENTRY=./src/app/main.prod.ts node ./bin/build.js` (production)
 - `ENTRY=./src/app/main.pjax.ts node ./bin/build.js` (PJAX)
 
+# build commands
+
+- `npm run build:dev` -> `main.ts` + HTML pre-rendering
+- `npm run build:prod:pjax` -> `main.pjax.ts` + HTML pre-rendering
+- `npm run build:prod` -> `main.prod.ts` + HTML pre-rendering
+- `npm run build` -> default build (`main.pjax.ts`) + HTML pre-rendering
+
+# entrypoint strategy
+
+- `src/app/main.ts`: development entry, runtime partial loading enabled.
+- `src/app/main.pjax.ts`: production entry with PJAX; runtime partial loading disabled because pages are pre-rendered by the build pipeline.
+- `src/app/main.prod.ts`: non-PJAX production fallback/minimal baseline.
+
 # todo
 
 optimize system/features/\*

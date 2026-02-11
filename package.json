@@ -8,6 +8,9 @@
     },
     "scripts": {
         "build": "node ./bin/build.js && node ./bin/build-html.js",
+        "build:dev": "ENTRY=./src/app/main.ts node ./bin/build.js && node ./bin/build-html.js",
+        "build:prod:pjax": "ENTRY=./src/app/main.pjax.ts node ./bin/build.js && node ./bin/build-html.js",
+        "build:prod": "ENTRY=./src/app/main.prod.ts node ./bin/build.js && node ./bin/build-html.js",
         "build:html": "node ./bin/build-html.js",
         "typecheck": "tsc --noEmit"
     }

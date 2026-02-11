@@ -3020,13 +3020,15 @@ function initPjax(options = {}) {
 // src/app/main.pjax.ts
 var app = new SpacefaceCore({
   features: {
-    slideplayer: { interval: 5e3, includePicture: false, showDots: false },
+    partialLoader: { enabled: true, debug: true, baseUrl: "/", cacheEnabled: true },
+    slideplayer: { interval: 5e3, includePicture: false },
     screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" },
     serviceWorker: true
   }
 });
 app.initBase().then(async () => {
   app.registerPjaxFeature("slideplayer", () => app.initSlidePlayer());
+  await app.initPartialLoader();
   await app.initDomFeatures();
   await app.initOnceFeatures();
   app.finishInit();
