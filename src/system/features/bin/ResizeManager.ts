@@ -17,10 +17,14 @@ type ElementSize = { width: number; height: number };
 export class ResizeManager {
   private windowCallbacks: Map<WindowResizeCallback, EventListener> = new Map();
   private elementObservers: Map<Element, ElementObserverEntryInterface> = new Map();
+  private debug = false;
+
+  setDebugMode(enabled: boolean): void {
+    this.debug = enabled;
+  }
 
   private logDebug(message: string, data?: unknown): void {
-    // Disable debug output for resize events
-    // if (message.includes("resize")) return;
+    if (!this.debug) return;
     console.debug(`[ResizeManager] ${message}`, data);
   }
 
