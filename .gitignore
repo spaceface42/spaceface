@@ -1,6 +1,3 @@
 .DS_Store
 
-/docs/spaceface/system/*
-/docs/spaceface/app/*
-/docs/spaceface/*
 /node_modules/

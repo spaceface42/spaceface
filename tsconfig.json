@@ -4,7 +4,7 @@
         "module": "ES2022", // Native ESM output
         "moduleResolution": "bundler", // Node-style module resolution
         "rootDir": "./src", // Source directory
-        "outDir": "./docs.dev/spaceface", // Build output directory
+        "outDir": "./docs.src/spaceface", // Build output directory
         "strict": true, // Enable all strict type-checking options
         "strictNullChecks": true, // Explicit null checking
         "esModuleInterop": true, // Default import compatibility for CommonJS
@@ -17,5 +17,5 @@
         "noEmitOnError": true // Prevent emitting if there are type errors
     },
     "include": ["src/**/*"],
-    "exclude": ["docs/**/*", "docs.dev/**/*", "node_modules/**/*"]
+    "exclude": ["docs/**/*", "docs.src/**/*", "node_modules/**/*"]
 }
