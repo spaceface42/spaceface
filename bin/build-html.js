@@ -5,6 +5,7 @@ import { resolve, dirname, extname, relative, join, isAbsolute, normalize } from
 const inDir = resolve(process.env.HTML_IN_DIR ?? "./docs.src");
 const outDir = resolve(process.env.HTML_OUT_DIR ?? "./docs");
 const bundleSrc = process.env.HTML_BUNDLE_SRC ?? "./bin/bundle.min.js";
+const shouldSwapBundle = process.env.HTML_SWAP_BUNDLE !== "0";
 const devScriptCandidates = new Set([
     "spaceface/app/main.pjax.js",
     "spaceface/app/main.js",
@@ -136,7 +137,8 @@ function buildHtmlFiles() {
 
         ensureDir(outFolder);
         const html = readFileSync(file, "utf8");
-        const compiled = swapBundleScript(inlinePartials(html, file));
+        const inlined = inlinePartials(html, file);
+        const compiled = shouldSwapBundle ? swapBundleScript(inlined) : inlined;
         writeFileSync(outFile, compiled, "utf8");
     }
 

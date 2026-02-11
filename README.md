@@ -36,7 +36,7 @@ Production fallback entry without PJAX.
 ## Build Commands
 
 - `npm run build:dev`
-Build with `main.ts` and pre-render HTML.
+Build TypeScript modules (`tsc`) and pre-render HTML without bundle script swapping.
 
 - `npm run build:prod:pjax`
 Build with `main.pjax.ts` and pre-render HTML.
