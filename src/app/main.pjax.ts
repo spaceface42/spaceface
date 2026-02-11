@@ -7,6 +7,7 @@ import { initPjax } from './pjax.js';
 const app = new SpacefaceCore({
     features: {
         slideplayer: { interval: 5000, includePicture: false },
+        floatingImages: { selector: '.floating-images-container', maxImages: 24, debug: false },
         screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
         serviceWorker: true,
     },
@@ -15,6 +16,7 @@ const app = new SpacefaceCore({
 app.initBase().then(async () => {
     // Register DOM-dependent features to re-run after PJAX swaps
     app.registerPjaxFeature('slideplayer', () => app.initSlidePlayer());
+    app.registerPjaxFeature('floatingImages', () => app.initFloatingImages());
 
     await app.initDomFeatures();
     await app.initOnceFeatures();

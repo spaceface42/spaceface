@@ -20,6 +20,7 @@ export declare class SpacefaceCore {
     private inactivityWatcher;
     private screensaverController;
     private slideshows;
+    private floatingImagesManagers;
     private swManager?;
     private _partialUnsub?;
     private _partialObserver?;
@@ -41,4 +42,6 @@ export declare class SpacefaceCore {
     handlePjaxComplete(): Promise<void>;
     destroy(): void;
     private emitFeatureTelemetry;
+    initFloatingImages(): Promise<void>;
+    private destroyFloatingImagesManagers;
 }

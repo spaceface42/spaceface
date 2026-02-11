@@ -2185,7 +2185,12 @@ var init_ResizeManager = __esm({
 });
 
 // src/system/features/FloatingImages/FloatingImagesManager.ts
-var FloatingImagesManager;
+var FloatingImagesManager_exports = {};
+__export(FloatingImagesManager_exports, {
+  FloatingImagesManager: () => FloatingImagesManager,
+  VERSION: () => VERSION4
+});
+var VERSION4, FloatingImagesManager;
 var init_FloatingImagesManager = __esm({
   "src/system/features/FloatingImages/FloatingImagesManager.ts"() {
     "use strict";
@@ -2196,6 +2201,7 @@ var init_FloatingImagesManager = __esm({
     init_AnimationLoop();
     init_EventBus();
     init_timing();
+    VERSION4 = "2.0.0";
     FloatingImagesManager = class {
       container;
       performanceMonitor;
@@ -2365,9 +2371,9 @@ var init_FloatingImagesManager = __esm({
 var ScreensaverController_exports = {};
 __export(ScreensaverController_exports, {
   ScreensaverController: () => ScreensaverController,
-  VERSION: () => VERSION4
+  VERSION: () => VERSION5
 });
-var VERSION4, ScreensaverController;
+var VERSION5, ScreensaverController;
 var init_ScreensaverController = __esm({
   "src/system/features/Screensaver/ScreensaverController.ts"() {
     "use strict";
@@ -2376,7 +2382,7 @@ var init_ScreensaverController = __esm({
     init_InactivityWatcher();
     init_PartialFetcher();
     init_FloatingImagesManager();
-    VERSION4 = "2.0.0";
+    VERSION5 = "2.0.0";
     ScreensaverController = class {
       partialUrl;
       targetSelector;
@@ -2646,6 +2652,7 @@ var SpacefaceCore = class _SpacefaceCore {
   inactivityWatcher = null;
   screensaverController = null;
   slideshows = [];
+  floatingImagesManagers = [];
   swManager;
   _partialUnsub;
   _partialObserver;
@@ -2659,6 +2666,7 @@ var SpacefaceCore = class _SpacefaceCore {
       partialLoader: () => Promise.resolve().then(() => (init_PartialLoader(), PartialLoader_exports)),
       slideplayer: () => Promise.resolve().then(() => (init_SlidePlayer(), SlidePlayer_exports)),
       screensaver: () => Promise.resolve().then(() => (init_ScreensaverController(), ScreensaverController_exports)),
+      floatingImages: () => Promise.resolve().then(() => (init_FloatingImagesManager(), FloatingImagesManager_exports)),
       serviceWorker: () => Promise.resolve().then(() => (init_ServiceWorkerManager(), ServiceWorkerManager_exports))
     };
     if (!this.appConfig.config.features) {
@@ -2864,6 +2872,7 @@ var SpacefaceCore = class _SpacefaceCore {
   }
   async initDomFeatures() {
     await this.initSlidePlayer();
+    await this.initFloatingImages();
   }
   async initOnceFeatures() {
     const initTasks = [
@@ -2883,6 +2892,7 @@ var SpacefaceCore = class _SpacefaceCore {
     document.documentElement.classList.add(`page-${this.pageType}`);
     this.slideshows.forEach((slideshow) => slideshow.destroy?.());
     this.slideshows = [];
+    this.destroyFloatingImagesManagers();
     for (const { init, when } of this.pjaxFeatures.values()) {
       if (when && !when(this.pageType)) continue;
       await init();
@@ -2892,6 +2902,7 @@ var SpacefaceCore = class _SpacefaceCore {
     this._partialUnsub?.();
     this._partialObserver?.disconnect?.();
     this.slideshows.forEach((slideshow) => slideshow.destroy?.());
+    this.destroyFloatingImagesManagers();
     this.inactivityWatcher?.destroy?.();
     this.screensaverController?.destroy?.();
     this.featureCache.clear();
@@ -2909,136 +2920,59 @@ var SpacefaceCore = class _SpacefaceCore {
       error
     });
   }
-};
-
-// src/app/pjax.ts
-var Pjax = class {
-  containerSelector;
-  linkSelector;
-  scrollToTop;
-  cacheEnabled;
-  cache = /* @__PURE__ */ new Map();
-  currentRequest;
-  constructor(options = {}) {
-    this.containerSelector = options.containerSelector ?? '[data-pjax="container"]';
-    this.linkSelector = options.linkSelector ?? "a[href]";
-    this.scrollToTop = options.scrollToTop ?? true;
-    this.cacheEnabled = options.cache ?? true;
-  }
-  init() {
-    document.addEventListener("click", this.onClick, true);
-    window.addEventListener("popstate", this.onPopState);
-  }
-  destroy() {
-    document.removeEventListener("click", this.onClick, true);
-    window.removeEventListener("popstate", this.onPopState);
-    this.currentRequest?.abort();
-    this.currentRequest = void 0;
-  }
-  onClick = (event) => {
-    if (event.defaultPrevented) return;
-    if (event.button !== 0) return;
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const target = event.target;
-    const link = target?.closest?.(this.linkSelector);
-    if (!link) return;
-    if (link.hasAttribute("download")) return;
-    if (link.getAttribute("rel") === "external") return;
-    if (link.target && link.target !== "_self") return;
-    if (link.dataset.noPjax !== void 0) return;
-    const href = link.href;
-    if (!href) return;
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin) return;
-    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
+  async initFloatingImages() {
+    const start = performance.now();
+    const floatingImages = this.appConfig.config.features?.floatingImages;
+    if (!floatingImages) {
+      this.emitFeatureTelemetry("floatingImages", start, "skipped");
       return;
     }
-    event.preventDefault();
-    void this.load(url.toString(), true);
-  };
-  onPopState = () => {
-    void this.load(window.location.href, false);
-  };
-  async load(url, pushState) {
-    const container = document.querySelector(this.containerSelector);
-    if (!container) {
-      document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error: new Error("PJAX container not found") } }));
-      window.location.href = url;
-      return;
-    }
-    this.currentRequest?.abort();
-    const controller = new AbortController();
-    this.currentRequest = controller;
-    const requestToken = controller;
-    container.setAttribute("data-pjax-loading", "true");
-    document.dispatchEvent(new CustomEvent("pjax:before", { detail: { url } }));
     try {
-      const cached = this.cacheEnabled ? this.cache.get(url) : void 0;
-      let title;
-      let html;
-      if (cached) {
-        ({ title, html } = cached);
-      } else {
-        const res = await fetch(url, {
-          method: "GET",
-          headers: { "X-PJAX": "true" },
-          signal: controller.signal,
-          credentials: "same-origin"
+      const module = await this.loadFeatureModule("floatingImages");
+      const FloatingImagesManager2 = module?.FloatingImagesManager;
+      if (!FloatingImagesManager2) {
+        this.emitFeatureTelemetry("floatingImages", start, "skipped");
+        return;
+      }
+      const selector = floatingImages.selector ?? ".floating-images-container";
+      const containers = Array.from(document.querySelectorAll(selector));
+      if (!containers.length) {
+        this.emitFeatureTelemetry("floatingImages", start, "skipped");
+        return;
+      }
+      this.destroyFloatingImagesManagers();
+      this.floatingImagesManagers = containers.map((container) => {
+        return new FloatingImagesManager2(container, {
+          maxImages: floatingImages.maxImages,
+          debug: floatingImages.debug ?? this.debug
         });
-        if (!res.ok) throw new Error(`PJAX HTTP ${res.status}`);
-        const text = await res.text();
-        const parsed = new DOMParser().parseFromString(text, "text/html");
-        const nextContainer = parsed.querySelector(this.containerSelector);
-        if (!nextContainer) throw new Error(`PJAX container "${this.containerSelector}" not found`);
-        title = parsed.title || document.title;
-        html = nextContainer.innerHTML;
-        if (this.cacheEnabled) {
-          this.cache.set(url, { title, html, url });
-        }
-      }
-      if (this.currentRequest !== requestToken) return;
-      container.innerHTML = html;
-      document.title = title;
-      if (pushState) {
-        history.pushState({ pjax: true }, "", url);
-      }
-      if (this.scrollToTop) {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      }
-      document.dispatchEvent(new CustomEvent("pjax:complete", { detail: { url } }));
+      });
+      this.log("info", `${this.floatingImagesManagers.length} FloatingImages instance(s) loaded`);
+      this.emitFeatureTelemetry("floatingImages", start, "success");
     } catch (error) {
-      if (error?.name !== "AbortError") {
-        document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error } }));
-        window.location.href = url;
-      }
-    } finally {
-      container.removeAttribute("data-pjax-loading");
+      this.emitFeatureTelemetry("floatingImages", start, "error", error);
+      throw error;
     }
   }
+  destroyFloatingImagesManagers() {
+    this.floatingImagesManagers.forEach((manager) => manager.destroy?.());
+    this.floatingImagesManagers = [];
+  }
 };
-function initPjax(options = {}) {
-  const pjax = new Pjax(options);
-  pjax.init();
-  return pjax;
-}
 
-// src/app/main.pjax.ts
+// src/app/main.prod.ts
 var app = new SpacefaceCore({
   features: {
     slideplayer: { interval: 5e3, includePicture: false },
+    floatingImages: { selector: ".floating-images-container", maxImages: 24, debug: false },
     screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" },
     serviceWorker: true
   }
 });
 app.initBase().then(async () => {
-  app.registerPjaxFeature("slideplayer", () => app.initSlidePlayer());
   await app.initDomFeatures();
   await app.initOnceFeatures();
   app.finishInit();
-  initPjax({ containerSelector: '[data-pjax="container"]' });
-  document.addEventListener("pjax:complete", () => {
-    void app.handlePjaxComplete();
-  });
 });
 window.addEventListener("beforeunload", () => {
   app.destroy();

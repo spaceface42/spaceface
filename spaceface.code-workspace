@@ -1,20 +1,20 @@
 {
     "folders": [
         {
-            "path": "."
+            "path": ".",
         },
         {
-            "name": "public",
-            "path": "docs"
+            "name": "docs.src",
+            "path": "docs.src",
         },
         {
             "name": "sources",
-            "path": "src"
-        }
+            "path": "src",
+        },
     ],
     "settings": {
         "emmet.syntaxProfiles": {
-            "html": "xhtml"
+            "html": "xhtml",
         },
         "editor.wordWrap": "on",
         "git.confirmSync": true,
@@ -23,6 +23,6 @@
         "liveServer.settings.multiRootWorkspaceName": "spaceface",
         "liveServer.settings.root": "/docs",
         "cSpell.words": ["slideplayer", "spaceface", "nextworld"],
-        "powershell.cwd": "spaceface"
-    }
+        "powershell.cwd": "spaceface",
+    },
 }

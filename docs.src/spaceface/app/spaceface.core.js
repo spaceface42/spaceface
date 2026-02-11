@@ -32,6 +32,7 @@ export class SpacefaceCore {
     inactivityWatcher = null;
     screensaverController = null;
     slideshows = [];
+    floatingImagesManagers = [];
     swManager;
     _partialUnsub;
     _partialObserver;
@@ -45,6 +46,7 @@ export class SpacefaceCore {
             partialLoader: () => import('../system/bin/PartialLoader.js'),
             slideplayer: () => import('../system/features/SlidePlayer/SlidePlayer.js'),
             screensaver: () => import('../system/features/Screensaver/ScreensaverController.js'),
+            floatingImages: () => import('../system/features/FloatingImages/FloatingImagesManager.js'),
             serviceWorker: () => import('../system/bin/ServiceWorkerManager.js'),
         };
         if (!this.appConfig.config.features) {
@@ -259,6 +261,7 @@ export class SpacefaceCore {
     }
     async initDomFeatures() {
         await this.initSlidePlayer();
+        await this.initFloatingImages();
     }
     async initOnceFeatures() {
         const initTasks = [
@@ -279,6 +282,7 @@ export class SpacefaceCore {
         document.documentElement.classList.add(`page-${this.pageType}`);
         this.slideshows.forEach(slideshow => slideshow.destroy?.());
         this.slideshows = [];
+        this.destroyFloatingImagesManagers();
         for (const { init, when } of this.pjaxFeatures.values()) {
             if (when && !when(this.pageType))
                 continue;
@@ -289,6 +293,7 @@ export class SpacefaceCore {
         this._partialUnsub?.();
         this._partialObserver?.disconnect?.();
         this.slideshows.forEach(slideshow => slideshow.destroy?.());
+        this.destroyFloatingImagesManagers();
         this.inactivityWatcher?.destroy?.();
         this.screensaverController?.destroy?.();
         this.featureCache.clear();
@@ -305,6 +310,45 @@ export class SpacefaceCore {
             page: this.pageType,
             error,
         });
+    }
+    async initFloatingImages() {
+        const start = performance.now();
+        const floatingImages = this.appConfig.config.features?.floatingImages;
+        if (!floatingImages) {
+            this.emitFeatureTelemetry('floatingImages', start, 'skipped');
+            return;
+        }
+        try {
+            const module = await this.loadFeatureModule('floatingImages');
+            const FloatingImagesManager = module?.FloatingImagesManager;
+            if (!FloatingImagesManager) {
+                this.emitFeatureTelemetry('floatingImages', start, 'skipped');
+                return;
+            }
+            const selector = floatingImages.selector ?? '.floating-images-container';
+            const containers = Array.from(document.querySelectorAll(selector));
+            if (!containers.length) {
+                this.emitFeatureTelemetry('floatingImages', start, 'skipped');
+                return;
+            }
+            this.destroyFloatingImagesManagers();
+            this.floatingImagesManagers = containers.map(container => {
+                return new FloatingImagesManager(container, {
+                    maxImages: floatingImages.maxImages,
+                    debug: floatingImages.debug ?? this.debug,
+                });
+            });
+            this.log('info', `${this.floatingImagesManagers.length} FloatingImages instance(s) loaded`);
+            this.emitFeatureTelemetry('floatingImages', start, 'success');
+        }
+        catch (error) {
+            this.emitFeatureTelemetry('floatingImages', start, 'error', error);
+            throw error;
+        }
+    }
+    destroyFloatingImagesManagers() {
+        this.floatingImagesManagers.forEach(manager => manager.destroy?.());
+        this.floatingImagesManagers = [];
     }
 }
 //# sourceMappingURL=spaceface.core.js.map
