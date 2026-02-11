@@ -1,4 +1,4 @@
-export declare const VERSION: "nextworld-1.3.0";
+export declare const VERSION: "2.0.0";
 import { WaitForElementOptions } from '../types/bin.js';
 export declare class DomReadyPromise {
     #private;

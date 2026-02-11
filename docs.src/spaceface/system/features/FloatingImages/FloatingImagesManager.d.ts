@@ -1,4 +1,4 @@
-export declare const VERSION: "nextworld-1.3.0";
+export declare const VERSION: "2.0.0";
 import { FloatingImage } from './FloatingImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';

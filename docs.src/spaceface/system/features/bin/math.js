@@ -1,4 +1,4 @@
-export const VERSION = 'nextworld-1.3.0';
+export const VERSION = '2.0.0';
 export const clamp = (value, min, max) => {
     if (min > max) {
         throw new RangeError('The `min` value cannot be greater than the `max` value.');

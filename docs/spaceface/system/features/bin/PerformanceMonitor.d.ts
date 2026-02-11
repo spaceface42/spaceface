@@ -1,4 +1,4 @@
-export declare const VERSION: "nextworld-1.0.0";
+export declare const VERSION: "2.0.0";
 import { PerformanceLevel, PerformanceSettingsInterface } from '../../types/bin.js';
 export declare class PerformanceMonitor {
     private fps;

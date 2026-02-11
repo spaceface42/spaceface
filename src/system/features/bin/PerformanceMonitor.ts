@@ -1,6 +1,6 @@
 // src/spaceface/system/features/bin/PerformanceMonitor.ts
 
-export const VERSION = 'nextworld-1.0.0' as const;
+export const VERSION = '2.0.0' as const;
 
 import {
   PerformanceLevel,

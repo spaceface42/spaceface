@@ -1,6 +1,6 @@
 // src/spaceface/features/SlidePlayer/SlidePlayer.ts
 
-export const VERSION = 'nextworld-1.2.0';
+export const VERSION = '2.0.0';
 
 import { eventBus } from '../../bin/EventBus.js';
 import { EventBinder } from '../../bin/EventBinder.js';

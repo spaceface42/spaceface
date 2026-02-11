@@ -1,7 +1,7 @@
 import { SpacefaceCore } from './spaceface.core.js';
 const app = new SpacefaceCore({
     features: {
-        slideplayer: { interval: 5000, includePicture: false, showDots: false },
+        slideplayer: { interval: 5000, includePicture: false },
         screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
         serviceWorker: true,
     },

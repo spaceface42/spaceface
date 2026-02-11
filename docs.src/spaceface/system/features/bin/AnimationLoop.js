@@ -1,4 +1,4 @@
-export const VERSION = 'nextworld-1.3.0';
+export const VERSION = '2.0.0';
 export class AnimationLoop {
     callbacks = new Set();
     running = false;

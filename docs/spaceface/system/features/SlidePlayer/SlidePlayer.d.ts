@@ -1,4 +1,4 @@
-export declare const VERSION = "nextworld-1.2.0";
+export declare const VERSION = "2.0.0";
 interface ISlidePlayerOptions {
     interval?: number;
     includePicture?: boolean;

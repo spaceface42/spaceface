@@ -1,4 +1,4 @@
-export declare const VERSION: "nextworld-1.2.0";
+export declare const VERSION: "2.0.0";
 import { InactivityWatcher } from "../../bin/InactivityWatcher.js";
 import { PartialFetcher } from "../../bin/PartialFetcher.js";
 import type { ScreensaverControllerOptionsInterface } from "../../types/features.js";

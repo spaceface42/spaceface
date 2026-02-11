@@ -1,4 +1,4 @@
-export const VERSION = 'nextworld-1.3.0';
+export const VERSION = '2.0.0';
 import { debounce } from "../features/bin/timing.js";
 import { eventBus } from "./EventBus.js";
 export class PartialLoader {

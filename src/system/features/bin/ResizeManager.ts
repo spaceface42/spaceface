@@ -1,6 +1,6 @@
 // src/spaceface/system/features/bin/ResizeManager.ts
 
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 import { debounce, throttle, CancellableFunction } from './timing.js';
 

@@ -1,4 +1,4 @@
-export declare const VERSION: "nextworld-1.3.0";
+export declare const VERSION: "2.0.0";
 import { EventWatcher } from './EventWatcher.js';
 export interface InactivityWatcherOptionsInterface {
     inactivityDelay: number;

@@ -1,6 +1,6 @@
 // src/spaceface/system/bin/ServiceWorkerManager.ts
 
-export const VERSION = 'nextworld-1.0.0' as const;
+export const VERSION = '2.0.0' as const;
 export class ServiceWorkerManager {
   private swPath: string;
   private options: RegistrationOptions;

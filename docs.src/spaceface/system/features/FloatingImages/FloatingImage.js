@@ -1,4 +1,4 @@
-export const VERSION = 'nextworld-1.3.0';
+export const VERSION = '2.0.0';
 import { clamp } from '../bin/math.js';
 const DAMPING = 0.85;
 const MIN_VELOCITY = 0.1;

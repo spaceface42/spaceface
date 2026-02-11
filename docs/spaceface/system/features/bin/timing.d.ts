@@ -1,4 +1,4 @@
-export declare const VERSION: "nextworld-1.3.0";
+export declare const VERSION: "2.0.0";
 export type CancellableFunction<T extends (...args: any[]) => void> = T & {
     cancel: () => void;
 };

@@ -1,6 +1,6 @@
 // src/spaceface/system/features/bin/math.ts
 
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 /**
  * Clamps a number within the inclusive range specified by the minimum and maximum values.

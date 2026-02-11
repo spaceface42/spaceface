@@ -1,4 +1,4 @@
-export const VERSION = 'nextworld-1.3.0';
+export const VERSION = '2.0.0';
 export function generateId(prefix = 'id', length = 9, useCrypto = false) {
     if (!Number.isInteger(length) || length <= 0) {
         throw new Error('Length must be a positive integer.');

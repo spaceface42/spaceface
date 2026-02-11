@@ -879,7 +879,7 @@ var init_PartialLoader = __esm({
     "use strict";
     init_timing();
     init_EventBus();
-    VERSION = "nextworld-1.3.0";
+    VERSION = "2.0.0";
     PartialLoader = class {
       cache = /* @__PURE__ */ new Map();
       loadingPromises = /* @__PURE__ */ new Map();
@@ -1207,7 +1207,7 @@ var VERSION2, ServiceWorkerManager;
 var init_ServiceWorkerManager = __esm({
   "src/system/bin/ServiceWorkerManager.ts"() {
     "use strict";
-    VERSION2 = "nextworld-1.0.0";
+    VERSION2 = "2.0.0";
     ServiceWorkerManager = class {
       swPath;
       options;
@@ -1594,7 +1594,7 @@ var init_SlidePlayer = __esm({
     init_EventBinder();
     init_AsyncImageLoader();
     init_AnimationLoop();
-    VERSION3 = "nextworld-1.2.0";
+    VERSION3 = "2.0.0";
     SlidePlayer = class _SlidePlayer {
       static SWIPE_THRESHOLD = 50;
       static VERTICAL_TOLERANCE = 30;
@@ -2082,7 +2082,12 @@ var init_ResizeManager = __esm({
     ResizeManager = class {
       windowCallbacks = /* @__PURE__ */ new Map();
       elementObservers = /* @__PURE__ */ new Map();
+      debug = false;
+      setDebugMode(enabled) {
+        this.debug = enabled;
+      }
       logDebug(message, data) {
+        if (!this.debug) return;
         console.debug(`[ResizeManager] ${message}`, data);
       }
       wrapCallback(cb, options) {
@@ -2371,7 +2376,7 @@ var init_ScreensaverController = __esm({
     init_InactivityWatcher();
     init_PartialFetcher();
     init_FloatingImagesManager();
-    VERSION4 = "nextworld-1.2.0";
+    VERSION4 = "2.0.0";
     ScreensaverController = class {
       partialUrl;
       targetSelector;

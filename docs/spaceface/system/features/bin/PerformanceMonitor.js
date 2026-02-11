@@ -1,4 +1,4 @@
-export const VERSION = 'nextworld-1.0.0';
+export const VERSION = '2.0.0';
 export class PerformanceMonitor {
     fps = 60;
     lastTime = performance.now();

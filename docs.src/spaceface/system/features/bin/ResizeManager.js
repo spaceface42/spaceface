@@ -1,9 +1,15 @@
-export const VERSION = 'nextworld-1.3.0';
+export const VERSION = '2.0.0';
 import { debounce, throttle } from './timing.js';
 export class ResizeManager {
     windowCallbacks = new Map();
     elementObservers = new Map();
+    debug = false;
+    setDebugMode(enabled) {
+        this.debug = enabled;
+    }
     logDebug(message, data) {
+        if (!this.debug)
+            return;
         console.debug(`[ResizeManager] ${message}`, data);
     }
     wrapCallback(cb, options) {

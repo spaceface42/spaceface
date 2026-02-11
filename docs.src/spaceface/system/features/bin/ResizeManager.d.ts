@@ -1,4 +1,4 @@
-export declare const VERSION: "nextworld-1.3.0";
+export declare const VERSION: "2.0.0";
 type WindowResizeCallback = () => void;
 type ElementResizeCallback = (entry: ResizeObserverEntry) => void;
 type ElementSize = {
@@ -8,6 +8,8 @@ type ElementSize = {
 export declare class ResizeManager {
     private windowCallbacks;
     private elementObservers;
+    private debug;
+    setDebugMode(enabled: boolean): void;
     private logDebug;
     private wrapCallback;
     onWindow(cb: WindowResizeCallback, options?: {
