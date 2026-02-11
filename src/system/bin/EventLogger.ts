@@ -1,5 +1,5 @@
 // src/system/bin/EventLogger.ts
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 import { eventBus } from '../bin/EventBus.js';
 

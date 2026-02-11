@@ -1,6 +1,6 @@
 // src/spaceface/system/bin/generateId.ts
 
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 /**
  * Generates a unique ID string with an optional prefix and length.

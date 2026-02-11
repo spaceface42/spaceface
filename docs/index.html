@@ -1,60 +1,158 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>spaceface</title>
-  <link rel="stylesheet" href="./spaceface/spacesuit/main.css" />
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>spaceface</title>
+        <link rel="stylesheet" href="./spaceface/spacesuit/main.css" />
 
-  <script type="module" src="./spaceface/app/main.pjax.js"></script>
-</head>
-<body>
+        <script type="module" src="./bin/bundle.min.js"></script>
+    </head>
+    <body>
+        <style>
+            body {
+                background: url("./content/matrix.gif");
+            }
+        </style>
+
+        <!-- progressbar -->
+        <div class="progress-bar" spx-persist>
 <style>
-    body {
-        background: url('./content/matrix.gif')
+.progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: .2rem;
+    background: lightgray;
+    animation: move 13s linear infinite;
+    z-index: 1;
+}
+@keyframes move {
+    0% { 
+      transform: translateX(-100%);
     }
+    100% {
+      transform: translateX(100%);
+    }
+}
 </style>
+</div>
 
-<!-- progressbar -->
-<link rel="partial" src="./content/partials/progressbar.html" />
-<!-- / progressbar -->
+        <!-- / progressbar -->
 
-<header>
-  <nav>
-    <ul class="nav">
-      <li><a spx-target href="/" >home</a></li>
-      <li><a spx-target href="/_slideplayer.html">_slideplayer</a></li>
-    </ul>
-  </nav>
-  <img src="./spaceface/spacesuit/icons/logo-sandorzsolt.svg" width="128px" height="128px" alt="sandor zsolt graphic designer" />
-</header>
+        <header>
+            <nav>
+                <ul class="nav">
+                    <li><a spx-target href="/">home</a></li>
+                    <li>
+                        <a spx-target href="/_slideplayer.html">_slideplayer</a>
+                    </li>
+                </ul>
+            </nav>
+            <img
+                src="./spaceface/spacesuit/icons/logo-sandorzsolt.svg"
+                width="128px"
+                height="128px"
+                alt="sandor zsolt graphic designer"
+            />
+        </header>
 
+        <main id="main" data-pjax="container">
+            <h1>spaceface</h1>
+            <h3>index</h3>
+            <section>section</section>
+            <section>
+                <p>main content</p>
+            </section>
+            <section>
+                <article>
+    <style>
+        article {
+            padding: 1rem;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+    </style>
+    <h2>Fake Partial</h2>
+    <p>This is a fake partial file used for testing purposes.</p>
+    <p>It is included in the documentation to demonstrate how partials can be used.</p>
+    <p>Feel free to modify this content as needed.</p>
+</article>
 
+                <article>
+    <style>
+        article {
+            padding: 1rem;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+    </style>
+    <h2>Fake Partial</h2>
+    <p>This is a fake partial file used for testing purposes.</p>
+    <p>It is included in the documentation to demonstrate how partials can be used.</p>
+    <p>Feel free to modify this content as needed.</p>
+</article>
 
-<main id="main" data-pjax="container">
-  <h1>spaceface</h1>
-  <h3>index</h3>
-<section>
-section
-</section>
-<section>
-    <p>main content</p>
-</section>
-<section>
-    <link id="fakepartial-id-1" rel="partial" src="./content/partials/fakepartial-1.html" />
-    <link id="fakepartial-id-2" rel="partial" src="./content/partials/fakepartial-2.html" />
-    <link id="fakepartial-id-3" rel="partial" src="./content/partials/fakepartial-3.html" />
-    <link id="fakepartial-id-ERROR" rel="partial" src="./content/partials/NOEXISTE.html" />
-</section>
-</main>
+                <article>
+    <style>
+        article {
+            padding: 1rem;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+    </style>
+    <h2>Fake Partial</h2>
+    <p>This is a fake partial file used for testing purposes.</p>
+    <p>It is included in the documentation to demonstrate how partials can be used.</p>
+    <p>Feel free to modify this content as needed.</p>
+</article>
 
-<!-- footer -->
-<footer>
-<link rel="partial" id="partial-footer-id-4" src="./content/partials/footer.html" />
-</footer>
-<!-- / footer -->
+                <!-- Failed to load partial ./content/partials/NOEXISTE.html -->
+            </section>
+        </main>
 
+        <!-- footer -->
+        <footer>
+            <style>
+footer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 3rem;
+}
 
+.first {
+    flex: 1 1 100%;
+    font-size: 16px;
+}
+</style>
+<ul class="first">
+<li>spaceface.org</li>
+</ul>
+<ul>
+<li>sandorzsolt</li>
+<li>Privacy policy</li>
+</ul>
+<ul>
+<li><h4>contact</h4></li>
+<li>email</li>
+<li>call</li>
+<li>3</li>
+</ul>
+<ul>
+<li><h4>social</h4></li>
+<li>insta</li>
+<li>linkedin</li>
+<li>behance</li>
+</ul>
 
-</body>
+        </footer>
+        <!-- / footer -->
+    </body>
 </html>

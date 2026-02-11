@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="620px" height="620px" viewBox="0 0 620 620" xmlns="http://www.w3.org/2000/svg">
+<style>
+#logo {
+    fill: none;
+    stroke: rgba(141,41,241,0.9);
+    stroke-width: 2px;
+    stroke-linecap: round;
+    transform-origin: center;
+    shape-rendering: geometricPrecision;
+}
+</style>
+<g id="logo">
+    <line id="diagonal" x1="0" y1="0" x2="620" y2="620" />
+    <rect x="1" y="1" width="618" height="618" rx="0" />
+</g>
+</svg>

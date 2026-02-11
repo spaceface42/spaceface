@@ -1,0 +1,128 @@
+export const VERSION = 'nextworld-1.2.1';
+import { FloatingImage } from './FloatingImage.js';
+import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
+import { resizeManager } from '../bin/ResizeManager.js';
+import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
+import { animationLoop } from '../bin/AnimationLoop.js';
+export class FloatingImagesManager {
+    container;
+    performanceMonitor;
+    images = [];
+    speedMultiplier = 1;
+    isInViewport = true;
+    _destroyed = false;
+    animateCallback;
+    maxImages;
+    intersectionObserver;
+    unsubscribeWindow;
+    unsubscribeElement;
+    imageLoader;
+    containerWidth;
+    containerHeight;
+    debug;
+    constructor(container, options = {}) {
+        this.container = container;
+        this.debug = options.debug ?? false;
+        this.performanceMonitor = new PerformanceMonitor();
+        const perfSettings = this.performanceMonitor.getRecommendedSettings();
+        this.maxImages = options.maxImages ?? perfSettings.maxImages;
+        this.intersectionObserver = new IntersectionObserver(entries => {
+            const wasInViewport = this.isInViewport;
+            this.isInViewport = entries[0].isIntersecting;
+            if (this.isInViewport && !wasInViewport)
+                this.resumeLoop();
+            else if (!this.isInViewport && wasInViewport)
+                this.pauseLoop();
+        }, { threshold: 0 });
+        this.intersectionObserver.observe(this.container);
+        this.setupResizeHandling();
+        this.imageLoader = new AsyncImageLoader(this.container);
+        this.updateContainerDimensions();
+        this.animateCallback = () => this.animate();
+        animationLoop.add(this.animateCallback);
+        if (this.debug)
+            console.log('[FloatingImagesManager] RAF callback added');
+        this.initializeImages();
+    }
+    setupResizeHandling() {
+        this.unsubscribeWindow = resizeManager.onWindow(() => this.handleResize());
+        this.unsubscribeElement = resizeManager.onElement(this.container, () => this.handleResize());
+    }
+    updateContainerDimensions() {
+        const dims = resizeManager.getElement(this.container);
+        this.containerWidth = dims.width;
+        this.containerHeight = dims.height;
+    }
+    async initializeImages() {
+        try {
+            const imgElements = await this.imageLoader.waitForImagesToLoad('.floating-image');
+            const dims = { width: this.containerWidth, height: this.containerHeight };
+            imgElements.slice(0, this.maxImages).forEach(el => this.addExistingImage(el, dims));
+        }
+        catch { }
+    }
+    addExistingImage(el, dims) {
+        if (this.images.length >= this.maxImages)
+            return;
+        const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
+        this.images.push(floatingImage);
+    }
+    handleResize() {
+        if (this._destroyed)
+            return;
+        this.updateContainerDimensions();
+        const dims = { width: this.containerWidth, height: this.containerHeight };
+        this.images.forEach(img => { img.updateSize(); img.clampPosition(dims); img.updatePosition(); });
+    }
+    animate() {
+        if (this._destroyed)
+            return;
+        const skipFrame = this.performanceMonitor.update();
+        if (skipFrame || this.speedMultiplier === 0)
+            return;
+        const dims = { width: this.containerWidth, height: this.containerHeight };
+        this.images = this.images.filter(img => img.update(this.speedMultiplier, dims));
+    }
+    pauseLoop() {
+        if (animationLoop.has(this.animateCallback)) {
+            animationLoop.remove(this.animateCallback);
+            if (this.debug)
+                console.log('[FloatingImagesManager] RAF paused');
+        }
+    }
+    resumeLoop() {
+        if (!animationLoop.has(this.animateCallback)) {
+            animationLoop.add(this.animateCallback);
+            if (this.debug)
+                console.log('[FloatingImagesManager] RAF resumed');
+        }
+    }
+    resetAllImagePositions() {
+        const dims = { width: this.containerWidth, height: this.containerHeight };
+        this.images.forEach(img => img.resetPosition(dims));
+    }
+    reinitializeImages() {
+        if (this._destroyed)
+            return;
+        this.images.forEach(img => img.destroy());
+        this.images.length = 0;
+        const dims = { width: this.containerWidth, height: this.containerHeight };
+        const imgElements = Array.from(this.container.querySelectorAll('.floating-image'))
+            .slice(0, this.maxImages);
+        imgElements.forEach(el => {
+            const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
+            this.images.push(floatingImage);
+        });
+    }
+    destroy() {
+        this._destroyed = true;
+        this.pauseLoop();
+        this.unsubscribeWindow?.();
+        this.unsubscribeElement?.();
+        this.intersectionObserver.disconnect();
+        this.images.forEach(img => img.destroy());
+        this.images.length = 0;
+        this.imageLoader.destroy();
+    }
+}
+//# sourceMappingURL=FloatingImagesManageRAF%20pause.js.map

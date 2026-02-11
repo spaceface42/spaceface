@@ -1,6 +1,6 @@
 // src/spaceface/system/features/bin/timing.ts
 
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 /** Generic type: function with cancel method */
 export type CancellableFunction<T extends (...args: any[]) => void> = T & { cancel: () => void };

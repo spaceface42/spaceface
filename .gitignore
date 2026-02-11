@@ -1,6 +1,13 @@
 .DS_Store
 
-/docs/spaceface/system/*
-/docs/spaceface/app/*
-/docs/spaceface/*
 /node_modules/
+
+# Build outputs in docs: keep only production bundle
+/docs/.DS_Store
+/docs/bin/*
+!/docs/bin/bundle.min.js
+
+# Ignore intermediate transpiled app artifacts
+/docs/spaceface/app/*.js
+/docs/spaceface/app/*.js.map
+/docs/spaceface/app/*.d.ts

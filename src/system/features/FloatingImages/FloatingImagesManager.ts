@@ -1,6 +1,6 @@
 // src/spaceface/features/FloatingImages/FloatingImagesManager.ts
 
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 import { FloatingImage } from './FloatingImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
@@ -147,8 +147,10 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private animate() {
         if (this._destroyed) return;
 
+        if (!this.isInViewport || this.speedMultiplier === 0) return;
+
         const skipFrame = this.performanceMonitor.update();
-        if (skipFrame || !this.isInViewport || this.speedMultiplier === 0) return;
+        if (skipFrame) return;
 
         const multiplier = this.speedMultiplier;
         const dims = { width: this.containerWidth, height: this.containerHeight };

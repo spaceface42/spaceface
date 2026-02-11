@@ -1,0 +1,62 @@
+/**
+ * reset
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+* {
+  margin: 0;
+  padding: 0;
+}
+
+/**
+ * defaults
+ *
+ */
+body {
+  min-height: 100vh; /* fallback */
+  min-height: 100dvh; /* dynamic viewport height */
+  min-height: 100svh; /* small viewport height */
+  /* max-width: 100%; */
+  overflow-x: hidden; /*.fallback */
+  overflow-x: clip;
+  scroll-behavior:smooth;
+}
+body * {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering:optimizeLegibility
+}
+
+/**
+ * atomic stuff
+ * img: responsive images
+ * svg: for better inline handling
+ * hx: simple tipo stuff
+ */
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* site specific image size */
+img, picture, video {
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+}
+svg {
+  vertical-align: middle;
+}
+
+/* tipo */
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+/* lists */
+ul {
+    list-style: none;
+}

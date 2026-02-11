@@ -1,5 +1,5 @@
 // src/spaceface/system/bin/PartialLoader.ts
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 import { debounce } from "../features/bin/timing.js";
 import { eventBus } from "./EventBus.js";

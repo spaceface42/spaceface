@@ -1,6 +1,6 @@
 // src/spaceface/system/features/bin/AsyncImageLoader.ts
 
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 import {
   AsyncImageLoaderOptions,
@@ -12,6 +12,7 @@ import {
 export class AsyncImageLoader {
   private container: Element | null;
   private includePicture: boolean;
+  private debug: boolean;
   private cache = new WeakMap<HTMLImageElement, boolean>();
   private destroyed = false;
 
@@ -21,9 +22,11 @@ export class AsyncImageLoader {
     }
     this.container = container;
     this.includePicture = options.includePicture ?? false;
+    this.debug = options.debug ?? false;
   }
 
   private logDebug(message: string, data?: unknown): void {
+    if (!this.debug) return;
     console.debug(`[AsyncImageLoader] ${message}`, data);
   }
 

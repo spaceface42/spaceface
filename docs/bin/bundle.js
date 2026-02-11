@@ -879,7 +879,7 @@ var init_PartialLoader = __esm({
     "use strict";
     init_timing();
     init_EventBus();
-    VERSION = "nextworld-1.3.0";
+    VERSION = "2.0.0";
     PartialLoader = class {
       cache = /* @__PURE__ */ new Map();
       loadingPromises = /* @__PURE__ */ new Map();
@@ -1207,7 +1207,7 @@ var VERSION2, ServiceWorkerManager;
 var init_ServiceWorkerManager = __esm({
   "src/system/bin/ServiceWorkerManager.ts"() {
     "use strict";
-    VERSION2 = "nextworld-1.0.0";
+    VERSION2 = "2.0.0";
     ServiceWorkerManager = class {
       swPath;
       options;
@@ -1368,6 +1368,7 @@ var init_AsyncImageLoader = __esm({
     AsyncImageLoader = class {
       container;
       includePicture;
+      debug;
       cache = /* @__PURE__ */ new WeakMap();
       destroyed = false;
       constructor(container, options = {}) {
@@ -1376,8 +1377,10 @@ var init_AsyncImageLoader = __esm({
         }
         this.container = container;
         this.includePicture = options.includePicture ?? false;
+        this.debug = options.debug ?? false;
       }
       logDebug(message, data) {
+        if (!this.debug) return;
         console.debug(`[AsyncImageLoader] ${message}`, data);
       }
       ensureActive(methodName) {
@@ -1591,7 +1594,7 @@ var init_SlidePlayer = __esm({
     init_EventBinder();
     init_AsyncImageLoader();
     init_AnimationLoop();
-    VERSION3 = "nextworld-1.2.0";
+    VERSION3 = "2.0.0";
     SlidePlayer = class _SlidePlayer {
       static SWIPE_THRESHOLD = 50;
       static VERTICAL_TOLERANCE = 30;
@@ -2079,7 +2082,12 @@ var init_ResizeManager = __esm({
     ResizeManager = class {
       windowCallbacks = /* @__PURE__ */ new Map();
       elementObservers = /* @__PURE__ */ new Map();
+      debug = false;
+      setDebugMode(enabled) {
+        this.debug = enabled;
+      }
       logDebug(message, data) {
+        if (!this.debug) return;
         console.debug(`[ResizeManager] ${message}`, data);
       }
       wrapCallback(cb, options) {
@@ -2299,8 +2307,9 @@ var init_FloatingImagesManager = __esm({
       }, 200);
       animate() {
         if (this._destroyed) return;
+        if (!this.isInViewport || this.speedMultiplier === 0) return;
         const skipFrame = this.performanceMonitor.update();
-        if (skipFrame || !this.isInViewport || this.speedMultiplier === 0) return;
+        if (skipFrame) return;
         const multiplier = this.speedMultiplier;
         const dims = { width: this.containerWidth, height: this.containerHeight };
         this.images = this.images.filter((img) => img.update(multiplier, dims));
@@ -2367,7 +2376,7 @@ var init_ScreensaverController = __esm({
     init_InactivityWatcher();
     init_PartialFetcher();
     init_FloatingImagesManager();
-    VERSION4 = "nextworld-1.2.0";
+    VERSION4 = "2.0.0";
     ScreensaverController = class {
       partialUrl;
       targetSelector;
@@ -2604,112 +2613,7 @@ function generateId(prefix = "id", length = 9, useCrypto = false) {
 // src/app/symlink.ts
 init_ServiceWorkerManager();
 
-// src/app/pjax.ts
-var Pjax = class {
-  containerSelector;
-  linkSelector;
-  scrollToTop;
-  cacheEnabled;
-  cache = /* @__PURE__ */ new Map();
-  currentRequest;
-  constructor(options = {}) {
-    this.containerSelector = options.containerSelector ?? '[data-pjax="container"]';
-    this.linkSelector = options.linkSelector ?? "a[href]";
-    this.scrollToTop = options.scrollToTop ?? true;
-    this.cacheEnabled = options.cache ?? true;
-  }
-  init() {
-    document.addEventListener("click", this.onClick, true);
-    window.addEventListener("popstate", this.onPopState);
-  }
-  destroy() {
-    document.removeEventListener("click", this.onClick, true);
-    window.removeEventListener("popstate", this.onPopState);
-    this.currentRequest?.abort();
-    this.currentRequest = void 0;
-  }
-  onClick = (event) => {
-    if (event.defaultPrevented) return;
-    if (event.button !== 0) return;
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const target = event.target;
-    const link = target?.closest?.(this.linkSelector);
-    if (!link) return;
-    if (link.hasAttribute("download")) return;
-    if (link.getAttribute("rel") === "external") return;
-    if (link.target && link.target !== "_self") return;
-    if (link.dataset.noPjax !== void 0) return;
-    const href = link.href;
-    if (!href) return;
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin) return;
-    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
-      return;
-    }
-    event.preventDefault();
-    void this.load(url.toString(), true);
-  };
-  onPopState = () => {
-    void this.load(window.location.href, false);
-  };
-  async load(url, pushState) {
-    const container = document.querySelector(this.containerSelector);
-    if (!container) return;
-    this.currentRequest?.abort();
-    const controller = new AbortController();
-    this.currentRequest = controller;
-    container.setAttribute("data-pjax-loading", "true");
-    document.dispatchEvent(new CustomEvent("pjax:before", { detail: { url } }));
-    try {
-      const cached = this.cacheEnabled ? this.cache.get(url) : void 0;
-      let title;
-      let html;
-      if (cached) {
-        ({ title, html } = cached);
-      } else {
-        const res = await fetch(url, {
-          method: "GET",
-          headers: { "X-PJAX": "true" },
-          signal: controller.signal,
-          credentials: "same-origin"
-        });
-        if (!res.ok) throw new Error(`PJAX HTTP ${res.status}`);
-        const text = await res.text();
-        const parsed = new DOMParser().parseFromString(text, "text/html");
-        const nextContainer = parsed.querySelector(this.containerSelector);
-        if (!nextContainer) throw new Error(`PJAX container "${this.containerSelector}" not found`);
-        title = parsed.title || document.title;
-        html = nextContainer.innerHTML;
-        if (this.cacheEnabled) {
-          this.cache.set(url, { title, html, url });
-        }
-      }
-      container.innerHTML = html;
-      document.title = title;
-      if (pushState) {
-        history.pushState({ pjax: true }, "", url);
-      }
-      if (this.scrollToTop) {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      }
-      document.dispatchEvent(new CustomEvent("pjax:complete", { detail: { url } }));
-    } catch (error) {
-      if (error?.name !== "AbortError") {
-        document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error } }));
-        window.location.href = url;
-      }
-    } finally {
-      container.removeAttribute("data-pjax-loading");
-    }
-  }
-};
-function initPjax(options = {}) {
-  const pjax = new Pjax(options);
-  pjax.init();
-  return pjax;
-}
-
-// src/app/main.pjax.ts
+// src/app/spaceface.core.ts
 var AppConfig = class {
   config;
   constructor(options = {}) {
@@ -2730,7 +2634,7 @@ var AppConfig = class {
     }, this.config);
   }
 };
-var Spaceface = class _Spaceface {
+var SpacefaceCore = class _SpacefaceCore {
   static EVENT_LOG = "log";
   static EVENT_TELEMETRY = "telemetry";
   appConfig;
@@ -2745,6 +2649,7 @@ var Spaceface = class _Spaceface {
   swManager;
   _partialUnsub;
   _partialObserver;
+  pjaxFeatures = /* @__PURE__ */ new Map();
   constructor(options = {}) {
     this.appConfig = new AppConfig(options);
     this.debug = !!this.appConfig.config.debug;
@@ -2773,7 +2678,7 @@ var Spaceface = class _Spaceface {
       data,
       time: Date.now()
     };
-    eventBus.emit(_Spaceface.EVENT_LOG, payload);
+    eventBus.emit(_SpacefaceCore.EVENT_LOG, payload);
     if (this.debug) {
       console[level]?.(`[spaceface] [${level.toUpperCase()}]`, ...args);
     }
@@ -2799,57 +2704,20 @@ var Spaceface = class _Spaceface {
       return null;
     }
   }
-  async initializeFeatures() {
-    await this.initSlidePlayer();
-    const initTasks = [
-      this.initInactivityWatcher(),
-      this.initScreensaver(),
-      this.initServiceWorker()
-    ];
-    await Promise.allSettled(initTasks);
-    this.log("info", `Page features initialized for: ${this.pageType}`);
-  }
-  async init() {
+  async initBase() {
     this.log("info", `App initialization started (Page: ${this.pageType})`);
     document.documentElement.classList.add("js-enabled", `page-${this.pageType}`);
     await DomReadyPromise.ready();
     this.log("info", "DOM ready");
-    await this.initializeFeatures();
+  }
+  finishInit() {
     const duration = (performance.now() - this.startTime).toFixed(2);
     this.log("info", `App initialized in ${duration}ms`);
-    eventBus.emit(_Spaceface.EVENT_TELEMETRY, {
+    eventBus.emit(_SpacefaceCore.EVENT_TELEMETRY, {
       type: "init:duration",
       value: duration,
       page: this.pageType
     });
-  }
-  async handlePjaxComplete() {
-    this.pageType = this.resolvePageType();
-    document.documentElement.classList.add(`page-${this.pageType}`);
-    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
-    this.slideshows = [];
-    await this.initSlidePlayer();
-  }
-  emitFeatureTelemetry(feature, startTime, status, error) {
-    const duration = (performance.now() - startTime).toFixed(2);
-    eventBus.emit(_Spaceface.EVENT_TELEMETRY, {
-      type: "feature:init",
-      feature,
-      status,
-      duration,
-      page: this.pageType,
-      error
-    });
-  }
-  destroy() {
-    this._partialUnsub?.();
-    this._partialObserver?.disconnect?.();
-    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
-    this.inactivityWatcher?.destroy?.();
-    this.screensaverController?.destroy?.();
-    this.featureCache.clear();
-    document.querySelector('[id^="screensaver"]')?.remove();
-    this.log("info", "Spaceface destroyed, all resources released.");
   }
   async initInactivityWatcher() {
     const start = performance.now();
@@ -2960,26 +2828,128 @@ var Spaceface = class _Spaceface {
       throw error;
     }
   }
+  async initPartialLoader() {
+    const start = performance.now();
+    const config = this.appConfig.config.features?.partialLoader;
+    if (!config?.enabled) {
+      this.emitFeatureTelemetry("partialLoader", start, "skipped");
+      return null;
+    }
+    try {
+      const module = await this.loadFeatureModule("partialLoader");
+      const PartialLoader2 = module?.PartialLoader;
+      if (!PartialLoader2) {
+        this.emitFeatureTelemetry("partialLoader", start, "skipped");
+        return null;
+      }
+      const loader = new PartialLoader2({
+        debug: config.debug ?? this.debug,
+        baseUrl: config.baseUrl ?? "/",
+        cacheEnabled: config.cacheEnabled ?? true
+      });
+      await loader.loadContainer(document);
+      const watchResult = loader.watch?.(document);
+      if (typeof watchResult === "function") {
+        this._partialUnsub = watchResult;
+      } else {
+        this._partialObserver = watchResult;
+      }
+      this.log("info", "PartialLoader initialized");
+      this.emitFeatureTelemetry("partialLoader", start, "success");
+      return loader;
+    } catch (error) {
+      this.emitFeatureTelemetry("partialLoader", start, "error", error);
+      throw error;
+    }
+  }
+  async initDomFeatures() {
+    await this.initSlidePlayer();
+  }
+  async initOnceFeatures() {
+    const initTasks = [
+      this.initInactivityWatcher(),
+      this.initScreensaver(),
+      this.initServiceWorker()
+    ];
+    await Promise.allSettled(initTasks);
+    this.log("info", `Page features initialized for: ${this.pageType}`);
+  }
+  registerPjaxFeature(name, init, when) {
+    if (this.pjaxFeatures.has(name)) return;
+    this.pjaxFeatures.set(name, { init, when });
+  }
+  async handlePjaxComplete() {
+    this.pageType = this.resolvePageType();
+    document.documentElement.classList.add(`page-${this.pageType}`);
+    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
+    this.slideshows = [];
+    for (const { init, when } of this.pjaxFeatures.values()) {
+      if (when && !when(this.pageType)) continue;
+      await init();
+    }
+  }
+  destroy() {
+    this._partialUnsub?.();
+    this._partialObserver?.disconnect?.();
+    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
+    this.inactivityWatcher?.destroy?.();
+    this.screensaverController?.destroy?.();
+    this.featureCache.clear();
+    document.querySelector('[id^="screensaver"]')?.remove();
+    this.log("info", "Spaceface destroyed, all resources released.");
+  }
+  emitFeatureTelemetry(feature, startTime, status, error) {
+    const duration = (performance.now() - startTime).toFixed(2);
+    eventBus.emit(_SpacefaceCore.EVENT_TELEMETRY, {
+      type: "feature:init",
+      feature,
+      status,
+      duration,
+      page: this.pageType,
+      error
+    });
+  }
 };
-var app = new Spaceface({
+
+// src/app/main.ts
+var app = new SpacefaceCore({
   features: {
-    slideplayer: { interval: 5e3, includePicture: false, showDots: false },
+    partialLoader: { enabled: true, debug: true, baseUrl: "/", cacheEnabled: true },
+    slideplayer: { interval: 5e3, includePicture: false },
     screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" },
     serviceWorker: true
   }
 });
-app.init().then(() => {
-  initPjax({ containerSelector: '[data-pjax="container"]' });
-  document.addEventListener("pjax:complete", () => {
-    void app.handlePjaxComplete();
-  });
+app.initBase().then(async () => {
+  await app.initPartialLoader();
+  await app.initDomFeatures();
+  await app.initOnceFeatures();
+  app.finishInit();
 });
+var isDev = ["localhost", "127.0.0.1"].some(
+  (host) => window.location.hostname.includes(host)
+);
+if (isDev) {
+  eventBus.onAny((eventName, payload) => {
+    if (eventName === "log:debug") return;
+    if (eventName === "log" && payload?.level === "debug") return;
+    const { level = "log", args, ...otherDetails } = payload ?? {};
+    if (!payload) return console.log(`[spaceface onAny] Event: ${eventName} \u2013 no payload!`);
+    if (typeof payload === "string") return console.log(`[spaceface onAny] Event: ${eventName} [LOG]`, payload);
+    const fullMessage = args ?? otherDetails ?? "(no details)";
+    const methodMap = {
+      debug: "debug",
+      info: "info",
+      warn: "warn",
+      error: "error",
+      log: "log"
+    };
+    const method = methodMap[level] ?? "log";
+    console[method](`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] \u2013`, fullMessage);
+  });
+}
 window.addEventListener("beforeunload", () => {
   app.destroy();
   app.log("info", "App destroyed on beforeunload");
 });
-export {
-  AppConfig,
-  Spaceface
-};
 //# sourceMappingURL=bundle.js.map

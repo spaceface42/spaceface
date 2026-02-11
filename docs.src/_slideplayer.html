@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>spaceface</title>
+  <link rel="stylesheet" href="./spaceface/spacesuit/main.css" />
+
+  <script type="module" src="./spaceface/app/main.js"></script>
+</head>
+<body>
+
+<!-- progressbar -->
+<link rel="partial" src="./content/partials/progressbar.html" />
+<!-- / progressbar -->
+
+<header>
+  <nav>
+    <ul class="nav">
+      <li><a spx-target href="/" >home</a></li>
+      <li><a spx-target href="/_slideplayer.html">_slideplayer</a></li>
+    </ul>
+  </nav>
+  <img src="./content/placeholder.svg" width="128px" height="128px" alt="sandor zsolt graphic designer" />
+</header>
+
+
+
+<main id="main" data-pjax="container">
+  <h1>spaceface</h1>
+  <h3>index</h3>
+<section>
+
+<section>
+    <p>main content slideplayer</p>
+</section>
+
+<div class="slideshow-container">
+<style>
+/**
+ *
+ * container
+ *
+ */
+ .slideshow-container {
+  position: relative;
+  max-width: 300px;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/**
+ *
+ * slides
+ *
+ */
+.slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: 100%;
+    max-height: 100%
+    opacity: 0;
+    z-index: 1;
+    transition: opacity 0.8s ease-in-out;
+    will-change: opacity;
+    transform: translate3d(0, 0, 0); /* Forces GPU compositing */
+    user-select: none;
+    pointer-events: none;
+}
+
+.slide.active {
+  opacity: 1;
+  z-index: 2;
+}
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/**
+ *
+ * control
+ *
+ */
+.dots {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  z-index: 3;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 4rem;
+  cursor: pointer;
+  transition: width 0.4s ease, background-color 0.4s ease;
+}
+.dot.active {
+  width: 32px;
+  border-radius: 999px;
+  background-color: white;
+}
+</style>
+    <div class="slide active">
+        <img src="/content/feature/rick-and-morty/everything-will-be-fine.jpg" alt="Slide 1" />
+    </div>
+    <div class="slide">
+        <img src="/content/feature/rick-and-morty/rickandmorty1.jpeg" alt="Slide 2" />
+    </div>
+    <div class="slide">
+        <img src="/content/feature/rick-and-morty/rickandmorty2.jpeg" alt="Slide 3" />
+    </div>
+    <!-- Dots wrapper-->
+    <div class="dots">
+        <div class="dot" data-index="0"></div>
+        <div class="dot" data-index="1"></div>
+        <div class="dot" data-index="2"></div>
+    </div>
+</div>
+
+
+  </section>
+</main>
+
+<!-- footer -->
+<footer>
+<link rel="partial" src="./content/partials/footer.html" />
+</footer>
+<!-- / footer -->
+
+
+
+</body>
+</html>

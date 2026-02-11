@@ -1,0 +1,11 @@
+/**
+ * variables
+ */
+:root {
+    --neutron: .3rem;
+    --atom: 1rem;
+    --molecule: 3rem;
+    --color-light: rgb(240, 240, 240);
+    --gap: 10rem;
+    --padding: min(1rem, 3vw);
+}

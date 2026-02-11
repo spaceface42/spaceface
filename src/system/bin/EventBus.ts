@@ -1,10 +1,9 @@
-export const VERSION = 'nextworld-1.3.0' as const;
+export const VERSION = '2.0.0' as const;
 
 import {
     UnsubscribeFn,
     ListenerInterface,
     AnyListenerInterface,
-    EventBusErrorPayloadInterface,
     EventBusInterface
 } from '../types/bin.js';
 
