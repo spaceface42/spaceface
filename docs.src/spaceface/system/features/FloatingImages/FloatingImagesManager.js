@@ -1,4 +1,4 @@
-export const VERSION = '2.0.0';
+export const VERSION = '2.1.0';
 import { FloatingImage } from './FloatingImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
 import { resizeManager } from '../bin/ResizeManager.js';

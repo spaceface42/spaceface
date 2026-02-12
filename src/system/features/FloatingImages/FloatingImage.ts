@@ -7,7 +7,7 @@ import { clamp } from '../bin/math.js';
 import type {
     ContainerDimensionsInterface,
     FloatingImageOptionsInterface
-} from '../../types/features.js';
+} from './types.js';
 
 const DAMPING = 0.85;
 const MIN_VELOCITY = 0.1;

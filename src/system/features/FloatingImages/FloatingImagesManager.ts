@@ -13,9 +13,9 @@ import type { LogPayload } from '../../types/bin.js';
 
 import type {
     FloatingImagesManagerOptionsInterface,
-    ContainerDimensionsInterface,
-    FloatingImagesManagerInterface
-} from '../../types/features.js';
+    ContainerDimensionsInterface
+} from './types.js';
+import type { FloatingImagesManagerInterface } from '../../types/features.js';
 
 export class FloatingImagesManager implements FloatingImagesManagerInterface {
     readonly container: HTMLElement;

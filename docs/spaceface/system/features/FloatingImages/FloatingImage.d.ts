@@ -1,5 +1,5 @@
 export declare const VERSION: "2.0.0";
-import type { ContainerDimensionsInterface, FloatingImageOptionsInterface } from '../../types/features.js';
+import type { ContainerDimensionsInterface, FloatingImageOptionsInterface } from './types.js';
 export declare class FloatingImage {
     private element;
     private size;
