@@ -16,7 +16,6 @@ export declare class SpacefaceCore {
     private screensaverController;
     private slideshows;
     private floatingImagesManagers;
-    private swManager?;
     private _partialUnsub?;
     private _partialObserver?;
     private pjaxFeatures;
@@ -29,7 +28,6 @@ export declare class SpacefaceCore {
     initInactivityWatcher(): Promise<void>;
     initSlidePlayer(): Promise<void>;
     initScreensaver(): Promise<void>;
-    initServiceWorker(): Promise<void>;
     initPartialLoader(): Promise<PartialLoaderInstance | null>;
     initDomFeatures(): Promise<void>;
     initOnceFeatures(): Promise<void>;

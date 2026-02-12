@@ -1197,169 +1197,6 @@ var init_PartialFetcher = __esm({
   }
 });
 
-// src/system/bin/ServiceWorkerManager.ts
-var ServiceWorkerManager_exports = {};
-__export(ServiceWorkerManager_exports, {
-  ServiceWorkerManager: () => ServiceWorkerManager,
-  VERSION: () => VERSION2
-});
-var VERSION2, ServiceWorkerManager;
-var init_ServiceWorkerManager = __esm({
-  "src/system/bin/ServiceWorkerManager.ts"() {
-    "use strict";
-    VERSION2 = "2.0.0";
-    ServiceWorkerManager = class {
-      swPath;
-      options;
-      customConfig;
-      registration = null;
-      isSupported;
-      constructor(swPath = "/sw.js", options = {}, customConfig = {}) {
-        this.swPath = swPath;
-        this.options = {
-          scope: "/",
-          updateViaCache: "none",
-          ...options
-        };
-        this.customConfig = customConfig;
-        this.isSupported = "serviceWorker" in navigator;
-      }
-      /**
-       * Register the service worker
-       */
-      async register() {
-        if (!this.isSupported) {
-          throw new Error("ServiceWorker not supported");
-        }
-        try {
-          this.registration = await navigator.serviceWorker.register(
-            this.swPath,
-            this.options
-          );
-          this.setupEventListeners();
-          return this.registration;
-        } catch (error) {
-          console.error("SW registration failed:", error);
-          throw error;
-        }
-      }
-      /**
-       * Apply custom configuration after registration
-       */
-      configure() {
-        if (this.customConfig.strategy) {
-          this.setStrategy(this.customConfig.strategy);
-        }
-      }
-      /**
-       * Unregister the service worker
-       */
-      async unregister() {
-        if (!this.registration) return false;
-        try {
-          return await this.registration.unregister();
-        } catch (error) {
-          console.error("SW unregistration failed:", error);
-          return false;
-        }
-      }
-      /**
-       * Update the service worker
-       */
-      async update() {
-        if (!this.registration) return null;
-        try {
-          await this.registration.update();
-          return null;
-        } catch (error) {
-          console.error("SW update failed:", error);
-          return null;
-        }
-      }
-      /**
-       * Get registration status
-       */
-      getStatus() {
-        if (!this.registration) return "unregistered";
-        if (this.registration.installing) return "installing";
-        if (this.registration.waiting) return "waiting";
-        if (this.registration.active) return "active";
-        return "unknown";
-      }
-      /**
-       * Setup lifecycle event listeners
-       */
-      setupEventListeners() {
-        if (!this.registration) return;
-        this.registration.addEventListener("updatefound", () => {
-          const newWorker = this.registration?.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener("statechange", () => {
-            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-              this.onUpdateAvailable?.(newWorker);
-            }
-          });
-        });
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          this.onControllerChange?.();
-        });
-      }
-      /**
-       * Send a message to the service worker
-       */
-      async postMessage(message, transfer) {
-        const sw = navigator.serviceWorker.controller;
-        if (!sw) throw new Error("No active service worker");
-        if (transfer) {
-          sw.postMessage(message, { transfer });
-        } else {
-          sw.postMessage(message);
-        }
-      }
-      /**
-       * Wait for message from service worker
-       */
-      waitForMessage(timeout = 5e3) {
-        return new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("Message timeout")), timeout);
-          const handler = (event) => {
-            clearTimeout(timer);
-            navigator.serviceWorker.removeEventListener("message", handler);
-            resolve(event.data);
-          };
-          navigator.serviceWorker.addEventListener("message", handler);
-        });
-      }
-      /**
-       * Activate the waiting service worker
-       */
-      async activateWaiting() {
-        if (!this.registration?.waiting) return false;
-        try {
-          await this.postMessage({ type: "SKIP_WAITING" });
-          return true;
-        } catch (error) {
-          console.error("Failed to activate waiting SW:", error);
-          return false;
-        }
-      }
-      /**
-       * Set runtime cache strategy (e.g., cache-first or network-first)
-       */
-      setStrategy(config = {}) {
-        if (!navigator.serviceWorker.controller) {
-          console.warn("No active SW to set strategy");
-          return;
-        }
-        this.postMessage({
-          type: "SET_STRATEGY",
-          payload: config
-        });
-      }
-    };
-  }
-});
-
 // src/system/features/bin/AsyncImageLoader.ts
 var AsyncImageLoader;
 var init_AsyncImageLoader = __esm({
@@ -1584,9 +1421,9 @@ var init_AnimationLoop = __esm({
 var SlidePlayer_exports = {};
 __export(SlidePlayer_exports, {
   SlidePlayer: () => SlidePlayer,
-  VERSION: () => VERSION3
+  VERSION: () => VERSION2
 });
-var VERSION3, SlidePlayer;
+var VERSION2, SlidePlayer;
 var init_SlidePlayer = __esm({
   "src/system/features/SlidePlayer/SlidePlayer.ts"() {
     "use strict";
@@ -1594,7 +1431,7 @@ var init_SlidePlayer = __esm({
     init_EventBinder();
     init_AsyncImageLoader();
     init_AnimationLoop();
-    VERSION3 = "2.0.0";
+    VERSION2 = "2.0.0";
     SlidePlayer = class _SlidePlayer {
       static SWIPE_THRESHOLD = 50;
       static VERTICAL_TOLERANCE = 30;
@@ -2191,9 +2028,9 @@ var init_ResizeManager = __esm({
 var FloatingImagesManager_exports = {};
 __export(FloatingImagesManager_exports, {
   FloatingImagesManager: () => FloatingImagesManager,
-  VERSION: () => VERSION4
+  VERSION: () => VERSION3
 });
-var VERSION4, FloatingImagesManager;
+var VERSION3, FloatingImagesManager;
 var init_FloatingImagesManager = __esm({
   "src/system/features/FloatingImages/FloatingImagesManager.ts"() {
     "use strict";
@@ -2204,7 +2041,7 @@ var init_FloatingImagesManager = __esm({
     init_AnimationLoop();
     init_EventBus();
     init_timing();
-    VERSION4 = "2.1.0";
+    VERSION3 = "2.1.0";
     FloatingImagesManager = class {
       container;
       performanceMonitor;
@@ -2437,9 +2274,9 @@ var init_FloatingImagesManager = __esm({
 var ScreensaverController_exports = {};
 __export(ScreensaverController_exports, {
   ScreensaverController: () => ScreensaverController,
-  VERSION: () => VERSION5
+  VERSION: () => VERSION4
 });
-var VERSION5, ScreensaverController;
+var VERSION4, ScreensaverController;
 var init_ScreensaverController = __esm({
   "src/system/features/Screensaver/ScreensaverController.ts"() {
     "use strict";
@@ -2448,7 +2285,7 @@ var init_ScreensaverController = __esm({
     init_InactivityWatcher();
     init_PartialFetcher();
     init_FloatingImagesManager();
-    VERSION5 = "2.0.0";
+    VERSION4 = "2.0.0";
     ScreensaverController = class {
       partialUrl;
       targetSelector;
@@ -2682,28 +2519,16 @@ function generateId(prefix = "id", length = 9, useCrypto = false) {
   return `${prefix}-${randomString}`;
 }
 
-// src/app/symlink.ts
-init_ServiceWorkerManager();
-
 // src/app/spaceface.core.ts
 var AppConfig = class {
   config;
   constructor(options = {}) {
     this.config = {
-      hostname: window.location.hostname,
-      production: window.location.hostname !== "localhost" && !window.location.hostname.includes("127.0.0.1"),
+      hostname: options.hostname ?? window.location.hostname,
+      production: options.production ?? (window.location.hostname !== "localhost" && !window.location.hostname.includes("127.0.0.1")),
       features: options.features ?? {},
       ...options
     };
-  }
-  get(key) {
-    return key.split(".").reduce((value, k) => {
-      if (value?.[k] === void 0) {
-        console.log(`[spaceface] Config key "${key}" is undefined`);
-        return void 0;
-      }
-      return value[k];
-    }, this.config);
   }
 };
 var SpacefaceCore = class _SpacefaceCore {
@@ -2719,7 +2544,6 @@ var SpacefaceCore = class _SpacefaceCore {
   screensaverController = null;
   slideshows = [];
   floatingImagesManagers = [];
-  swManager;
   _partialUnsub;
   _partialObserver;
   pjaxFeatures = /* @__PURE__ */ new Map();
@@ -2732,8 +2556,7 @@ var SpacefaceCore = class _SpacefaceCore {
       partialLoader: () => Promise.resolve().then(() => (init_PartialLoader(), PartialLoader_exports)),
       slideplayer: () => Promise.resolve().then(() => (init_SlidePlayer(), SlidePlayer_exports)),
       screensaver: () => Promise.resolve().then(() => (init_ScreensaverController(), ScreensaverController_exports)),
-      floatingImages: () => Promise.resolve().then(() => (init_FloatingImagesManager(), FloatingImagesManager_exports)),
-      serviceWorker: () => Promise.resolve().then(() => (init_ServiceWorkerManager(), ServiceWorkerManager_exports))
+      floatingImages: () => Promise.resolve().then(() => (init_FloatingImagesManager(), FloatingImagesManager_exports))
     };
     if (!this.appConfig.config.features) {
       this.log("warn", "No features specified in config");
@@ -2795,7 +2618,7 @@ var SpacefaceCore = class _SpacefaceCore {
   }
   async initInactivityWatcher() {
     const start = performance.now();
-    const screensaver = this.appConfig.config.features?.screensaver;
+    const screensaver = this.appConfig.config.features.screensaver;
     if (!screensaver || this.inactivityWatcher) {
       this.emitFeatureTelemetry("inactivityWatcher", start, "skipped");
       return;
@@ -2813,7 +2636,7 @@ var SpacefaceCore = class _SpacefaceCore {
   }
   async initSlidePlayer() {
     const start = performance.now();
-    const slideplayer = this.appConfig.config.features?.slideplayer;
+    const slideplayer = this.appConfig.config.features.slideplayer;
     if (!slideplayer) {
       this.emitFeatureTelemetry("slideplayer", start, "skipped");
       return;
@@ -2843,7 +2666,7 @@ var SpacefaceCore = class _SpacefaceCore {
   }
   async initScreensaver() {
     const start = performance.now();
-    const screensaver = this.appConfig.config.features?.screensaver;
+    const screensaver = this.appConfig.config.features.screensaver;
     if (!screensaver?.partialUrl) {
       this.log("error", "Screensaver configuration is missing or incomplete");
       this.emitFeatureTelemetry("screensaver", start, "skipped");
@@ -2875,36 +2698,9 @@ var SpacefaceCore = class _SpacefaceCore {
       this.emitFeatureTelemetry("screensaver", start, "error", error);
     }
   }
-  async initServiceWorker() {
-    const start = performance.now();
-    if (!this.appConfig.config.features?.serviceWorker) {
-      this.emitFeatureTelemetry("serviceWorker", start, "skipped");
-      return;
-    }
-    try {
-      const module = await this.loadFeatureModule("serviceWorker");
-      const Manager = module?.default;
-      if (!Manager) {
-        this.emitFeatureTelemetry("serviceWorker", start, "skipped");
-        return;
-      }
-      this.swManager = new Manager("/sw.js", {}, {
-        strategy: { images: "cache-first", others: "network-first" }
-      });
-      if (this.swManager) {
-        await this.swManager.register();
-        this.swManager.configure();
-        this.log("info", "Service Worker registered and configured");
-        this.emitFeatureTelemetry("serviceWorker", start, "success");
-      }
-    } catch (error) {
-      this.emitFeatureTelemetry("serviceWorker", start, "error", error);
-      throw error;
-    }
-  }
   async initPartialLoader() {
     const start = performance.now();
-    const config = this.appConfig.config.features?.partialLoader;
+    const config = this.appConfig.config.features.partialLoader;
     if (!config?.enabled) {
       this.emitFeatureTelemetry("partialLoader", start, "skipped");
       return null;
@@ -2925,7 +2721,7 @@ var SpacefaceCore = class _SpacefaceCore {
       const watchResult = loader.watch?.(document);
       if (typeof watchResult === "function") {
         this._partialUnsub = watchResult;
-      } else {
+      } else if (watchResult) {
         this._partialObserver = watchResult;
       }
       this.log("info", "PartialLoader initialized");
@@ -2943,8 +2739,7 @@ var SpacefaceCore = class _SpacefaceCore {
   async initOnceFeatures() {
     const initTasks = [
       this.initInactivityWatcher(),
-      this.initScreensaver(),
-      this.initServiceWorker()
+      this.initScreensaver()
     ];
     await Promise.allSettled(initTasks);
     this.log("info", `Page features initialized for: ${this.pageType}`);
@@ -2988,7 +2783,7 @@ var SpacefaceCore = class _SpacefaceCore {
   }
   async initFloatingImages() {
     const start = performance.now();
-    const floatingImages = this.appConfig.config.features?.floatingImages;
+    const floatingImages = this.appConfig.config.features.floatingImages;
     if (!floatingImages) {
       this.emitFeatureTelemetry("floatingImages", start, "skipped");
       return;
@@ -3029,143 +2824,26 @@ var SpacefaceCore = class _SpacefaceCore {
   }
 };
 
-// src/app/pjax.ts
-var Pjax = class {
-  containerSelector;
-  linkSelector;
-  scrollToTop;
-  cacheEnabled;
-  cache = /* @__PURE__ */ new Map();
-  currentRequest;
-  constructor(options = {}) {
-    this.containerSelector = options.containerSelector ?? '[data-pjax="container"]';
-    this.linkSelector = options.linkSelector ?? "a[href]";
-    this.scrollToTop = options.scrollToTop ?? true;
-    this.cacheEnabled = options.cache ?? true;
-  }
-  init() {
-    document.addEventListener("click", this.onClick, true);
-    window.addEventListener("popstate", this.onPopState);
-  }
-  destroy() {
-    document.removeEventListener("click", this.onClick, true);
-    window.removeEventListener("popstate", this.onPopState);
-    this.currentRequest?.abort();
-    this.currentRequest = void 0;
-  }
-  onClick = (event) => {
-    if (event.defaultPrevented) return;
-    if (event.button !== 0) return;
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const target = event.target;
-    const link = target?.closest?.(this.linkSelector);
-    if (!link) return;
-    if (link.hasAttribute("download")) return;
-    if (link.getAttribute("rel") === "external") return;
-    if (link.target && link.target !== "_self") return;
-    if (link.dataset.noPjax !== void 0) return;
-    const href = link.href;
-    if (!href) return;
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin) return;
-    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
-      return;
-    }
-    event.preventDefault();
-    void this.load(url.toString(), true);
-  };
-  onPopState = () => {
-    void this.load(window.location.href, false);
-  };
-  async load(url, pushState) {
-    const container = document.querySelector(this.containerSelector);
-    if (!container) {
-      document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error: new Error("PJAX container not found") } }));
-      window.location.href = url;
-      return;
-    }
-    this.currentRequest?.abort();
-    const controller = new AbortController();
-    this.currentRequest = controller;
-    const requestToken = controller;
-    container.setAttribute("data-pjax-loading", "true");
-    document.dispatchEvent(new CustomEvent("pjax:before", { detail: { url } }));
-    try {
-      const cached = this.cacheEnabled ? this.cache.get(url) : void 0;
-      let title;
-      let html;
-      if (cached) {
-        ({ title, html } = cached);
-      } else {
-        const res = await fetch(url, {
-          method: "GET",
-          headers: { "X-PJAX": "true" },
-          signal: controller.signal,
-          credentials: "same-origin"
-        });
-        if (!res.ok) throw new Error(`PJAX HTTP ${res.status}`);
-        const text = await res.text();
-        const parsed = new DOMParser().parseFromString(text, "text/html");
-        const nextContainer = parsed.querySelector(this.containerSelector);
-        if (!nextContainer) throw new Error(`PJAX container "${this.containerSelector}" not found`);
-        title = parsed.title || document.title;
-        html = nextContainer.innerHTML;
-        if (this.cacheEnabled) {
-          this.cache.set(url, { title, html, url });
-        }
-      }
-      if (this.currentRequest !== requestToken) return;
-      container.innerHTML = html;
-      document.title = title;
-      if (pushState) {
-        history.pushState({ pjax: true }, "", url);
-      }
-      if (this.scrollToTop) {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      }
-      document.dispatchEvent(new CustomEvent("pjax:complete", { detail: { url } }));
-    } catch (error) {
-      if (error?.name !== "AbortError") {
-        document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error } }));
-        window.location.href = url;
-      }
-    } finally {
-      container.removeAttribute("data-pjax-loading");
-    }
-  }
+// src/app/main.prod.ts
+var features = {
+  slideplayer: { interval: 5e3, includePicture: false },
+  floatingImages: {
+    selector: ".floating-images-container",
+    maxImages: 24,
+    debug: false,
+    hoverBehavior: "slow",
+    hoverSlowMultiplier: 0.2,
+    tapToFreeze: true
+  },
+  screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" }
 };
-function initPjax(options = {}) {
-  const pjax = new Pjax(options);
-  pjax.init();
-  return pjax;
-}
-
-// src/app/main.pjax.ts
 var app = new SpacefaceCore({
-  features: {
-    slideplayer: { interval: 5e3, includePicture: false },
-    floatingImages: {
-      selector: ".floating-images-container",
-      maxImages: 24,
-      debug: false,
-      hoverBehavior: "slow",
-      hoverSlowMultiplier: 0.2,
-      tapToFreeze: true
-    },
-    screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" },
-    serviceWorker: true
-  }
+  features
 });
 app.initBase().then(async () => {
-  app.registerPjaxFeature("slideplayer", () => app.initSlidePlayer());
-  app.registerPjaxFeature("floatingImages", () => app.initFloatingImages());
   await app.initDomFeatures();
   await app.initOnceFeatures();
   app.finishInit();
-  initPjax({ containerSelector: '[data-pjax="container"]' });
-  document.addEventListener("pjax:complete", () => {
-    void app.handlePjaxComplete();
-  });
 });
 window.addEventListener("beforeunload", () => {
   app.destroy();

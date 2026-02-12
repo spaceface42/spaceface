@@ -1,7 +1,6 @@
 import type { FloatingImagesManagerOptionsInterface } from '../system/features/FloatingImages/types.js';
 import type { FloatingImagesManagerInterface, ScreensaverControllerOptionsInterface } from '../system/types/features.js';
 import type { PartialLoadResultInterface, PartialLoaderOptionsInterface } from '../system/types/bin.js';
-import type { ServiceWorkerCustomConfig } from '../system/bin/ServiceWorkerManager.js';
 export interface PartialLoaderFeatureConfig {
     enabled: boolean;
     debug?: boolean;
@@ -19,13 +18,11 @@ export interface ScreensaverFeatureConfig {
 export interface FloatingImagesFeatureConfig extends FloatingImagesManagerOptionsInterface {
     selector?: string;
 }
-export type ServiceWorkerFeatureConfig = boolean;
 export interface SpacefaceFeaturesConfig {
     partialLoader?: PartialLoaderFeatureConfig;
     slideplayer?: SlideplayerFeatureConfig;
     screensaver?: ScreensaverFeatureConfig;
     floatingImages?: FloatingImagesFeatureConfig;
-    serviceWorker?: ServiceWorkerFeatureConfig;
 }
 export interface AppConfigOptions {
     features?: SpacefaceFeaturesConfig;
@@ -67,17 +64,9 @@ export interface ScreensaverControllerModule {
 export interface FloatingImagesModule {
     FloatingImagesManager: new (container: HTMLElement, options?: FloatingImagesManagerOptionsInterface) => FloatingImagesManagerInterface;
 }
-export interface ServiceWorkerManagerInstance {
-    register: () => Promise<ServiceWorkerRegistration | null>;
-    configure: () => void;
-}
-export interface ServiceWorkerModule {
-    ServiceWorkerManager: new (swPath?: string, options?: RegistrationOptions, customConfig?: ServiceWorkerCustomConfig) => ServiceWorkerManagerInstance;
-}
 export interface FeatureModuleMap {
     partialLoader: PartialLoaderModule;
     slideplayer: SlidePlayerModule;
     screensaver: ScreensaverControllerModule;
     floatingImages: FloatingImagesModule;
-    serviceWorker: ServiceWorkerModule;
 }

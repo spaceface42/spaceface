@@ -24,7 +24,6 @@ export class SpacefaceCore {
     screensaverController = null;
     slideshows = [];
     floatingImagesManagers = [];
-    swManager;
     _partialUnsub;
     _partialObserver;
     pjaxFeatures = new Map();
@@ -38,7 +37,6 @@ export class SpacefaceCore {
             slideplayer: () => import('../system/features/SlidePlayer/SlidePlayer.js'),
             screensaver: () => import('../system/features/Screensaver/ScreensaverController.js'),
             floatingImages: () => import('../system/features/FloatingImages/FloatingImagesManager.js'),
-            serviceWorker: () => import('../system/bin/ServiceWorkerManager.js'),
         };
         if (!this.appConfig.config.features) {
             this.log('warn', 'No features specified in config');
@@ -186,34 +184,6 @@ export class SpacefaceCore {
             this.emitFeatureTelemetry('screensaver', start, 'error', error);
         }
     }
-    async initServiceWorker() {
-        const start = performance.now();
-        if (!this.appConfig.config.features.serviceWorker) {
-            this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
-            return;
-        }
-        try {
-            const module = await this.loadFeatureModule('serviceWorker');
-            const Manager = module?.ServiceWorkerManager;
-            if (!Manager) {
-                this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
-                return;
-            }
-            this.swManager = new Manager('/sw.js', {}, {
-                strategy: { images: 'cache-first', others: 'network-first' },
-            });
-            if (this.swManager) {
-                await this.swManager.register();
-                this.swManager.configure();
-                this.log('info', 'Service Worker registered and configured');
-                this.emitFeatureTelemetry('serviceWorker', start, 'success');
-            }
-        }
-        catch (error) {
-            this.emitFeatureTelemetry('serviceWorker', start, 'error', error);
-            throw error;
-        }
-    }
     async initPartialLoader() {
         const start = performance.now();
         const config = this.appConfig.config.features.partialLoader;
@@ -258,7 +228,6 @@ export class SpacefaceCore {
         const initTasks = [
             this.initInactivityWatcher(),
             this.initScreensaver(),
-            this.initServiceWorker(),
         ];
         await Promise.allSettled(initTasks);
         this.log('info', `Page features initialized for: ${this.pageType}`);

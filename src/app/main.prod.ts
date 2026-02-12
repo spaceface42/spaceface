@@ -14,7 +14,6 @@ const features = {
         tapToFreeze: true,
     },
     screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
-    serviceWorker: true,
 } satisfies SpacefaceFeaturesConfig;
 
 // Initialize App (production defaults)
