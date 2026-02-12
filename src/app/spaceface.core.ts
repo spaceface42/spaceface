@@ -5,17 +5,21 @@ import {
     eventBus,
     DomReadyPromise,
     InactivityWatcher,
-    ServiceWorkerManager,
     FloatingImagesManagerInterface
 } from './symlink.js';
 import type { LogPayload } from '../system/types/bin.js';
 import type {
     AppConfigOptions,
     AppRuntimeConfig,
+    FeatureModuleMap,
     PartialLoaderFeatureConfig,
     SlideplayerFeatureConfig,
     ScreensaverFeatureConfig,
     FloatingImagesFeatureConfig,
+    SlidePlayerInstance,
+    ScreensaverControllerInstance,
+    PartialLoaderInstance,
+    ServiceWorkerManagerInstance,
 } from './types.js';
 
 export class AppConfig {
@@ -43,13 +47,13 @@ export class SpacefaceCore {
     public pageType: string;
     public startTime: number;
 
-    private featureModules: Record<string, () => Promise<unknown>>;
-    private featureCache = new Map<string, unknown>();
+    private featureModules: { [K in keyof FeatureModuleMap]: () => Promise<FeatureModuleMap[K]> };
+    private featureCache = new Map<keyof FeatureModuleMap, FeatureModuleMap[keyof FeatureModuleMap] | null>();
     private inactivityWatcher: InactivityWatcher | null = null;
-    private screensaverController: FloatingImagesManagerInterface | null = null;
-    private slideshows: any[] = [];
+    private screensaverController: ScreensaverControllerInstance | null = null;
+    private slideshows: SlidePlayerInstance[] = [];
     private floatingImagesManagers: FloatingImagesManagerInterface[] = [];
-    private swManager?: ServiceWorkerManager;
+    private swManager?: ServiceWorkerManagerInstance;
     private _partialUnsub?: () => void;
     private _partialObserver?: { disconnect?: () => void };
     private pjaxFeatures = new Map<string, { init: () => Promise<void> | void; when?: (pageType: string) => boolean }>();
@@ -73,12 +77,12 @@ export class SpacefaceCore {
         }
     }
 
-    public log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]): void {
+    public log(level: 'debug' | 'info' | 'warn' | 'error', ...args: unknown[]): void {
         if (!this.debug && level === 'debug') return;
         const [first, ...rest] = args;
         const message = typeof first === 'string' ? first : '';
         const data = typeof first === 'string' ? (rest.length ? rest : undefined) : (args.length ? args : undefined);
-        const payload: LogPayload & { args: any[] } = {
+        const payload: LogPayload & { args: unknown[] } = {
             level,
             args,
             scope: 'Spaceface',
@@ -99,8 +103,8 @@ export class SpacefaceCore {
         return path === '/' ? 'home' : path === '/app' ? 'app' : 'default';
     }
 
-    private async loadFeatureModule(name: string): Promise<any> {
-        if (this.featureCache.has(name)) return this.featureCache.get(name);
+    private async loadFeatureModule<K extends keyof FeatureModuleMap>(name: K): Promise<FeatureModuleMap[K] | null> {
+        if (this.featureCache.has(name)) return this.featureCache.get(name) as FeatureModuleMap[K] | null;
         try {
             const module = await this.featureModules[name]?.();
             if (!module) {
@@ -165,7 +169,7 @@ export class SpacefaceCore {
                 this.emitFeatureTelemetry('slideplayer', start, 'skipped');
                 return;
             }
-            this.slideshows = Array.from(document.querySelectorAll('.slideshow-container')).map(node => {
+            this.slideshows = Array.from(document.querySelectorAll<HTMLElement>('.slideshow-container')).map(node => {
                 const slideshow = new SlidePlayer(node, {
                     interval: slideplayer.interval ?? 5000,
                     includePicture: slideplayer.includePicture ?? false,
@@ -224,7 +228,7 @@ export class SpacefaceCore {
         }
         try {
             const module = await this.loadFeatureModule('serviceWorker');
-            const Manager = module?.default;
+            const Manager = module?.ServiceWorkerManager;
             if (!Manager) {
                 this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
                 return;
@@ -244,7 +248,7 @@ export class SpacefaceCore {
         }
     }
 
-    public async initPartialLoader(): Promise<any> {
+    public async initPartialLoader(): Promise<PartialLoaderInstance | null> {
         const start = performance.now();
         const config: PartialLoaderFeatureConfig | undefined = this.appConfig.config.features.partialLoader;
         if (!config?.enabled) {
@@ -267,7 +271,7 @@ export class SpacefaceCore {
             const watchResult = loader.watch?.(document);
             if (typeof watchResult === 'function') {
                 this._partialUnsub = watchResult;
-            } else {
+            } else if (watchResult) {
                 this._partialObserver = watchResult;
             }
             this.log('info', 'PartialLoader initialized');

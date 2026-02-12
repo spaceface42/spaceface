@@ -1,17 +1,30 @@
 // src/spaceface/system/bin/ServiceWorkerManager.ts
 
 export const VERSION = '2.0.0' as const;
+
+export type ServiceWorkerCacheStrategy = 'cache-first' | 'network-first' | 'stale-while-revalidate';
+
+export interface ServiceWorkerStrategyConfig {
+  images?: ServiceWorkerCacheStrategy;
+  others?: ServiceWorkerCacheStrategy;
+  [key: string]: ServiceWorkerCacheStrategy | undefined;
+}
+
+export interface ServiceWorkerCustomConfig {
+  strategy?: ServiceWorkerStrategyConfig;
+}
+
 export class ServiceWorkerManager {
   private swPath: string;
   private options: RegistrationOptions;
-  private customConfig: Record<string, any>;
+  private customConfig: ServiceWorkerCustomConfig;
   private registration: ServiceWorkerRegistration | null = null;
   private isSupported: boolean;
 
   constructor(
     swPath: string = '/sw.js',
     options: RegistrationOptions = {},
-    customConfig: Record<string, any> = {}
+    customConfig: ServiceWorkerCustomConfig = {}
   ) {
     this.swPath = swPath;
     this.options = {
@@ -122,7 +135,7 @@ export class ServiceWorkerManager {
   /**
    * Send a message to the service worker
    */
-  public async postMessage(message: any, transfer?: Transferable[]): Promise<void> {
+  public async postMessage(message: unknown, transfer?: Transferable[]): Promise<void> {
     const sw = navigator.serviceWorker.controller;
     if (!sw) throw new Error('No active service worker');
 
@@ -136,7 +149,7 @@ export class ServiceWorkerManager {
   /**
    * Wait for message from service worker
    */
-  public waitForMessage(timeout: number = 5000): Promise<any> {
+  public waitForMessage(timeout: number = 5000): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Message timeout')), timeout);
 
@@ -168,7 +181,7 @@ export class ServiceWorkerManager {
   /**
    * Set runtime cache strategy (e.g., cache-first or network-first)
    */
-  public setStrategy(config: Record<string, any> = {}): void {
+  public setStrategy(config: ServiceWorkerStrategyConfig = {}): void {
     if (!navigator.serviceWorker.controller) {
       console.warn('No active SW to set strategy');
       return;
