@@ -1,12 +1,7 @@
-export interface AppConfigOptions {
-    features?: Record<string, any>;
-    debug?: boolean;
-    [key: string]: any;
-}
+import type { AppConfigOptions, AppRuntimeConfig } from './types.js';
 export declare class AppConfig {
-    config: Record<string, any>;
+    config: AppRuntimeConfig;
     constructor(options?: AppConfigOptions);
-    get(key: string): any;
 }
 export declare class SpacefaceCore {
     static EVENT_LOG: string;

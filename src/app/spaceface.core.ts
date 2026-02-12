@@ -9,35 +9,28 @@ import {
     FloatingImagesManagerInterface
 } from './symlink.js';
 import type { LogPayload } from '../system/types/bin.js';
-
-export interface AppConfigOptions {
-    features?: Record<string, any>;
-    debug?: boolean;
-    [key: string]: any;
-}
+import type {
+    AppConfigOptions,
+    AppRuntimeConfig,
+    PartialLoaderFeatureConfig,
+    SlideplayerFeatureConfig,
+    ScreensaverFeatureConfig,
+    FloatingImagesFeatureConfig,
+} from './types.js';
 
 export class AppConfig {
-    public config: Record<string, any>;
+    public config: AppRuntimeConfig;
 
     constructor(options: AppConfigOptions = {}) {
         this.config = {
-            hostname: window.location.hostname,
-            production:
+            hostname: options.hostname ?? window.location.hostname,
+            production: options.production ?? (
                 window.location.hostname !== 'localhost' &&
-                !window.location.hostname.includes('127.0.0.1'),
+                !window.location.hostname.includes('127.0.0.1')
+            ),
             features: options.features ?? {},
             ...options,
         };
-    }
-
-    public get(key: string): any {
-        return key.split('.').reduce((value: any, k: string) => {
-            if (value?.[k] === undefined) {
-                console.log(`[spaceface] Config key "${key}" is undefined`);
-                return undefined;
-            }
-            return value[k];
-        }, this.config);
     }
 }
 
@@ -50,15 +43,15 @@ export class SpacefaceCore {
     public pageType: string;
     public startTime: number;
 
-    private featureModules: Record<string, () => Promise<any>>;
-    private featureCache = new Map<string, any>();
+    private featureModules: Record<string, () => Promise<unknown>>;
+    private featureCache = new Map<string, unknown>();
     private inactivityWatcher: InactivityWatcher | null = null;
     private screensaverController: FloatingImagesManagerInterface | null = null;
     private slideshows: any[] = [];
     private floatingImagesManagers: FloatingImagesManagerInterface[] = [];
     private swManager?: ServiceWorkerManager;
     private _partialUnsub?: () => void;
-    private _partialObserver?: any;
+    private _partialObserver?: { disconnect?: () => void };
     private pjaxFeatures = new Map<string, { init: () => Promise<void> | void; when?: (pageType: string) => boolean }>();
 
     constructor(options: AppConfigOptions = {}) {
@@ -141,7 +134,7 @@ export class SpacefaceCore {
 
     public async initInactivityWatcher(): Promise<void> {
         const start = performance.now();
-        const screensaver = this.appConfig.config.features?.screensaver;
+        const screensaver = this.appConfig.config.features.screensaver;
         if (!screensaver || this.inactivityWatcher) {
             this.emitFeatureTelemetry('inactivityWatcher', start, 'skipped');
             return;
@@ -160,7 +153,7 @@ export class SpacefaceCore {
 
     public async initSlidePlayer(): Promise<void> {
         const start = performance.now();
-        const slideplayer = this.appConfig.config.features?.slideplayer;
+        const slideplayer: SlideplayerFeatureConfig | undefined = this.appConfig.config.features.slideplayer;
         if (!slideplayer) {
             this.emitFeatureTelemetry('slideplayer', start, 'skipped');
             return;
@@ -190,7 +183,7 @@ export class SpacefaceCore {
 
     public async initScreensaver(): Promise<void> {
         const start = performance.now();
-        const screensaver = this.appConfig.config.features?.screensaver;
+        const screensaver: ScreensaverFeatureConfig | undefined = this.appConfig.config.features.screensaver;
         if (!screensaver?.partialUrl) {
             this.log('error', "Screensaver configuration is missing or incomplete");
             this.emitFeatureTelemetry('screensaver', start, 'skipped');
@@ -225,7 +218,7 @@ export class SpacefaceCore {
 
     public async initServiceWorker(): Promise<void> {
         const start = performance.now();
-        if (!this.appConfig.config.features?.serviceWorker) {
+        if (!this.appConfig.config.features.serviceWorker) {
             this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
             return;
         }
@@ -253,7 +246,7 @@ export class SpacefaceCore {
 
     public async initPartialLoader(): Promise<any> {
         const start = performance.now();
-        const config = this.appConfig.config.features?.partialLoader;
+        const config: PartialLoaderFeatureConfig | undefined = this.appConfig.config.features.partialLoader;
         if (!config?.enabled) {
             this.emitFeatureTelemetry('partialLoader', start, 'skipped');
             return null;
@@ -355,7 +348,7 @@ export class SpacefaceCore {
 
     public async initFloatingImages(): Promise<void> {
         const start = performance.now();
-        const floatingImages = this.appConfig.config.features?.floatingImages;
+        const floatingImages: FloatingImagesFeatureConfig | undefined = this.appConfig.config.features.floatingImages;
         if (!floatingImages) {
             this.emitFeatureTelemetry('floatingImages', start, 'skipped');
             return;

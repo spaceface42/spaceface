@@ -3,21 +3,12 @@ export class AppConfig {
     config;
     constructor(options = {}) {
         this.config = {
-            hostname: window.location.hostname,
-            production: window.location.hostname !== 'localhost' &&
-                !window.location.hostname.includes('127.0.0.1'),
+            hostname: options.hostname ?? window.location.hostname,
+            production: options.production ?? (window.location.hostname !== 'localhost' &&
+                !window.location.hostname.includes('127.0.0.1')),
             features: options.features ?? {},
             ...options,
         };
-    }
-    get(key) {
-        return key.split('.').reduce((value, k) => {
-            if (value?.[k] === undefined) {
-                console.log(`[spaceface] Config key "${key}" is undefined`);
-                return undefined;
-            }
-            return value[k];
-        }, this.config);
     }
 }
 export class SpacefaceCore {
@@ -113,7 +104,7 @@ export class SpacefaceCore {
     }
     async initInactivityWatcher() {
         const start = performance.now();
-        const screensaver = this.appConfig.config.features?.screensaver;
+        const screensaver = this.appConfig.config.features.screensaver;
         if (!screensaver || this.inactivityWatcher) {
             this.emitFeatureTelemetry('inactivityWatcher', start, 'skipped');
             return;
@@ -132,7 +123,7 @@ export class SpacefaceCore {
     }
     async initSlidePlayer() {
         const start = performance.now();
-        const slideplayer = this.appConfig.config.features?.slideplayer;
+        const slideplayer = this.appConfig.config.features.slideplayer;
         if (!slideplayer) {
             this.emitFeatureTelemetry('slideplayer', start, 'skipped');
             return;
@@ -162,7 +153,7 @@ export class SpacefaceCore {
     }
     async initScreensaver() {
         const start = performance.now();
-        const screensaver = this.appConfig.config.features?.screensaver;
+        const screensaver = this.appConfig.config.features.screensaver;
         if (!screensaver?.partialUrl) {
             this.log('error', "Screensaver configuration is missing or incomplete");
             this.emitFeatureTelemetry('screensaver', start, 'skipped');
@@ -197,7 +188,7 @@ export class SpacefaceCore {
     }
     async initServiceWorker() {
         const start = performance.now();
-        if (!this.appConfig.config.features?.serviceWorker) {
+        if (!this.appConfig.config.features.serviceWorker) {
             this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
             return;
         }
@@ -225,7 +216,7 @@ export class SpacefaceCore {
     }
     async initPartialLoader() {
         const start = performance.now();
-        const config = this.appConfig.config.features?.partialLoader;
+        const config = this.appConfig.config.features.partialLoader;
         if (!config?.enabled) {
             this.emitFeatureTelemetry('partialLoader', start, 'skipped');
             return null;
@@ -313,7 +304,7 @@ export class SpacefaceCore {
     }
     async initFloatingImages() {
         const start = performance.now();
-        const floatingImages = this.appConfig.config.features?.floatingImages;
+        const floatingImages = this.appConfig.config.features.floatingImages;
         if (!floatingImages) {
             this.emitFeatureTelemetry('floatingImages', start, 'skipped');
             return;

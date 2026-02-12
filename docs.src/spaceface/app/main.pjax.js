@@ -1,19 +1,20 @@
 import { SpacefaceCore } from './spaceface.core.js';
 import { initPjax } from './pjax.js';
-const app = new SpacefaceCore({
-    features: {
-        slideplayer: { interval: 5000, includePicture: false },
-        floatingImages: {
-            selector: '.floating-images-container',
-            maxImages: 24,
-            debug: false,
-            hoverBehavior: 'slow',
-            hoverSlowMultiplier: 0.2,
-            tapToFreeze: true,
-        },
-        screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
-        serviceWorker: true,
+const features = {
+    slideplayer: { interval: 5000, includePicture: false },
+    floatingImages: {
+        selector: '.floating-images-container',
+        maxImages: 24,
+        debug: false,
+        hoverBehavior: 'slow',
+        hoverSlowMultiplier: 0.2,
+        tapToFreeze: true,
     },
+    screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
+    serviceWorker: true,
+};
+const app = new SpacefaceCore({
+    features,
 });
 app.initBase().then(async () => {
     app.registerPjaxFeature('slideplayer', () => app.initSlidePlayer());
