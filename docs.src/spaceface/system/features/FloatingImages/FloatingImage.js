@@ -42,6 +42,9 @@ export class FloatingImage {
         this.logDebug("Position updated", { x, y });
         return true;
     }
+    getElement() {
+        return this.element;
+    }
     update(multiplier, dims, applyPosition = true) {
         if (!this.element) {
             this.logDebug("update called on destroyed element");

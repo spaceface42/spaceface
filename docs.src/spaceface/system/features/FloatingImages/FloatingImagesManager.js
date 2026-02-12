@@ -22,9 +22,18 @@ export class FloatingImagesManager {
     containerWidth;
     containerHeight;
     debug;
+    hoverBehavior;
+    hoverSlowMultiplier;
+    tapToFreeze;
+    interactionCleanups = [];
+    frozenElements = new WeakSet();
+    imageSpeedOverrides = new WeakMap();
     constructor(container, options = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
+        this.hoverBehavior = options.hoverBehavior ?? 'none';
+        this.hoverSlowMultiplier = options.hoverSlowMultiplier ?? 0.2;
+        this.tapToFreeze = options.tapToFreeze ?? true;
         this.performanceMonitor = new PerformanceMonitor();
         const perfSettings = this.performanceMonitor.getRecommendedSettings();
         this.maxImages = options.maxImages ?? perfSettings.maxImages;
@@ -100,6 +109,7 @@ export class FloatingImagesManager {
             return;
         const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
         this.images.push(floatingImage);
+        this.bindImageInteraction(el);
     }
     handleResize = debounce(() => {
         try {
@@ -132,7 +142,14 @@ export class FloatingImagesManager {
             return;
         const multiplier = this.speedMultiplier;
         const dims = { width: this.containerWidth, height: this.containerHeight };
-        this.images = this.images.filter(img => img.update(multiplier, dims));
+        this.images = this.images.filter(img => {
+            const el = img.getElement();
+            const imageMultiplier = el ? (this.imageSpeedOverrides.get(el) ?? multiplier) : multiplier;
+            if (imageMultiplier <= 0) {
+                return img.updatePosition();
+            }
+            return img.update(imageMultiplier, dims);
+        });
     }
     resetAllImagePositions() {
         const dims = { width: this.containerWidth, height: this.containerHeight };
@@ -149,12 +166,14 @@ export class FloatingImagesManager {
             }
             this.images.forEach(img => img.destroy());
             this.images.length = 0;
+            this.unbindImageInteractions();
             const dims = { width: this.containerWidth, height: this.containerHeight };
             const imgElements = Array.from(this.container.querySelectorAll('.floating-image'))
                 .slice(0, this.maxImages);
             imgElements.forEach(el => {
                 const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
                 this.images.push(floatingImage);
+                this.bindImageInteraction(el);
             });
             this.log('info', 'Images reinitialized', { count: this.images.length });
         }
@@ -174,12 +193,61 @@ export class FloatingImagesManager {
         this.unsubscribeWindow = undefined;
         this.unsubscribeElement = undefined;
         this.intersectionObserver.disconnect();
+        this.unbindImageInteractions();
         this.images.forEach(img => img.destroy());
         this.images.length = 0;
         this.imageLoader.destroy();
         this.containerWidth = 0;
         this.containerHeight = 0;
         this.log('info', 'FloatingImagesManager destroyed');
+    }
+    bindImageInteraction(el) {
+        const hoverEnabled = this.hoverBehavior !== 'none';
+        const touchEnabled = this.tapToFreeze;
+        if (!hoverEnabled && !touchEnabled)
+            return;
+        const onPointerEnter = () => {
+            if (this.hoverBehavior === 'none')
+                return;
+            if (this.frozenElements.has(el))
+                return;
+            if (this.hoverBehavior === 'stop') {
+                this.imageSpeedOverrides.set(el, 0);
+                return;
+            }
+            this.imageSpeedOverrides.set(el, this.hoverSlowMultiplier);
+        };
+        const onPointerLeave = () => {
+            if (this.frozenElements.has(el))
+                return;
+            this.imageSpeedOverrides.delete(el);
+        };
+        const onPointerUp = (event) => {
+            if (!this.tapToFreeze || event.pointerType !== 'touch')
+                return;
+            if (this.frozenElements.has(el)) {
+                this.frozenElements.delete(el);
+                this.imageSpeedOverrides.delete(el);
+                return;
+            }
+            this.frozenElements.add(el);
+            this.imageSpeedOverrides.set(el, 0);
+        };
+        el.addEventListener('pointerenter', onPointerEnter);
+        el.addEventListener('pointerleave', onPointerLeave);
+        el.addEventListener('pointerup', onPointerUp);
+        this.interactionCleanups.push(() => {
+            el.removeEventListener('pointerenter', onPointerEnter);
+            el.removeEventListener('pointerleave', onPointerLeave);
+            el.removeEventListener('pointerup', onPointerUp);
+            this.imageSpeedOverrides.delete(el);
+        });
+    }
+    unbindImageInteractions() {
+        this.interactionCleanups.forEach(unsub => unsub());
+        this.interactionCleanups = [];
+        this.frozenElements = new WeakSet();
+        this.imageSpeedOverrides = new WeakMap();
     }
 }
 //# sourceMappingURL=FloatingImagesManager.js.map

@@ -381,6 +381,9 @@ export class SpacefaceCore {
                 return new FloatingImagesManager(container, {
                     maxImages: floatingImages.maxImages,
                     debug: floatingImages.debug ?? this.debug,
+                    hoverBehavior: floatingImages.hoverBehavior ?? 'none',
+                    hoverSlowMultiplier: floatingImages.hoverSlowMultiplier ?? 0.2,
+                    tapToFreeze: floatingImages.tapToFreeze ?? true,
                 });
             });
 

@@ -19,6 +19,12 @@ export declare class FloatingImagesManager implements FloatingImagesManagerInter
     containerWidth: number;
     containerHeight: number;
     debug: boolean;
+    hoverBehavior: 'none' | 'slow' | 'stop';
+    hoverSlowMultiplier: number;
+    tapToFreeze: boolean;
+    private interactionCleanups;
+    private frozenElements;
+    private imageSpeedOverrides;
     constructor(container: HTMLElement, options?: FloatingImagesManagerOptionsInterface);
     private log;
     private setupResizeHandling;
@@ -30,4 +36,6 @@ export declare class FloatingImagesManager implements FloatingImagesManagerInter
     resetAllImagePositions(): void;
     reinitializeImages(): void;
     destroy(): void;
+    private bindImageInteraction;
+    private unbindImageInteractions;
 }

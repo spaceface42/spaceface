@@ -1,6 +1,6 @@
 // src/spaceface/features/FloatingImages/FloatingImagesManager.ts
 
-export const VERSION = '2.0.0' as const;
+export const VERSION = '2.1.0' as const;
 
 import { FloatingImage } from './FloatingImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
@@ -33,10 +33,19 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     containerWidth!: number;
     containerHeight!: number;
     debug: boolean;
+    hoverBehavior: 'none' | 'slow' | 'stop';
+    hoverSlowMultiplier: number;
+    tapToFreeze: boolean;
+    private interactionCleanups: Array<() => void> = [];
+    private frozenElements = new WeakSet<HTMLElement>();
+    private imageSpeedOverrides = new WeakMap<HTMLElement, number>();
 
     constructor(container: HTMLElement, options: FloatingImagesManagerOptionsInterface = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
+        this.hoverBehavior = options.hoverBehavior ?? 'none';
+        this.hoverSlowMultiplier = options.hoverSlowMultiplier ?? 0.2;
+        this.tapToFreeze = options.tapToFreeze ?? true;
 
         this.performanceMonitor = new PerformanceMonitor();
         const perfSettings = this.performanceMonitor.getRecommendedSettings();
@@ -122,6 +131,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         if (this.images.length >= this.maxImages) return;
         const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
         this.images.push(floatingImage);
+        this.bindImageInteraction(el);
     }
 
     private handleResize = debounce(() => {
@@ -155,7 +165,14 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         const multiplier = this.speedMultiplier;
         const dims = { width: this.containerWidth, height: this.containerHeight };
 
-        this.images = this.images.filter(img => img.update(multiplier, dims));
+        this.images = this.images.filter(img => {
+            const el = img.getElement();
+            const imageMultiplier = el ? (this.imageSpeedOverrides.get(el) ?? multiplier) : multiplier;
+            if (imageMultiplier <= 0) {
+                return img.updatePosition();
+            }
+            return img.update(imageMultiplier, dims);
+        });
     }
 
     public resetAllImagePositions() {
@@ -174,6 +191,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
 
             this.images.forEach(img => img.destroy());
             this.images.length = 0;
+            this.unbindImageInteractions();
 
             const dims = { width: this.containerWidth, height: this.containerHeight };
             const imgElements = Array.from(this.container.querySelectorAll<HTMLElement>('.floating-image'))
@@ -182,6 +200,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
             imgElements.forEach(el => {
                 const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
                 this.images.push(floatingImage);
+                this.bindImageInteraction(el);
             });
 
             this.log('info', 'Images reinitialized', { count: this.images.length });
@@ -206,6 +225,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.unsubscribeElement = undefined;
 
         this.intersectionObserver.disconnect();
+        this.unbindImageInteractions();
         this.images.forEach(img => img.destroy());
         this.images.length = 0;
         this.imageLoader.destroy();
@@ -215,5 +235,55 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.containerHeight = 0;
 
         this.log('info', 'FloatingImagesManager destroyed');
+    }
+
+    private bindImageInteraction(el: HTMLElement): void {
+        const hoverEnabled = this.hoverBehavior !== 'none';
+        const touchEnabled = this.tapToFreeze;
+        if (!hoverEnabled && !touchEnabled) return;
+
+        const onPointerEnter = () => {
+            if (this.hoverBehavior === 'none') return;
+            if (this.frozenElements.has(el)) return;
+            if (this.hoverBehavior === 'stop') {
+                this.imageSpeedOverrides.set(el, 0);
+                return;
+            }
+            this.imageSpeedOverrides.set(el, this.hoverSlowMultiplier);
+        };
+
+        const onPointerLeave = () => {
+            if (this.frozenElements.has(el)) return;
+            this.imageSpeedOverrides.delete(el);
+        };
+
+        const onPointerUp = (event: PointerEvent) => {
+            if (!this.tapToFreeze || event.pointerType !== 'touch') return;
+            if (this.frozenElements.has(el)) {
+                this.frozenElements.delete(el);
+                this.imageSpeedOverrides.delete(el);
+                return;
+            }
+            this.frozenElements.add(el);
+            this.imageSpeedOverrides.set(el, 0);
+        };
+
+        el.addEventListener('pointerenter', onPointerEnter);
+        el.addEventListener('pointerleave', onPointerLeave);
+        el.addEventListener('pointerup', onPointerUp);
+
+        this.interactionCleanups.push(() => {
+            el.removeEventListener('pointerenter', onPointerEnter);
+            el.removeEventListener('pointerleave', onPointerLeave);
+            el.removeEventListener('pointerup', onPointerUp);
+            this.imageSpeedOverrides.delete(el);
+        });
+    }
+
+    private unbindImageInteractions(): void {
+        this.interactionCleanups.forEach(unsub => unsub());
+        this.interactionCleanups = [];
+        this.frozenElements = new WeakSet<HTMLElement>();
+        this.imageSpeedOverrides = new WeakMap<HTMLElement, number>();
     }
 }

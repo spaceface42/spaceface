@@ -61,6 +61,10 @@ export class FloatingImage {
         return true;
     }
 
+    getElement(): HTMLElement | null {
+        return this.element;
+    }
+
     update(multiplier: number, dims: ContainerDimensionsInterface, applyPosition = true): boolean {
         if (!this.element) {
             this.logDebug("update called on destroyed element");

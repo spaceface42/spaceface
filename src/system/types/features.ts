@@ -4,6 +4,9 @@
 export interface FloatingImagesManagerOptionsInterface {
     maxImages?: number;
     debug?: boolean;
+    hoverBehavior?: 'none' | 'slow' | 'stop';
+    hoverSlowMultiplier?: number;
+    tapToFreeze?: boolean;
 }
 export interface FloatingImagesManagerInterface {
     resetAllImagePositions(): void;
@@ -36,4 +39,3 @@ export interface ScreensaverControllerOptionsInterface {
     /** Optional callback for errors during screensaver operations */
     onError?: (message: string, error: unknown) => void;
 }
-

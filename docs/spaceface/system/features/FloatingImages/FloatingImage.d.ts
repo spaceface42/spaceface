@@ -11,6 +11,7 @@ export declare class FloatingImage {
     constructor(element: HTMLElement, dims: ContainerDimensionsInterface, options?: FloatingImageOptionsInterface);
     private logDebug;
     updatePosition(): boolean;
+    getElement(): HTMLElement | null;
     update(multiplier: number, dims: ContainerDimensionsInterface, applyPosition?: boolean): boolean;
     private handleCollisions;
     private applyVelocityJitter;
