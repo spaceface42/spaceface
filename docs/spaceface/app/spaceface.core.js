@@ -194,7 +194,7 @@ export class SpacefaceCore {
         }
         try {
             const module = await this.loadFeatureModule('serviceWorker');
-            const Manager = module?.default;
+            const Manager = module?.ServiceWorkerManager;
             if (!Manager) {
                 this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
                 return;
@@ -238,7 +238,7 @@ export class SpacefaceCore {
             if (typeof watchResult === 'function') {
                 this._partialUnsub = watchResult;
             }
-            else {
+            else if (watchResult) {
                 this._partialObserver = watchResult;
             }
             this.log('info', 'PartialLoader initialized');

@@ -1,4 +1,4 @@
-import type { AppConfigOptions, AppRuntimeConfig } from './types.js';
+import type { AppConfigOptions, AppRuntimeConfig, PartialLoaderInstance } from './types.js';
 export declare class AppConfig {
     config: AppRuntimeConfig;
     constructor(options?: AppConfigOptions);
@@ -21,7 +21,7 @@ export declare class SpacefaceCore {
     private _partialObserver?;
     private pjaxFeatures;
     constructor(options?: AppConfigOptions);
-    log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]): void;
+    log(level: 'debug' | 'info' | 'warn' | 'error', ...args: unknown[]): void;
     private resolvePageType;
     private loadFeatureModule;
     initBase(): Promise<void>;
@@ -30,7 +30,7 @@ export declare class SpacefaceCore {
     initSlidePlayer(): Promise<void>;
     initScreensaver(): Promise<void>;
     initServiceWorker(): Promise<void>;
-    initPartialLoader(): Promise<any>;
+    initPartialLoader(): Promise<PartialLoaderInstance | null>;
     initDomFeatures(): Promise<void>;
     initOnceFeatures(): Promise<void>;
     registerPjaxFeature(name: string, init: () => Promise<void> | void, when?: (pageType: string) => boolean): void;
