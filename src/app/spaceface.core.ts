@@ -5,39 +5,35 @@ import {
     eventBus,
     DomReadyPromise,
     InactivityWatcher,
-    ServiceWorkerManager,
     FloatingImagesManagerInterface
 } from './symlink.js';
 import type { LogPayload } from '../system/types/bin.js';
-
-export interface AppConfigOptions {
-    features?: Record<string, any>;
-    debug?: boolean;
-    [key: string]: any;
-}
+import type {
+    AppConfigOptions,
+    AppRuntimeConfig,
+    FeatureModuleMap,
+    PartialLoaderFeatureConfig,
+    SlideplayerFeatureConfig,
+    ScreensaverFeatureConfig,
+    FloatingImagesFeatureConfig,
+    SlidePlayerInstance,
+    ScreensaverControllerInstance,
+    PartialLoaderInstance,
+} from './types.js';
 
 export class AppConfig {
-    public config: Record<string, any>;
+    public config: AppRuntimeConfig;
 
     constructor(options: AppConfigOptions = {}) {
         this.config = {
-            hostname: window.location.hostname,
-            production:
+            hostname: options.hostname ?? window.location.hostname,
+            production: options.production ?? (
                 window.location.hostname !== 'localhost' &&
-                !window.location.hostname.includes('127.0.0.1'),
+                !window.location.hostname.includes('127.0.0.1')
+            ),
             features: options.features ?? {},
             ...options,
         };
-    }
-
-    public get(key: string): any {
-        return key.split('.').reduce((value: any, k: string) => {
-            if (value?.[k] === undefined) {
-                console.log(`[spaceface] Config key "${key}" is undefined`);
-                return undefined;
-            }
-            return value[k];
-        }, this.config);
     }
 }
 
@@ -50,14 +46,14 @@ export class SpacefaceCore {
     public pageType: string;
     public startTime: number;
 
-    private featureModules: Record<string, () => Promise<any>>;
-    private featureCache = new Map<string, any>();
+    private featureModules: { [K in keyof FeatureModuleMap]: () => Promise<FeatureModuleMap[K]> };
+    private featureCache = new Map<keyof FeatureModuleMap, FeatureModuleMap[keyof FeatureModuleMap] | null>();
     private inactivityWatcher: InactivityWatcher | null = null;
-    private screensaverController: FloatingImagesManagerInterface | null = null;
-    private slideshows: any[] = [];
-    private swManager?: ServiceWorkerManager;
+    private screensaverController: ScreensaverControllerInstance | null = null;
+    private slideshows: SlidePlayerInstance[] = [];
+    private floatingImagesManagers: FloatingImagesManagerInterface[] = [];
     private _partialUnsub?: () => void;
-    private _partialObserver?: any;
+    private _partialObserver?: { disconnect?: () => void };
     private pjaxFeatures = new Map<string, { init: () => Promise<void> | void; when?: (pageType: string) => boolean }>();
 
     constructor(options: AppConfigOptions = {}) {
@@ -70,7 +66,7 @@ export class SpacefaceCore {
             partialLoader: () => import('../system/bin/PartialLoader.js'),
             slideplayer: () => import('../system/features/SlidePlayer/SlidePlayer.js'),
             screensaver: () => import('../system/features/Screensaver/ScreensaverController.js'),
-            serviceWorker: () => import('../system/bin/ServiceWorkerManager.js'),
+            floatingImages: () => import('../system/features/FloatingImages/FloatingImagesManager.js'),
         };
 
         if (!this.appConfig.config.features) {
@@ -78,12 +74,12 @@ export class SpacefaceCore {
         }
     }
 
-    public log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]): void {
+    public log(level: 'debug' | 'info' | 'warn' | 'error', ...args: unknown[]): void {
         if (!this.debug && level === 'debug') return;
         const [first, ...rest] = args;
         const message = typeof first === 'string' ? first : '';
         const data = typeof first === 'string' ? (rest.length ? rest : undefined) : (args.length ? args : undefined);
-        const payload: LogPayload & { args: any[] } = {
+        const payload: LogPayload & { args: unknown[] } = {
             level,
             args,
             scope: 'Spaceface',
@@ -104,8 +100,8 @@ export class SpacefaceCore {
         return path === '/' ? 'home' : path === '/app' ? 'app' : 'default';
     }
 
-    private async loadFeatureModule(name: string): Promise<any> {
-        if (this.featureCache.has(name)) return this.featureCache.get(name);
+    private async loadFeatureModule<K extends keyof FeatureModuleMap>(name: K): Promise<FeatureModuleMap[K] | null> {
+        if (this.featureCache.has(name)) return this.featureCache.get(name) as FeatureModuleMap[K] | null;
         try {
             const module = await this.featureModules[name]?.();
             if (!module) {
@@ -139,7 +135,7 @@ export class SpacefaceCore {
 
     public async initInactivityWatcher(): Promise<void> {
         const start = performance.now();
-        const screensaver = this.appConfig.config.features?.screensaver;
+        const screensaver = this.appConfig.config.features.screensaver;
         if (!screensaver || this.inactivityWatcher) {
             this.emitFeatureTelemetry('inactivityWatcher', start, 'skipped');
             return;
@@ -158,7 +154,7 @@ export class SpacefaceCore {
 
     public async initSlidePlayer(): Promise<void> {
         const start = performance.now();
-        const slideplayer = this.appConfig.config.features?.slideplayer;
+        const slideplayer: SlideplayerFeatureConfig | undefined = this.appConfig.config.features.slideplayer;
         if (!slideplayer) {
             this.emitFeatureTelemetry('slideplayer', start, 'skipped');
             return;
@@ -170,7 +166,7 @@ export class SpacefaceCore {
                 this.emitFeatureTelemetry('slideplayer', start, 'skipped');
                 return;
             }
-            this.slideshows = Array.from(document.querySelectorAll('.slideshow-container')).map(node => {
+            this.slideshows = Array.from(document.querySelectorAll<HTMLElement>('.slideshow-container')).map(node => {
                 const slideshow = new SlidePlayer(node, {
                     interval: slideplayer.interval ?? 5000,
                     includePicture: slideplayer.includePicture ?? false,
@@ -188,7 +184,7 @@ export class SpacefaceCore {
 
     public async initScreensaver(): Promise<void> {
         const start = performance.now();
-        const screensaver = this.appConfig.config.features?.screensaver;
+        const screensaver: ScreensaverFeatureConfig | undefined = this.appConfig.config.features.screensaver;
         if (!screensaver?.partialUrl) {
             this.log('error', "Screensaver configuration is missing or incomplete");
             this.emitFeatureTelemetry('screensaver', start, 'skipped');
@@ -221,37 +217,9 @@ export class SpacefaceCore {
         }
     }
 
-    public async initServiceWorker(): Promise<void> {
+    public async initPartialLoader(): Promise<PartialLoaderInstance | null> {
         const start = performance.now();
-        if (!this.appConfig.config.features?.serviceWorker) {
-            this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
-            return;
-        }
-        try {
-            const module = await this.loadFeatureModule('serviceWorker');
-            const Manager = module?.default;
-            if (!Manager) {
-                this.emitFeatureTelemetry('serviceWorker', start, 'skipped');
-                return;
-            }
-            this.swManager = new Manager('/sw.js', {}, {
-                strategy: { images: 'cache-first', others: 'network-first' },
-            });
-            if (this.swManager) {
-                await this.swManager.register();
-                this.swManager.configure();
-                this.log('info', 'Service Worker registered and configured');
-                this.emitFeatureTelemetry('serviceWorker', start, 'success');
-            }
-        } catch (error) {
-            this.emitFeatureTelemetry('serviceWorker', start, 'error', error);
-            throw error;
-        }
-    }
-
-    public async initPartialLoader(): Promise<any> {
-        const start = performance.now();
-        const config = this.appConfig.config.features?.partialLoader;
+        const config: PartialLoaderFeatureConfig | undefined = this.appConfig.config.features.partialLoader;
         if (!config?.enabled) {
             this.emitFeatureTelemetry('partialLoader', start, 'skipped');
             return null;
@@ -272,7 +240,7 @@ export class SpacefaceCore {
             const watchResult = loader.watch?.(document);
             if (typeof watchResult === 'function') {
                 this._partialUnsub = watchResult;
-            } else {
+            } else if (watchResult) {
                 this._partialObserver = watchResult;
             }
             this.log('info', 'PartialLoader initialized');
@@ -286,13 +254,13 @@ export class SpacefaceCore {
 
     public async initDomFeatures(): Promise<void> {
         await this.initSlidePlayer();
+        await this.initFloatingImages();
     }
 
     public async initOnceFeatures(): Promise<void> {
         const initTasks = [
             this.initInactivityWatcher(),
             this.initScreensaver(),
-            this.initServiceWorker(),
         ];
         await Promise.allSettled(initTasks);
         this.log('info', `Page features initialized for: ${this.pageType}`);
@@ -313,6 +281,7 @@ export class SpacefaceCore {
 
         this.slideshows.forEach(slideshow => slideshow.destroy?.());
         this.slideshows = [];
+        this.destroyFloatingImagesManagers();
 
         for (const { init, when } of this.pjaxFeatures.values()) {
             if (when && !when(this.pageType)) continue;
@@ -324,6 +293,7 @@ export class SpacefaceCore {
         this._partialUnsub?.();
         this._partialObserver?.disconnect?.();
         this.slideshows.forEach(slideshow => slideshow.destroy?.());
+        this.destroyFloatingImagesManagers();
         this.inactivityWatcher?.destroy?.();
         this.screensaverController?.destroy?.();
         this.featureCache.clear();
@@ -346,5 +316,52 @@ export class SpacefaceCore {
             page: this.pageType,
             error,
         });
+    }
+
+    public async initFloatingImages(): Promise<void> {
+        const start = performance.now();
+        const floatingImages: FloatingImagesFeatureConfig | undefined = this.appConfig.config.features.floatingImages;
+        if (!floatingImages) {
+            this.emitFeatureTelemetry('floatingImages', start, 'skipped');
+            return;
+        }
+
+        try {
+            const module = await this.loadFeatureModule('floatingImages');
+            const FloatingImagesManager = module?.FloatingImagesManager;
+            if (!FloatingImagesManager) {
+                this.emitFeatureTelemetry('floatingImages', start, 'skipped');
+                return;
+            }
+
+            const selector = floatingImages.selector ?? '.floating-images-container';
+            const containers = Array.from(document.querySelectorAll<HTMLElement>(selector));
+            if (!containers.length) {
+                this.emitFeatureTelemetry('floatingImages', start, 'skipped');
+                return;
+            }
+
+            this.destroyFloatingImagesManagers();
+            this.floatingImagesManagers = containers.map(container => {
+                return new FloatingImagesManager(container, {
+                    maxImages: floatingImages.maxImages,
+                    debug: floatingImages.debug ?? this.debug,
+                    hoverBehavior: floatingImages.hoverBehavior ?? 'none',
+                    hoverSlowMultiplier: floatingImages.hoverSlowMultiplier ?? 0.2,
+                    tapToFreeze: floatingImages.tapToFreeze ?? true,
+                });
+            });
+
+            this.log('info', `${this.floatingImagesManagers.length} FloatingImages instance(s) loaded`);
+            this.emitFeatureTelemetry('floatingImages', start, 'success');
+        } catch (error) {
+            this.emitFeatureTelemetry('floatingImages', start, 'error', error);
+            throw error;
+        }
+    }
+
+    private destroyFloatingImagesManagers(): void {
+        this.floatingImagesManagers.forEach(manager => manager.destroy?.());
+        this.floatingImagesManagers = [];
     }
 }

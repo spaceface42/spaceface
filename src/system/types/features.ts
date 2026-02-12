@@ -1,25 +1,11 @@
-// src/spaceface/system/types/features.ts
+// src/system/types/features.ts
 
-// FloatingImagesManager
-export interface FloatingImagesManagerOptionsInterface {
-    maxImages?: number;
-    debug?: boolean;
-}
+// FloatingImages shared runtime contract
 export interface FloatingImagesManagerInterface {
     resetAllImagePositions(): void;
     destroy(): void;
     reinitializeImages(): void;
     init?(): Promise<void>;
-}
-
-// FloatingImage
-export interface FloatingImageOptionsInterface {
-    useSubpixel?: boolean;
-    debug?: boolean;
-}
-export interface ContainerDimensionsInterface {
-    width: number;
-    height: number;
 }
 
 // ScreensaverController
@@ -36,4 +22,3 @@ export interface ScreensaverControllerOptionsInterface {
     /** Optional callback for errors during screensaver operations */
     onError?: (message: string, error: unknown) => void;
 }
-

@@ -7,7 +7,7 @@ import { clamp } from '../bin/math.js';
 import type {
     ContainerDimensionsInterface,
     FloatingImageOptionsInterface
-} from '../../types/features.js';
+} from './types.js';
 
 const DAMPING = 0.85;
 const MIN_VELOCITY = 0.1;
@@ -59,6 +59,10 @@ export class FloatingImage {
         this.element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         this.logDebug("Position updated", { x, y });
         return true;
+    }
+
+    getElement(): HTMLElement | null {
+        return this.element;
     }
 
     update(multiplier: number, dims: ContainerDimensionsInterface, applyPosition = true): boolean {

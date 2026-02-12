@@ -1,12 +1,7 @@
-export interface AppConfigOptions {
-    features?: Record<string, any>;
-    debug?: boolean;
-    [key: string]: any;
-}
+import type { AppConfigOptions, AppRuntimeConfig, PartialLoaderInstance } from './types.js';
 export declare class AppConfig {
-    config: Record<string, any>;
+    config: AppRuntimeConfig;
     constructor(options?: AppConfigOptions);
-    get(key: string): any;
 }
 export declare class SpacefaceCore {
     static EVENT_LOG: string;
@@ -20,12 +15,12 @@ export declare class SpacefaceCore {
     private inactivityWatcher;
     private screensaverController;
     private slideshows;
-    private swManager?;
+    private floatingImagesManagers;
     private _partialUnsub?;
     private _partialObserver?;
     private pjaxFeatures;
     constructor(options?: AppConfigOptions);
-    log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]): void;
+    log(level: 'debug' | 'info' | 'warn' | 'error', ...args: unknown[]): void;
     private resolvePageType;
     private loadFeatureModule;
     initBase(): Promise<void>;
@@ -33,12 +28,13 @@ export declare class SpacefaceCore {
     initInactivityWatcher(): Promise<void>;
     initSlidePlayer(): Promise<void>;
     initScreensaver(): Promise<void>;
-    initServiceWorker(): Promise<void>;
-    initPartialLoader(): Promise<any>;
+    initPartialLoader(): Promise<PartialLoaderInstance | null>;
     initDomFeatures(): Promise<void>;
     initOnceFeatures(): Promise<void>;
     registerPjaxFeature(name: string, init: () => Promise<void> | void, when?: (pageType: string) => boolean): void;
     handlePjaxComplete(): Promise<void>;
     destroy(): void;
     private emitFeatureTelemetry;
+    initFloatingImages(): Promise<void>;
+    private destroyFloatingImagesManagers;
 }

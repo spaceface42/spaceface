@@ -6,5 +6,4 @@ export { EventWatcher } from "../system/bin/EventWatcher.js";
 export { PartialFetcher } from "../system/bin/PartialFetcher.js";
 export { PartialLoader } from "../system/bin/PartialLoader.js";
 export { generateId } from "../system/bin/generateId.js";
-export { ServiceWorkerManager } from "../system/bin/ServiceWorkerManager.js";
 export type { FloatingImagesManagerInterface } from '../system/types/features.js';

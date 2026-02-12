@@ -1,8 +1,9 @@
-export declare const VERSION: "2.0.0";
+export declare const VERSION: "2.1.0";
 import { FloatingImage } from './FloatingImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
-import type { FloatingImagesManagerOptionsInterface, FloatingImagesManagerInterface } from '../../types/features.js';
+import type { FloatingImagesManagerOptionsInterface } from './types.js';
+import type { FloatingImagesManagerInterface } from '../../types/features.js';
 export declare class FloatingImagesManager implements FloatingImagesManagerInterface {
     readonly container: HTMLElement;
     performanceMonitor: PerformanceMonitor;
@@ -19,6 +20,12 @@ export declare class FloatingImagesManager implements FloatingImagesManagerInter
     containerWidth: number;
     containerHeight: number;
     debug: boolean;
+    hoverBehavior: 'none' | 'slow' | 'stop';
+    hoverSlowMultiplier: number;
+    tapToFreeze: boolean;
+    private interactionCleanups;
+    private frozenElements;
+    private imageSpeedOverrides;
     constructor(container: HTMLElement, options?: FloatingImagesManagerOptionsInterface);
     private log;
     private setupResizeHandling;
@@ -30,4 +37,6 @@ export declare class FloatingImagesManager implements FloatingImagesManagerInter
     resetAllImagePositions(): void;
     reinitializeImages(): void;
     destroy(): void;
+    private bindImageInteraction;
+    private unbindImageInteractions;
 }
