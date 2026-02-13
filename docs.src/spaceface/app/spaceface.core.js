@@ -65,8 +65,15 @@ export class SpacefaceCore {
         const body = document.body;
         if (body.dataset.page)
             return body.dataset.page;
-        const path = window.location.pathname;
-        return path === '/' ? 'home' : path === '/app' ? 'app' : 'default';
+        const rawPath = window.location.pathname;
+        const path = rawPath.replace(/\/+$/, '') || '/';
+        if (path === '/')
+            return 'home';
+        const segment = path.split('/').filter(Boolean).pop() ?? 'default';
+        return segment
+            .replace(/\.html$/i, '')
+            .replace(/^_+/, '')
+            || 'default';
     }
     async loadFeatureModule(name) {
         if (this.featureCache.has(name))
@@ -292,6 +299,7 @@ export class SpacefaceCore {
                 return;
             }
             this.destroyFloatingImagesManagers();
+            const shouldPauseOnScreensaver = floatingImages.pauseOnScreensaver ?? (this.pageType === 'floatingimages');
             this.floatingImagesManagers = containers.map(container => {
                 return new FloatingImagesManager(container, {
                     maxImages: floatingImages.maxImages,
@@ -299,6 +307,7 @@ export class SpacefaceCore {
                     hoverBehavior: floatingImages.hoverBehavior ?? 'none',
                     hoverSlowMultiplier: floatingImages.hoverSlowMultiplier ?? 0.2,
                     tapToFreeze: floatingImages.tapToFreeze ?? true,
+                    pauseOnScreensaver: shouldPauseOnScreensaver,
                 });
             });
             this.log('info', `${this.floatingImagesManagers.length} FloatingImages instance(s) loaded`);

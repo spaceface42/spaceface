@@ -2061,15 +2061,21 @@ var init_FloatingImagesManager = __esm({
       hoverBehavior;
       hoverSlowMultiplier;
       tapToFreeze;
+      pauseOnScreensaver;
       interactionCleanups = [];
       frozenElements = /* @__PURE__ */ new WeakSet();
       imageSpeedOverrides = /* @__PURE__ */ new WeakMap();
+      unsubScreensaverShown;
+      unsubScreensaverHidden;
+      pausedByScreensaver = false;
+      speedBeforeScreensaver = 1;
       constructor(container, options = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
         this.hoverBehavior = options.hoverBehavior ?? "none";
         this.hoverSlowMultiplier = options.hoverSlowMultiplier ?? 0.2;
         this.tapToFreeze = options.tapToFreeze ?? true;
+        this.pauseOnScreensaver = options.pauseOnScreensaver ?? false;
         this.performanceMonitor = new PerformanceMonitor();
         const perfSettings = this.performanceMonitor.getRecommendedSettings();
         this.maxImages = options.maxImages ?? perfSettings.maxImages;
@@ -2080,6 +2086,7 @@ var init_FloatingImagesManager = __esm({
         }, { threshold: 0 });
         this.intersectionObserver.observe(this.container);
         this.setupResizeHandling();
+        this.setupScreensaverHandling();
         this.imageLoader = new AsyncImageLoader(this.container);
         this.updateContainerDimensions();
         this.animateCallback = () => this.animate();
@@ -2111,6 +2118,22 @@ var init_FloatingImagesManager = __esm({
       setupResizeHandling() {
         this.unsubscribeWindow = resizeManager.onWindow(() => this.handleResize());
         this.unsubscribeElement = resizeManager.onElement(this.container, () => this.handleResize());
+      }
+      setupScreensaverHandling() {
+        if (!this.pauseOnScreensaver) return;
+        this.unsubScreensaverShown = eventBus.on("screensaver:shown", () => {
+          if (this.pausedByScreensaver) return;
+          this.speedBeforeScreensaver = this.speedMultiplier;
+          this.speedMultiplier = 0;
+          this.pausedByScreensaver = true;
+          this.log("debug", "Paused due to screensaver");
+        });
+        this.unsubScreensaverHidden = eventBus.on("screensaver:hidden", () => {
+          if (!this.pausedByScreensaver) return;
+          this.speedMultiplier = this.speedBeforeScreensaver;
+          this.pausedByScreensaver = false;
+          this.log("debug", "Resumed after screensaver");
+        });
       }
       updateContainerDimensions() {
         if (!this.container.isConnected) {
@@ -2212,8 +2235,12 @@ var init_FloatingImagesManager = __esm({
         }
         this.unsubscribeWindow?.();
         this.unsubscribeElement?.();
+        this.unsubScreensaverShown?.();
+        this.unsubScreensaverHidden?.();
         this.unsubscribeWindow = void 0;
         this.unsubscribeElement = void 0;
+        this.unsubScreensaverShown = void 0;
+        this.unsubScreensaverHidden = void 0;
         this.intersectionObserver.disconnect();
         this.unbindImageInteractions();
         this.images.forEach((img) => img.destroy());
@@ -2384,6 +2411,7 @@ var init_ScreensaverController = __esm({
             this.screensaverManager.destroy();
             this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
           }
+          eventBus.emit("screensaver:shown", { targetSelector: this.targetSelector });
           this.log("info", "Screensaver displayed");
         } catch (error) {
           this.handleError("Failed to load or show screensaver", error);
@@ -2404,6 +2432,7 @@ var init_ScreensaverController = __esm({
               this._hideTimeout = null;
             }, 500);
           }
+          eventBus.emit("screensaver:hidden", { targetSelector: this.targetSelector });
           this.log("debug", "Screensaver hidden");
         } catch (error) {
           this.handleError("Failed to hide screensaver", error);
@@ -2583,8 +2612,11 @@ var SpacefaceCore = class _SpacefaceCore {
   resolvePageType() {
     const body = document.body;
     if (body.dataset.page) return body.dataset.page;
-    const path = window.location.pathname;
-    return path === "/" ? "home" : path === "/app" ? "app" : "default";
+    const rawPath = window.location.pathname;
+    const path = rawPath.replace(/\/+$/, "") || "/";
+    if (path === "/") return "home";
+    const segment = path.split("/").filter(Boolean).pop() ?? "default";
+    return segment.replace(/\.html$/i, "").replace(/^_+/, "") || "default";
   }
   async loadFeatureModule(name) {
     if (this.featureCache.has(name)) return this.featureCache.get(name);
@@ -2802,13 +2834,15 @@ var SpacefaceCore = class _SpacefaceCore {
         return;
       }
       this.destroyFloatingImagesManagers();
+      const shouldPauseOnScreensaver = floatingImages.pauseOnScreensaver ?? this.pageType === "floatingimages";
       this.floatingImagesManagers = containers.map((container) => {
         return new FloatingImagesManager2(container, {
           maxImages: floatingImages.maxImages,
           debug: floatingImages.debug ?? this.debug,
           hoverBehavior: floatingImages.hoverBehavior ?? "none",
           hoverSlowMultiplier: floatingImages.hoverSlowMultiplier ?? 0.2,
-          tapToFreeze: floatingImages.tapToFreeze ?? true
+          tapToFreeze: floatingImages.tapToFreeze ?? true,
+          pauseOnScreensaver: shouldPauseOnScreensaver
         });
       });
       this.log("info", `${this.floatingImagesManagers.length} FloatingImages instance(s) loaded`);

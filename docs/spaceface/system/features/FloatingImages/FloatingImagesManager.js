@@ -25,15 +25,21 @@ export class FloatingImagesManager {
     hoverBehavior;
     hoverSlowMultiplier;
     tapToFreeze;
+    pauseOnScreensaver;
     interactionCleanups = [];
     frozenElements = new WeakSet();
     imageSpeedOverrides = new WeakMap();
+    unsubScreensaverShown;
+    unsubScreensaverHidden;
+    pausedByScreensaver = false;
+    speedBeforeScreensaver = 1;
     constructor(container, options = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
         this.hoverBehavior = options.hoverBehavior ?? 'none';
         this.hoverSlowMultiplier = options.hoverSlowMultiplier ?? 0.2;
         this.tapToFreeze = options.tapToFreeze ?? true;
+        this.pauseOnScreensaver = options.pauseOnScreensaver ?? false;
         this.performanceMonitor = new PerformanceMonitor();
         const perfSettings = this.performanceMonitor.getRecommendedSettings();
         this.maxImages = options.maxImages ?? perfSettings.maxImages;
@@ -45,6 +51,7 @@ export class FloatingImagesManager {
         }, { threshold: 0 });
         this.intersectionObserver.observe(this.container);
         this.setupResizeHandling();
+        this.setupScreensaverHandling();
         this.imageLoader = new AsyncImageLoader(this.container);
         this.updateContainerDimensions();
         this.animateCallback = () => this.animate();
@@ -77,6 +84,25 @@ export class FloatingImagesManager {
     setupResizeHandling() {
         this.unsubscribeWindow = resizeManager.onWindow(() => this.handleResize());
         this.unsubscribeElement = resizeManager.onElement(this.container, () => this.handleResize());
+    }
+    setupScreensaverHandling() {
+        if (!this.pauseOnScreensaver)
+            return;
+        this.unsubScreensaverShown = eventBus.on('screensaver:shown', () => {
+            if (this.pausedByScreensaver)
+                return;
+            this.speedBeforeScreensaver = this.speedMultiplier;
+            this.speedMultiplier = 0;
+            this.pausedByScreensaver = true;
+            this.log('debug', 'Paused due to screensaver');
+        });
+        this.unsubScreensaverHidden = eventBus.on('screensaver:hidden', () => {
+            if (!this.pausedByScreensaver)
+                return;
+            this.speedMultiplier = this.speedBeforeScreensaver;
+            this.pausedByScreensaver = false;
+            this.log('debug', 'Resumed after screensaver');
+        });
     }
     updateContainerDimensions() {
         if (!this.container.isConnected) {
@@ -190,8 +216,12 @@ export class FloatingImagesManager {
         }
         this.unsubscribeWindow?.();
         this.unsubscribeElement?.();
+        this.unsubScreensaverShown?.();
+        this.unsubScreensaverHidden?.();
         this.unsubscribeWindow = undefined;
         this.unsubscribeElement = undefined;
+        this.unsubScreensaverShown = undefined;
+        this.unsubScreensaverHidden = undefined;
         this.intersectionObserver.disconnect();
         this.unbindImageInteractions();
         this.images.forEach(img => img.destroy());

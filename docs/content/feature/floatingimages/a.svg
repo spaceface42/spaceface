@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="620px" height="620px" viewBox="0 0 620 620" xmlns="http://www.w3.org/2000/svg">
+<style>
+#logo {
+    fill: none;
+    stroke: rgba(241,68,41,0.9);
+    stroke-width: 2px;
+    stroke-linecap: round;
+    transform: scale(0.8);
+    transform-origin: center;
+    shape-rendering: geometricPrecision;
+}
+</style>
+<g id="logo">
+    <rect x="10" y="10" width="600" height="600" rx="50" />
+    <path id="sign" d="
+        M 110 510
+        H 460
+        a 50 50 0 0 0 0 -100
+        H 160
+        a 50 50 0 0 1 0 -100
+        H 460
+        a 50 50 0 0 0 0 -100
+        H 160
+        a 50 50 0 0 1 0 -100
+        H 510" />
+</g>
+</svg>
