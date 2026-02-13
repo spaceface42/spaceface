@@ -23,12 +23,18 @@ export declare class FloatingImagesManager implements FloatingImagesManagerInter
     hoverBehavior: 'none' | 'slow' | 'stop';
     hoverSlowMultiplier: number;
     tapToFreeze: boolean;
+    pauseOnScreensaver: boolean;
     private interactionCleanups;
     private frozenElements;
     private imageSpeedOverrides;
+    private unsubScreensaverShown?;
+    private unsubScreensaverHidden?;
+    private pausedByScreensaver;
+    private speedBeforeScreensaver;
     constructor(container: HTMLElement, options?: FloatingImagesManagerOptionsInterface);
     private log;
     private setupResizeHandling;
+    private setupScreensaverHandling;
     private updateContainerDimensions;
     private initializeImages;
     private addExistingImage;

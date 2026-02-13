@@ -36,9 +36,14 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     hoverBehavior: 'none' | 'slow' | 'stop';
     hoverSlowMultiplier: number;
     tapToFreeze: boolean;
+    pauseOnScreensaver: boolean;
     private interactionCleanups: Array<() => void> = [];
     private frozenElements = new WeakSet<HTMLElement>();
     private imageSpeedOverrides = new WeakMap<HTMLElement, number>();
+    private unsubScreensaverShown?: () => void;
+    private unsubScreensaverHidden?: () => void;
+    private pausedByScreensaver = false;
+    private speedBeforeScreensaver = 1;
 
     constructor(container: HTMLElement, options: FloatingImagesManagerOptionsInterface = {}) {
         this.container = container;
@@ -46,6 +51,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.hoverBehavior = options.hoverBehavior ?? 'none';
         this.hoverSlowMultiplier = options.hoverSlowMultiplier ?? 0.2;
         this.tapToFreeze = options.tapToFreeze ?? true;
+        this.pauseOnScreensaver = options.pauseOnScreensaver ?? false;
 
         this.performanceMonitor = new PerformanceMonitor();
         const perfSettings = this.performanceMonitor.getRecommendedSettings();
@@ -59,6 +65,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.intersectionObserver.observe(this.container);
 
         this.setupResizeHandling();
+        this.setupScreensaverHandling();
         this.imageLoader = new AsyncImageLoader(this.container);
         this.updateContainerDimensions();
 
@@ -98,6 +105,25 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private setupResizeHandling() {
         this.unsubscribeWindow = resizeManager.onWindow(() => this.handleResize());
         this.unsubscribeElement = resizeManager.onElement(this.container, () => this.handleResize());
+    }
+
+    private setupScreensaverHandling() {
+        if (!this.pauseOnScreensaver) return;
+
+        this.unsubScreensaverShown = eventBus.on('screensaver:shown', () => {
+            if (this.pausedByScreensaver) return;
+            this.speedBeforeScreensaver = this.speedMultiplier;
+            this.speedMultiplier = 0;
+            this.pausedByScreensaver = true;
+            this.log('debug', 'Paused due to screensaver');
+        });
+
+        this.unsubScreensaverHidden = eventBus.on('screensaver:hidden', () => {
+            if (!this.pausedByScreensaver) return;
+            this.speedMultiplier = this.speedBeforeScreensaver;
+            this.pausedByScreensaver = false;
+            this.log('debug', 'Resumed after screensaver');
+        });
     }
 
     private updateContainerDimensions() {
@@ -220,9 +246,13 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
 
         this.unsubscribeWindow?.();
         this.unsubscribeElement?.();
+        this.unsubScreensaverShown?.();
+        this.unsubScreensaverHidden?.();
         // clear unsubscribe refs to avoid keeping closures alive
         this.unsubscribeWindow = undefined;
         this.unsubscribeElement = undefined;
+        this.unsubScreensaverShown = undefined;
+        this.unsubScreensaverHidden = undefined;
 
         this.intersectionObserver.disconnect();
         this.unbindImageInteractions();

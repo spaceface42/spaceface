@@ -54,3 +54,21 @@ Run TypeScript checks without emitting output.
 
 - PJAX swaps container `innerHTML`. Scripts inside swapped HTML do not auto-execute.
 - If page-specific behavior is required after PJAX navigation, initialize it from the main bundle on `pjax:complete`.
+
+## Feature Behavior
+
+- Boot sequence (`SpacefaceCore`):
+1. `initBase()` adds `js-enabled` and resolves `pageType` from `body[data-page]` or URL.
+2. `initDomFeatures()` initializes DOM-dependent features (`SlidePlayer`, `FloatingImages`).
+3. `initOnceFeatures()` initializes singleton/lifecycle features (`InactivityWatcher`, `ScreensaverController`).
+
+- `FloatingImages`:
+1. Uses existing HTML markup (`.floating-images-container` + `.floating-image`) as source of truth.
+2. Supports interaction options: `hoverBehavior`, `hoverSlowMultiplier`, `tapToFreeze`.
+3. `pauseOnScreensaver` can be set explicitly per page.
+4. If omitted, default is page-aware: `true` on `floatingimages` page, `false` elsewhere.
+
+- `ScreensaverController`:
+1. Starts on inactivity via `InactivityWatcher`.
+2. Emits lifecycle events: `screensaver:shown` and `screensaver:hidden`.
+3. `FloatingImagesManager` can listen to those events and pause/resume animation when configured.

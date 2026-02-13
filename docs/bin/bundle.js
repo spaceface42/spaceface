@@ -2061,15 +2061,21 @@ var init_FloatingImagesManager = __esm({
       hoverBehavior;
       hoverSlowMultiplier;
       tapToFreeze;
+      pauseOnScreensaver;
       interactionCleanups = [];
       frozenElements = /* @__PURE__ */ new WeakSet();
       imageSpeedOverrides = /* @__PURE__ */ new WeakMap();
+      unsubScreensaverShown;
+      unsubScreensaverHidden;
+      pausedByScreensaver = false;
+      speedBeforeScreensaver = 1;
       constructor(container, options = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
         this.hoverBehavior = options.hoverBehavior ?? "none";
         this.hoverSlowMultiplier = options.hoverSlowMultiplier ?? 0.2;
         this.tapToFreeze = options.tapToFreeze ?? true;
+        this.pauseOnScreensaver = options.pauseOnScreensaver ?? false;
         this.performanceMonitor = new PerformanceMonitor();
         const perfSettings = this.performanceMonitor.getRecommendedSettings();
         this.maxImages = options.maxImages ?? perfSettings.maxImages;
@@ -2080,6 +2086,7 @@ var init_FloatingImagesManager = __esm({
         }, { threshold: 0 });
         this.intersectionObserver.observe(this.container);
         this.setupResizeHandling();
+        this.setupScreensaverHandling();
         this.imageLoader = new AsyncImageLoader(this.container);
         this.updateContainerDimensions();
         this.animateCallback = () => this.animate();
@@ -2111,6 +2118,22 @@ var init_FloatingImagesManager = __esm({
       setupResizeHandling() {
         this.unsubscribeWindow = resizeManager.onWindow(() => this.handleResize());
         this.unsubscribeElement = resizeManager.onElement(this.container, () => this.handleResize());
+      }
+      setupScreensaverHandling() {
+        if (!this.pauseOnScreensaver) return;
+        this.unsubScreensaverShown = eventBus.on("screensaver:shown", () => {
+          if (this.pausedByScreensaver) return;
+          this.speedBeforeScreensaver = this.speedMultiplier;
+          this.speedMultiplier = 0;
+          this.pausedByScreensaver = true;
+          this.log("debug", "Paused due to screensaver");
+        });
+        this.unsubScreensaverHidden = eventBus.on("screensaver:hidden", () => {
+          if (!this.pausedByScreensaver) return;
+          this.speedMultiplier = this.speedBeforeScreensaver;
+          this.pausedByScreensaver = false;
+          this.log("debug", "Resumed after screensaver");
+        });
       }
       updateContainerDimensions() {
         if (!this.container.isConnected) {
@@ -2212,8 +2235,12 @@ var init_FloatingImagesManager = __esm({
         }
         this.unsubscribeWindow?.();
         this.unsubscribeElement?.();
+        this.unsubScreensaverShown?.();
+        this.unsubScreensaverHidden?.();
         this.unsubscribeWindow = void 0;
         this.unsubscribeElement = void 0;
+        this.unsubScreensaverShown = void 0;
+        this.unsubScreensaverHidden = void 0;
         this.intersectionObserver.disconnect();
         this.unbindImageInteractions();
         this.images.forEach((img) => img.destroy());
@@ -2384,6 +2411,7 @@ var init_ScreensaverController = __esm({
             this.screensaverManager.destroy();
             this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
           }
+          eventBus.emit("screensaver:shown", { targetSelector: this.targetSelector });
           this.log("info", "Screensaver displayed");
         } catch (error) {
           this.handleError("Failed to load or show screensaver", error);
@@ -2404,6 +2432,7 @@ var init_ScreensaverController = __esm({
               this._hideTimeout = null;
             }, 500);
           }
+          eventBus.emit("screensaver:hidden", { targetSelector: this.targetSelector });
           this.log("debug", "Screensaver hidden");
         } catch (error) {
           this.handleError("Failed to hide screensaver", error);
@@ -2583,8 +2612,11 @@ var SpacefaceCore = class _SpacefaceCore {
   resolvePageType() {
     const body = document.body;
     if (body.dataset.page) return body.dataset.page;
-    const path = window.location.pathname;
-    return path === "/" ? "home" : path === "/app" ? "app" : "default";
+    const rawPath = window.location.pathname;
+    const path = rawPath.replace(/\/+$/, "") || "/";
+    if (path === "/") return "home";
+    const segment = path.split("/").filter(Boolean).pop() ?? "default";
+    return segment.replace(/\.html$/i, "").replace(/^_+/, "") || "default";
   }
   async loadFeatureModule(name) {
     if (this.featureCache.has(name)) return this.featureCache.get(name);
@@ -2802,13 +2834,15 @@ var SpacefaceCore = class _SpacefaceCore {
         return;
       }
       this.destroyFloatingImagesManagers();
+      const shouldPauseOnScreensaver = floatingImages.pauseOnScreensaver ?? this.pageType === "floatingimages";
       this.floatingImagesManagers = containers.map((container) => {
         return new FloatingImagesManager2(container, {
           maxImages: floatingImages.maxImages,
           debug: floatingImages.debug ?? this.debug,
           hoverBehavior: floatingImages.hoverBehavior ?? "none",
           hoverSlowMultiplier: floatingImages.hoverSlowMultiplier ?? 0.2,
-          tapToFreeze: floatingImages.tapToFreeze ?? true
+          tapToFreeze: floatingImages.tapToFreeze ?? true,
+          pauseOnScreensaver: shouldPauseOnScreensaver
         });
       });
       this.log("info", `${this.floatingImagesManagers.length} FloatingImages instance(s) loaded`);
@@ -2824,7 +2858,118 @@ var SpacefaceCore = class _SpacefaceCore {
   }
 };
 
-// src/app/main.prod.ts
+// src/app/pjax.ts
+var Pjax = class {
+  containerSelector;
+  linkSelector;
+  scrollToTop;
+  cacheEnabled;
+  cache = /* @__PURE__ */ new Map();
+  currentRequest;
+  constructor(options = {}) {
+    this.containerSelector = options.containerSelector ?? '[data-pjax="container"]';
+    this.linkSelector = options.linkSelector ?? "a[href]";
+    this.scrollToTop = options.scrollToTop ?? true;
+    this.cacheEnabled = options.cache ?? true;
+  }
+  init() {
+    document.addEventListener("click", this.onClick, true);
+    window.addEventListener("popstate", this.onPopState);
+  }
+  destroy() {
+    document.removeEventListener("click", this.onClick, true);
+    window.removeEventListener("popstate", this.onPopState);
+    this.currentRequest?.abort();
+    this.currentRequest = void 0;
+  }
+  onClick = (event) => {
+    if (event.defaultPrevented) return;
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = event.target;
+    const link = target?.closest?.(this.linkSelector);
+    if (!link) return;
+    if (link.hasAttribute("download")) return;
+    if (link.getAttribute("rel") === "external") return;
+    if (link.target && link.target !== "_self") return;
+    if (link.dataset.noPjax !== void 0) return;
+    const href = link.href;
+    if (!href) return;
+    const url = new URL(href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
+      return;
+    }
+    event.preventDefault();
+    void this.load(url.toString(), true);
+  };
+  onPopState = () => {
+    void this.load(window.location.href, false);
+  };
+  async load(url, pushState) {
+    const container = document.querySelector(this.containerSelector);
+    if (!container) {
+      document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error: new Error("PJAX container not found") } }));
+      window.location.href = url;
+      return;
+    }
+    this.currentRequest?.abort();
+    const controller = new AbortController();
+    this.currentRequest = controller;
+    const requestToken = controller;
+    container.setAttribute("data-pjax-loading", "true");
+    document.dispatchEvent(new CustomEvent("pjax:before", { detail: { url } }));
+    try {
+      const cached = this.cacheEnabled ? this.cache.get(url) : void 0;
+      let title;
+      let html;
+      if (cached) {
+        ({ title, html } = cached);
+      } else {
+        const res = await fetch(url, {
+          method: "GET",
+          headers: { "X-PJAX": "true" },
+          signal: controller.signal,
+          credentials: "same-origin"
+        });
+        if (!res.ok) throw new Error(`PJAX HTTP ${res.status}`);
+        const text = await res.text();
+        const parsed = new DOMParser().parseFromString(text, "text/html");
+        const nextContainer = parsed.querySelector(this.containerSelector);
+        if (!nextContainer) throw new Error(`PJAX container "${this.containerSelector}" not found`);
+        title = parsed.title || document.title;
+        html = nextContainer.innerHTML;
+        if (this.cacheEnabled) {
+          this.cache.set(url, { title, html, url });
+        }
+      }
+      if (this.currentRequest !== requestToken) return;
+      container.innerHTML = html;
+      document.title = title;
+      if (pushState) {
+        history.pushState({ pjax: true }, "", url);
+      }
+      if (this.scrollToTop) {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      }
+      document.dispatchEvent(new CustomEvent("pjax:complete", { detail: { url } }));
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error } }));
+        window.location.href = url;
+      }
+    } finally {
+      container.removeAttribute("data-pjax-loading");
+    }
+  }
+};
+function initPjax(options = {}) {
+  const pjax = new Pjax(options);
+  pjax.init();
+  return pjax;
+}
+
+// src/app/main.pjax.ts
 var features = {
   slideplayer: { interval: 5e3, includePicture: false },
   floatingImages: {
@@ -2841,9 +2986,15 @@ var app = new SpacefaceCore({
   features
 });
 app.initBase().then(async () => {
+  app.registerPjaxFeature("slideplayer", () => app.initSlidePlayer());
+  app.registerPjaxFeature("floatingImages", () => app.initFloatingImages());
   await app.initDomFeatures();
   await app.initOnceFeatures();
   app.finishInit();
+  initPjax({ containerSelector: '[data-pjax="container"]' });
+  document.addEventListener("pjax:complete", () => {
+    void app.handlePjaxComplete();
+  });
 });
 window.addEventListener("beforeunload", () => {
   app.destroy();

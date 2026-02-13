@@ -105,6 +105,7 @@ export class ScreensaverController {
                 this.screensaverManager.destroy();
                 this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
             }
+            eventBus.emit('screensaver:shown', { targetSelector: this.targetSelector });
             this.log('info', 'Screensaver displayed');
         }
         catch (error) {
@@ -127,6 +128,7 @@ export class ScreensaverController {
                     this._hideTimeout = null;
                 }, 500);
             }
+            eventBus.emit('screensaver:hidden', { targetSelector: this.targetSelector });
             this.log('debug', 'Screensaver hidden');
         }
         catch (error) {
