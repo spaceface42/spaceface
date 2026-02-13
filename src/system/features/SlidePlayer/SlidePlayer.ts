@@ -6,7 +6,9 @@ import { eventBus } from '../../bin/EventBus.js';
 import { EventBinder } from '../../bin/EventBinder.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
 import { animationLoop } from '../bin/AnimationLoop.js';
+import { AnimationPolicy, AnimationPauseReason } from '../bin/AnimationPolicy.js';
 import type { LogPayload } from '../../types/bin.js';
+import { EVENTS } from '../../types/events.js';
 
 interface ISlidePlayerOptions {
   interval?: number;
@@ -18,8 +20,6 @@ interface ISlidePlayerOptions {
   autoplay?: boolean;
   debug?: boolean;
 }
-
-type PauseReason = 'manual' | 'hover' | 'hidden' | 'inactivity';
 
 export class SlidePlayer {
   static readonly SWIPE_THRESHOLD = 50;
@@ -49,7 +49,7 @@ export class SlidePlayer {
   private pointerEndX = 0;
   private pointerEndY = 0;
 
-  private pauseReasons = new Set<PauseReason>();
+  private animationPolicy = new AnimationPolicy();
   private loader: AsyncImageLoader;
   private binder: EventBinder;
   private animateCallback: () => void;
@@ -83,7 +83,7 @@ export class SlidePlayer {
     this.loader = new AsyncImageLoader(this.container, { includePicture });
     this.binder = new EventBinder(this.debug);
 
-    if (startPaused) this.pauseReasons.add('manual');
+    if (startPaused) this.animationPolicy.set('manual', true);
 
     this.animateCallback = () => this.animate();
     // Ensure init always resolves to avoid unhandled rejection.
@@ -103,8 +103,8 @@ export class SlidePlayer {
     if (!this.debug && level === 'debug') return;
 
     const payload: LogPayload = { scope: 'SlidePlayer', level, message, data, time: Date.now() };
-    eventBus.emit('slideplayer:log', { level, message, data });
-    eventBus.emit('log', payload);
+    eventBus.emit(EVENTS.SLIDEPLAYER_LOG, { level, message, data });
+    eventBus.emit(EVENTS.LOG, payload);
     if (this.debug) {
       const methodMap: Record<typeof level, keyof Console> = {
         debug: 'debug',
@@ -160,15 +160,14 @@ export class SlidePlayer {
   }
 
   /** ---- Pause / Resume ---- */
-  private togglePause(reason: PauseReason, shouldPause: boolean): void {
-    if (shouldPause) this.pauseReasons.add(reason);
-    else this.pauseReasons.delete(reason);
+  private togglePause(reason: AnimationPauseReason, shouldPause: boolean): void {
+    this.animationPolicy.set(reason, shouldPause);
 
     this.emitPauseResumeIfChanged();
 
     if (this.isPaused()) {
       if (animationLoop.has(this.animateCallback)) animationLoop.remove(this.animateCallback);
-      this.log('debug', `Paused due to: ${Array.from(this.pauseReasons).join(', ')}`);
+      this.log('debug', `Paused due to: ${this.animationPolicy.list().join(', ')}`);
     } else {
       if (!animationLoop.has(this.animateCallback)) animationLoop.add(this.animateCallback);
       this.log('debug', 'Resumed playback');
@@ -176,17 +175,17 @@ export class SlidePlayer {
   }
 
   private emitPauseResumeIfChanged(): void {
-    const nowPaused = this.isPaused();
+      const nowPaused = this.isPaused();
     if (nowPaused !== this.lastPauseState) {
       this.lastPauseState = nowPaused;
       const event = nowPaused ? 'slideplayer:paused' : 'slideplayer:resumed';
-      this.emit(event, { reasons: Array.from(this.pauseReasons) });
+      this.emit(event, { reasons: this.animationPolicy.list() });
     }
   }
 
   public play(): void { this.togglePause('manual', false); }
   public pause(): void { this.togglePause('manual', true); }
-  public isPaused(): boolean { return this.pauseReasons.size > 0; }
+  public isPaused(): boolean { return this.animationPolicy.isPaused(); }
 
   /** ---- Slide Navigation ---- */
   public goToSlide(index: number, restart: boolean = true): void {
@@ -296,8 +295,10 @@ export class SlidePlayer {
 
   private bindActivityEvents(): void {
     if (this.enableBusEvents) {
-      this.binder.bindBus('user:inactive', () => this.togglePause('inactivity', true));
-      this.binder.bindBus('user:active', () => this.togglePause('inactivity', false));
+      this.binder.bindBus(EVENTS.USER_INACTIVE, () => this.togglePause('inactivity', true));
+      this.binder.bindBus(EVENTS.USER_ACTIVE, () => this.togglePause('inactivity', false));
+      this.binder.bindBus(EVENTS.SCREENSAVER_SHOWN, () => this.togglePause('screensaver', true));
+      this.binder.bindBus(EVENTS.SCREENSAVER_HIDDEN, () => this.togglePause('screensaver', false));
     }
   }
 
@@ -331,7 +332,7 @@ export class SlidePlayer {
     this.slides = [];
     this.dots = [];
     this.dotsWrapper = null;
-    this.pauseReasons.clear();
+    this.animationPolicy.clear();
 
     this.log('info', 'SlidePlayer destroyed');
   }

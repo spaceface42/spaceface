@@ -95,6 +95,7 @@ export interface FeatureModuleMap {
 
 export interface ManagedFeatureLifecycle {
     name: string;
+    dependsOn?: string[];
     init: () => Promise<void> | void;
     onRouteChange?: (pageType: string) => Promise<void> | void;
     destroy: () => void;
