@@ -9,7 +9,9 @@ import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
 import { animationLoop } from '../bin/AnimationLoop.js';
 import { eventBus } from '../../bin/EventBus.js';
 import { debounce } from '../bin/timing.js';
+import { AnimationPolicy } from '../bin/AnimationPolicy.js';
 import type { LogPayload } from '../../types/bin.js';
+import { EVENTS } from '../../types/events.js';
 
 import type {
     FloatingImagesManagerOptionsInterface,
@@ -42,8 +44,10 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private imageSpeedOverrides = new WeakMap<HTMLElement, number>();
     private unsubScreensaverShown?: () => void;
     private unsubScreensaverHidden?: () => void;
+    private unbindVisibility?: () => void;
     private pausedByScreensaver = false;
     private speedBeforeScreensaver = 1;
+    private animationPolicy = new AnimationPolicy();
 
     constructor(container: HTMLElement, options: FloatingImagesManagerOptionsInterface = {}) {
         this.container = container;
@@ -87,8 +91,8 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         if (!this.debug && level === 'debug') return;
 
         const payload: LogPayload = { scope: 'FloatingImagesManager', level, message, data, time: Date.now() };
-        eventBus.emit('floatingImages:log', { level, message, data });
-        eventBus.emit('log', payload);
+        eventBus.emit(EVENTS.FLOATING_IMAGES_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
 
         if (this.debug) {
             const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {
@@ -110,20 +114,28 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private setupScreensaverHandling() {
         if (!this.pauseOnScreensaver) return;
 
-        this.unsubScreensaverShown = eventBus.on('screensaver:shown', () => {
+        this.unsubScreensaverShown = eventBus.on(EVENTS.SCREENSAVER_SHOWN, () => {
             if (this.pausedByScreensaver) return;
             this.speedBeforeScreensaver = this.speedMultiplier;
             this.speedMultiplier = 0;
             this.pausedByScreensaver = true;
+            this.animationPolicy.set('screensaver', true);
             this.log('debug', 'Paused due to screensaver');
         });
 
-        this.unsubScreensaverHidden = eventBus.on('screensaver:hidden', () => {
+        this.unsubScreensaverHidden = eventBus.on(EVENTS.SCREENSAVER_HIDDEN, () => {
             if (!this.pausedByScreensaver) return;
             this.speedMultiplier = this.speedBeforeScreensaver;
             this.pausedByScreensaver = false;
+            this.animationPolicy.set('screensaver', false);
             this.log('debug', 'Resumed after screensaver');
         });
+
+        const onVisibilityChange = () => {
+            this.animationPolicy.set('hidden', document.visibilityState === 'hidden');
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        this.unbindVisibility = () => document.removeEventListener('visibilitychange', onVisibilityChange);
     }
 
     private updateContainerDimensions() {
@@ -183,7 +195,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private animate() {
         if (this._destroyed) return;
 
-        if (!this.isInViewport || this.speedMultiplier === 0) return;
+        if (!this.isInViewport || this.speedMultiplier === 0 || this.animationPolicy.isPaused()) return;
 
         const skipFrame = this.performanceMonitor.update();
         if (skipFrame) return;
@@ -248,11 +260,13 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.unsubscribeElement?.();
         this.unsubScreensaverShown?.();
         this.unsubScreensaverHidden?.();
+        this.unbindVisibility?.();
         // clear unsubscribe refs to avoid keeping closures alive
         this.unsubscribeWindow = undefined;
         this.unsubscribeElement = undefined;
         this.unsubScreensaverShown = undefined;
         this.unsubScreensaverHidden = undefined;
+        this.unbindVisibility = undefined;
 
         this.intersectionObserver.disconnect();
         this.unbindImageInteractions();

@@ -30,13 +30,6 @@ var init_EventBus = __esm({
           console.debug("[EventBus] Debug mode enabled");
         }
       }
-      /**
-       * Register an event listener.
-       * @param event The event name.
-       * @param fn The listener function.
-       * @param priority The priority of the listener.
-       * @returns A function to unsubscribe the listener.
-       */
       on(event, fn, priority = 0) {
         const list = this.listeners.get(event) ?? [];
         const listener = { fn, priority };
@@ -49,13 +42,6 @@ var init_EventBus = __esm({
         }
         return () => this.off(event, fn);
       }
-      /**
-       * Register a one-time event listener.
-       * @param event The event name.
-       * @param fn The listener function.
-       * @param priority The priority of the listener.
-       * @returns A function to unsubscribe the listener.
-       */
       once(event, fn, priority = 0) {
         const wrapper = (payload) => {
           this.off(event, wrapper);
@@ -113,11 +99,6 @@ var init_EventBus = __esm({
           console.debug("[EventBus] Listener removed for any event");
         }
       }
-      /**
-       * Emit an event to all registered listeners.
-       * @param event The event name.
-       * @param payload The event payload.
-       */
       emit(event, payload) {
         if (!event) {
           this._handleError("Event name is undefined or empty", new Error());
@@ -143,12 +124,6 @@ var init_EventBus = __esm({
           }
         }
       }
-      /**
-       * Emit an event asynchronously to all registered listeners.
-       * @param event The event name.
-       * @param payload The event payload.
-       * @returns A promise that resolves with the results of all listeners.
-       */
       async emitAsync(event, payload) {
         if (!event) {
           this._handleError("Event name is undefined or empty", new Error());
@@ -437,6 +412,33 @@ var init_timing = __esm({
   }
 });
 
+// src/system/types/events.ts
+var EVENTS;
+var init_events = __esm({
+  "src/system/types/events.ts"() {
+    "use strict";
+    EVENTS = {
+      LOG: "log",
+      LOG_DEBUG: "log:debug",
+      LOG_ERROR: "log:error",
+      TELEMETRY: "telemetry",
+      USER_ACTIVE: "user:active",
+      USER_INACTIVE: "user:inactive",
+      SCREENSAVER_INITIALIZED: "screensaver:initialized",
+      SCREENSAVER_SHOWN: "screensaver:shown",
+      SCREENSAVER_HIDDEN: "screensaver:hidden",
+      SCREENSAVER_ERROR: "screensaver:error",
+      SCREENSAVER_LOG: "screensaver:log",
+      SLIDEPLAYER_LOG: "slideplayer:log",
+      FLOATING_IMAGES_LOG: "floatingImages:log",
+      PARTIAL_LOADED: "partial:loaded",
+      PARTIAL_ERROR: "partial:error",
+      PARTIAL_LOAD_COMPLETE: "partial:load:complete",
+      PARTIALS_ALL_LOADED: "partials:allLoaded"
+    };
+  }
+});
+
 // src/system/bin/InactivityWatcher.ts
 var InactivityWatcher;
 var init_InactivityWatcher = __esm({
@@ -445,6 +447,7 @@ var init_InactivityWatcher = __esm({
     init_EventWatcher();
     init_EventBus();
     init_timing();
+    init_events();
     InactivityWatcher = class _InactivityWatcher extends EventWatcher {
       static _instance = null;
       inactivityDelay;
@@ -504,7 +507,7 @@ var init_InactivityWatcher = __esm({
         this.lastActiveAt = now;
         if (this.userIsInactive) {
           this.userIsInactive = false;
-          eventBus.emit("user:active", {
+          eventBus.emit(EVENTS.USER_ACTIVE, {
             lastActiveAt: this.lastActiveAt,
             inactivityDelay: this.inactivityDelay,
             visible: document.visibilityState === "visible"
@@ -520,7 +523,7 @@ var init_InactivityWatcher = __esm({
       setInactive() {
         this.userIsInactive = true;
         const now = Date.now();
-        eventBus.emit("user:inactive", {
+        eventBus.emit(EVENTS.USER_INACTIVE, {
           lastActiveAt: this.lastActiveAt,
           inactiveAt: now,
           inactivityDelay: this.inactivityDelay,
@@ -1417,6 +1420,33 @@ var init_AnimationLoop = __esm({
   }
 });
 
+// src/system/features/bin/AnimationPolicy.ts
+var AnimationPolicy;
+var init_AnimationPolicy = __esm({
+  "src/system/features/bin/AnimationPolicy.ts"() {
+    "use strict";
+    AnimationPolicy = class {
+      pausedReasons = /* @__PURE__ */ new Set();
+      set(reason, paused) {
+        if (paused) this.pausedReasons.add(reason);
+        else this.pausedReasons.delete(reason);
+      }
+      has(reason) {
+        return this.pausedReasons.has(reason);
+      }
+      isPaused() {
+        return this.pausedReasons.size > 0;
+      }
+      list() {
+        return Array.from(this.pausedReasons);
+      }
+      clear() {
+        this.pausedReasons.clear();
+      }
+    };
+  }
+});
+
 // src/system/features/SlidePlayer/SlidePlayer.ts
 var SlidePlayer_exports = {};
 __export(SlidePlayer_exports, {
@@ -1431,6 +1461,8 @@ var init_SlidePlayer = __esm({
     init_EventBinder();
     init_AsyncImageLoader();
     init_AnimationLoop();
+    init_AnimationPolicy();
+    init_events();
     VERSION2 = "2.0.0";
     SlidePlayer = class _SlidePlayer {
       static SWIPE_THRESHOLD = 50;
@@ -1455,7 +1487,7 @@ var init_SlidePlayer = __esm({
       pointerStartY = 0;
       pointerEndX = 0;
       pointerEndY = 0;
-      pauseReasons = /* @__PURE__ */ new Set();
+      animationPolicy = new AnimationPolicy();
       loader;
       binder;
       animateCallback;
@@ -1482,7 +1514,7 @@ var init_SlidePlayer = __esm({
         this.debug = debug;
         this.loader = new AsyncImageLoader(this.container, { includePicture });
         this.binder = new EventBinder(this.debug);
-        if (startPaused) this.pauseReasons.add("manual");
+        if (startPaused) this.animationPolicy.set("manual", true);
         this.animateCallback = () => this.animate();
         this.ready = this.init().catch((err) => {
           this.initError = err;
@@ -1495,8 +1527,8 @@ var init_SlidePlayer = __esm({
       log(level, message, data) {
         if (!this.debug && level === "debug") return;
         const payload = { scope: "SlidePlayer", level, message, data, time: Date.now() };
-        eventBus.emit("slideplayer:log", { level, message, data });
-        eventBus.emit("log", payload);
+        eventBus.emit(EVENTS.SLIDEPLAYER_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
           const methodMap = {
             debug: "debug",
@@ -1540,12 +1572,11 @@ var init_SlidePlayer = __esm({
       }
       /** ---- Pause / Resume ---- */
       togglePause(reason, shouldPause) {
-        if (shouldPause) this.pauseReasons.add(reason);
-        else this.pauseReasons.delete(reason);
+        this.animationPolicy.set(reason, shouldPause);
         this.emitPauseResumeIfChanged();
         if (this.isPaused()) {
           if (animationLoop.has(this.animateCallback)) animationLoop.remove(this.animateCallback);
-          this.log("debug", `Paused due to: ${Array.from(this.pauseReasons).join(", ")}`);
+          this.log("debug", `Paused due to: ${this.animationPolicy.list().join(", ")}`);
         } else {
           if (!animationLoop.has(this.animateCallback)) animationLoop.add(this.animateCallback);
           this.log("debug", "Resumed playback");
@@ -1556,7 +1587,7 @@ var init_SlidePlayer = __esm({
         if (nowPaused !== this.lastPauseState) {
           this.lastPauseState = nowPaused;
           const event = nowPaused ? "slideplayer:paused" : "slideplayer:resumed";
-          this.emit(event, { reasons: Array.from(this.pauseReasons) });
+          this.emit(event, { reasons: this.animationPolicy.list() });
         }
       }
       play() {
@@ -1566,7 +1597,7 @@ var init_SlidePlayer = __esm({
         this.togglePause("manual", true);
       }
       isPaused() {
-        return this.pauseReasons.size > 0;
+        return this.animationPolicy.isPaused();
       }
       /** ---- Slide Navigation ---- */
       goToSlide(index, restart = true) {
@@ -1669,8 +1700,10 @@ var init_SlidePlayer = __esm({
       }
       bindActivityEvents() {
         if (this.enableBusEvents) {
-          this.binder.bindBus("user:inactive", () => this.togglePause("inactivity", true));
-          this.binder.bindBus("user:active", () => this.togglePause("inactivity", false));
+          this.binder.bindBus(EVENTS.USER_INACTIVE, () => this.togglePause("inactivity", true));
+          this.binder.bindBus(EVENTS.USER_ACTIVE, () => this.togglePause("inactivity", false));
+          this.binder.bindBus(EVENTS.SCREENSAVER_SHOWN, () => this.togglePause("screensaver", true));
+          this.binder.bindBus(EVENTS.SCREENSAVER_HIDDEN, () => this.togglePause("screensaver", false));
         }
       }
       bindUnloadEvent() {
@@ -1698,7 +1731,7 @@ var init_SlidePlayer = __esm({
         this.slides = [];
         this.dots = [];
         this.dotsWrapper = null;
-        this.pauseReasons.clear();
+        this.animationPolicy.clear();
         this.log("info", "SlidePlayer destroyed");
       }
       /** ---- Public getters ---- */
@@ -2041,6 +2074,8 @@ var init_FloatingImagesManager = __esm({
     init_AnimationLoop();
     init_EventBus();
     init_timing();
+    init_AnimationPolicy();
+    init_events();
     VERSION3 = "2.1.0";
     FloatingImagesManager = class {
       container;
@@ -2067,8 +2102,10 @@ var init_FloatingImagesManager = __esm({
       imageSpeedOverrides = /* @__PURE__ */ new WeakMap();
       unsubScreensaverShown;
       unsubScreensaverHidden;
+      unbindVisibility;
       pausedByScreensaver = false;
       speedBeforeScreensaver = 1;
+      animationPolicy = new AnimationPolicy();
       constructor(container, options = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
@@ -2102,8 +2139,8 @@ var init_FloatingImagesManager = __esm({
       log(level, message, data) {
         if (!this.debug && level === "debug") return;
         const payload = { scope: "FloatingImagesManager", level, message, data, time: Date.now() };
-        eventBus.emit("floatingImages:log", { level, message, data });
-        eventBus.emit("log", payload);
+        eventBus.emit(EVENTS.FLOATING_IMAGES_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
           const consoleMethodMap = {
             debug: "debug",
@@ -2121,19 +2158,26 @@ var init_FloatingImagesManager = __esm({
       }
       setupScreensaverHandling() {
         if (!this.pauseOnScreensaver) return;
-        this.unsubScreensaverShown = eventBus.on("screensaver:shown", () => {
+        this.unsubScreensaverShown = eventBus.on(EVENTS.SCREENSAVER_SHOWN, () => {
           if (this.pausedByScreensaver) return;
           this.speedBeforeScreensaver = this.speedMultiplier;
           this.speedMultiplier = 0;
           this.pausedByScreensaver = true;
+          this.animationPolicy.set("screensaver", true);
           this.log("debug", "Paused due to screensaver");
         });
-        this.unsubScreensaverHidden = eventBus.on("screensaver:hidden", () => {
+        this.unsubScreensaverHidden = eventBus.on(EVENTS.SCREENSAVER_HIDDEN, () => {
           if (!this.pausedByScreensaver) return;
           this.speedMultiplier = this.speedBeforeScreensaver;
           this.pausedByScreensaver = false;
+          this.animationPolicy.set("screensaver", false);
           this.log("debug", "Resumed after screensaver");
         });
+        const onVisibilityChange = () => {
+          this.animationPolicy.set("hidden", document.visibilityState === "hidden");
+        };
+        document.addEventListener("visibilitychange", onVisibilityChange);
+        this.unbindVisibility = () => document.removeEventListener("visibilitychange", onVisibilityChange);
       }
       updateContainerDimensions() {
         if (!this.container.isConnected) {
@@ -2186,7 +2230,7 @@ var init_FloatingImagesManager = __esm({
       }, 200);
       animate() {
         if (this._destroyed) return;
-        if (!this.isInViewport || this.speedMultiplier === 0) return;
+        if (!this.isInViewport || this.speedMultiplier === 0 || this.animationPolicy.isPaused()) return;
         const skipFrame = this.performanceMonitor.update();
         if (skipFrame) return;
         const multiplier = this.speedMultiplier;
@@ -2237,10 +2281,12 @@ var init_FloatingImagesManager = __esm({
         this.unsubscribeElement?.();
         this.unsubScreensaverShown?.();
         this.unsubScreensaverHidden?.();
+        this.unbindVisibility?.();
         this.unsubscribeWindow = void 0;
         this.unsubscribeElement = void 0;
         this.unsubScreensaverShown = void 0;
         this.unsubScreensaverHidden = void 0;
+        this.unbindVisibility = void 0;
         this.intersectionObserver.disconnect();
         this.unbindImageInteractions();
         this.images.forEach((img) => img.destroy());
@@ -2312,8 +2358,16 @@ var init_ScreensaverController = __esm({
     init_InactivityWatcher();
     init_PartialFetcher();
     init_FloatingImagesManager();
+    init_events();
     VERSION4 = "2.0.0";
-    ScreensaverController = class {
+    ScreensaverController = class _ScreensaverController {
+      static STATES = {
+        IDLE: "idle",
+        LOADING: "loading",
+        VISIBLE: "visible",
+        HIDING: "hiding",
+        DESTROYED: "destroyed"
+      };
       partialUrl;
       targetSelector;
       inactivityDelay;
@@ -2329,6 +2383,7 @@ var init_ScreensaverController = __esm({
       _loadPromise;
       _hideTimeout = null;
       _bound = false;
+      state = _ScreensaverController.STATES.IDLE;
       _onInactivity;
       _onActivity;
       constructor(options) {
@@ -2352,8 +2407,8 @@ var init_ScreensaverController = __esm({
       log(level, message, data) {
         if (!this.debug && level === "debug") return;
         const payload = { scope: "ScreensaverController", level, message, data, time: Date.now() };
-        eventBus.emit("screensaver:log", { level, message, data });
-        eventBus.emit("log", payload);
+        eventBus.emit(EVENTS.SCREENSAVER_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
           const consoleMethodMap = {
             debug: "debug",
@@ -2374,8 +2429,8 @@ var init_ScreensaverController = __esm({
               inactivityDelay: this.inactivityDelay
             });
           }
-          this.eventBinder.bindBus("user:inactive", this._onInactivity);
-          this.eventBinder.bindBus("user:active", this._onActivity);
+          this.eventBinder.bindBus(EVENTS.USER_INACTIVE, this._onInactivity);
+          this.eventBinder.bindBus(EVENTS.USER_ACTIVE, this._onActivity);
           this._bound = true;
           this.log("info", "Bound user inactivity/active events");
         } catch (error) {
@@ -2384,7 +2439,9 @@ var init_ScreensaverController = __esm({
       }
       async showScreensaver() {
         if (this._destroyed) return;
+        if (this.state === _ScreensaverController.STATES.VISIBLE || this.state === _ScreensaverController.STATES.LOADING) return;
         try {
+          this.state = _ScreensaverController.STATES.LOADING;
           if (!this._partialLoaded) {
             if (!this._loadPromise) {
               this._loadPromise = this.partialFetcher.load(this.partialUrl, this.targetSelector).then(() => {
@@ -2397,6 +2454,7 @@ var init_ScreensaverController = __esm({
           }
           const container = document.querySelector(this.targetSelector);
           if (!container) {
+            this.state = _ScreensaverController.STATES.IDLE;
             this.handleError(`Target selector "${this.targetSelector}" not found`, null);
             return;
           }
@@ -2411,15 +2469,19 @@ var init_ScreensaverController = __esm({
             this.screensaverManager.destroy();
             this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
           }
-          eventBus.emit("screensaver:shown", { targetSelector: this.targetSelector });
+          this.state = _ScreensaverController.STATES.VISIBLE;
+          eventBus.emit(EVENTS.SCREENSAVER_SHOWN, { targetSelector: this.targetSelector });
           this.log("info", "Screensaver displayed");
         } catch (error) {
+          this.state = _ScreensaverController.STATES.IDLE;
           this.handleError("Failed to load or show screensaver", error);
         }
       }
       hideScreensaver() {
         if (this._destroyed) return;
+        if (this.state === _ScreensaverController.STATES.IDLE || this.state === _ScreensaverController.STATES.HIDING) return;
         try {
+          this.state = _ScreensaverController.STATES.HIDING;
           const container = document.querySelector(this.targetSelector);
           if (container) {
             container.style.transition = "opacity 0.5s ease";
@@ -2429,18 +2491,23 @@ var init_ScreensaverController = __esm({
             }
             this._hideTimeout = window.setTimeout(() => {
               container.style.display = "none";
+              this.state = _ScreensaverController.STATES.IDLE;
               this._hideTimeout = null;
             }, 500);
+          } else {
+            this.state = _ScreensaverController.STATES.IDLE;
           }
-          eventBus.emit("screensaver:hidden", { targetSelector: this.targetSelector });
+          eventBus.emit(EVENTS.SCREENSAVER_HIDDEN, { targetSelector: this.targetSelector });
           this.log("debug", "Screensaver hidden");
         } catch (error) {
+          this.state = _ScreensaverController.STATES.IDLE;
           this.handleError("Failed to hide screensaver", error);
         }
       }
       destroy() {
         if (this._destroyed) return;
         this._destroyed = true;
+        this.state = _ScreensaverController.STATES.DESTROYED;
         this.hideScreensaver();
         try {
           this.screensaverManager?.destroy();
@@ -2458,7 +2525,7 @@ var init_ScreensaverController = __esm({
         this.log("info", "ScreensaverController destroyed");
       }
       handleError(message, error) {
-        eventBus.emit("screensaver:error", { message, error });
+        eventBus.emit(EVENTS.SCREENSAVER_ERROR, { message, error });
         this.onError?.(message, error);
         this.log("error", message, error);
       }
@@ -2549,6 +2616,7 @@ function generateId(prefix = "id", length = 9, useCrypto = false) {
 }
 
 // src/app/spaceface.core.ts
+init_events();
 var AppConfig = class {
   config;
   constructor(options = {}) {
@@ -2561,8 +2629,8 @@ var AppConfig = class {
   }
 };
 var SpacefaceCore = class _SpacefaceCore {
-  static EVENT_LOG = "log";
-  static EVENT_TELEMETRY = "telemetry";
+  static EVENT_LOG = EVENTS.LOG;
+  static EVENT_TELEMETRY = EVENTS.TELEMETRY;
   appConfig;
   debug;
   pageType;
@@ -2576,8 +2644,11 @@ var SpacefaceCore = class _SpacefaceCore {
   _partialUnsub;
   _partialObserver;
   pjaxFeatures = /* @__PURE__ */ new Map();
+  managedFeatures = [];
+  onceFeatures = [];
   constructor(options = {}) {
     this.appConfig = new AppConfig(options);
+    this.appConfig.config.features = this.normalizeFeaturesConfig(this.appConfig.config.features);
     this.debug = !!this.appConfig.config.debug;
     this.pageType = this.resolvePageType();
     this.startTime = performance.now();
@@ -2590,6 +2661,8 @@ var SpacefaceCore = class _SpacefaceCore {
     if (!this.appConfig.config.features) {
       this.log("warn", "No features specified in config");
     }
+    this.setupManagedFeatures();
+    this.setupOnceFeatures();
   }
   log(level, ...args) {
     if (!this.debug && level === "debug") return;
@@ -2722,7 +2795,7 @@ var SpacefaceCore = class _SpacefaceCore {
         ...screensaver.delay !== void 0 && { inactivityDelay: screensaver.delay }
       });
       await this.screensaverController?.init?.();
-      eventBus.emit("screensaver:initialized", id);
+      eventBus.emit(EVENTS.SCREENSAVER_INITIALIZED, id);
       this.log("info", "Screensaver initialized:", id);
       this.emitFeatureTelemetry("screensaver", start, "success");
     } catch (error) {
@@ -2747,7 +2820,9 @@ var SpacefaceCore = class _SpacefaceCore {
       const loader = new PartialLoader2({
         debug: config.debug ?? this.debug,
         baseUrl: config.baseUrl ?? "/",
-        cacheEnabled: config.cacheEnabled ?? true
+        cacheEnabled: config.cacheEnabled ?? true,
+        timeout: config.timeout,
+        retryAttempts: config.retryAttempts
       });
       await loader.loadContainer(document);
       const watchResult = loader.watch?.(document);
@@ -2765,15 +2840,10 @@ var SpacefaceCore = class _SpacefaceCore {
     }
   }
   async initDomFeatures() {
-    await this.initSlidePlayer();
-    await this.initFloatingImages();
+    await this.runFeatureGraph(this.managedFeatures, "init");
   }
   async initOnceFeatures() {
-    const initTasks = [
-      this.initInactivityWatcher(),
-      this.initScreensaver()
-    ];
-    await Promise.allSettled(initTasks);
+    await this.runFeatureGraph(this.onceFeatures, "init");
     this.log("info", `Page features initialized for: ${this.pageType}`);
   }
   registerPjaxFeature(name, init, when) {
@@ -2783,9 +2853,7 @@ var SpacefaceCore = class _SpacefaceCore {
   async handlePjaxComplete() {
     this.pageType = this.resolvePageType();
     document.documentElement.classList.add(`page-${this.pageType}`);
-    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
-    this.slideshows = [];
-    this.destroyFloatingImagesManagers();
+    await this.runFeatureGraph(this.managedFeatures, "onRouteChange");
     for (const { init, when } of this.pjaxFeatures.values()) {
       if (when && !when(this.pageType)) continue;
       await init();
@@ -2794,10 +2862,8 @@ var SpacefaceCore = class _SpacefaceCore {
   destroy() {
     this._partialUnsub?.();
     this._partialObserver?.disconnect?.();
-    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
-    this.destroyFloatingImagesManagers();
-    this.inactivityWatcher?.destroy?.();
-    this.screensaverController?.destroy?.();
+    this.managedFeatures.forEach((feature) => feature.destroy());
+    this.onceFeatures.forEach((feature) => feature.destroy());
     this.featureCache.clear();
     document.querySelector('[id^="screensaver"]')?.remove();
     this.log("info", "Spaceface destroyed, all resources released.");
@@ -2855,6 +2921,134 @@ var SpacefaceCore = class _SpacefaceCore {
   destroyFloatingImagesManagers() {
     this.floatingImagesManagers.forEach((manager) => manager.destroy?.());
     this.floatingImagesManagers = [];
+  }
+  destroySlidePlayers() {
+    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
+    this.slideshows = [];
+  }
+  setupManagedFeatures() {
+    this.managedFeatures = [
+      {
+        name: "slideplayer",
+        dependsOn: [],
+        init: () => this.initSlidePlayer(),
+        onRouteChange: async () => {
+          this.destroySlidePlayers();
+          await this.initSlidePlayer();
+        },
+        destroy: () => this.destroySlidePlayers()
+      },
+      {
+        name: "floatingImages",
+        dependsOn: [],
+        init: () => this.initFloatingImages(),
+        onRouteChange: async () => {
+          this.destroyFloatingImagesManagers();
+          await this.initFloatingImages();
+        },
+        destroy: () => this.destroyFloatingImagesManagers()
+      }
+    ];
+  }
+  setupOnceFeatures() {
+    this.onceFeatures = [
+      {
+        name: "inactivityWatcher",
+        dependsOn: [],
+        init: () => this.initInactivityWatcher(),
+        destroy: () => this.inactivityWatcher?.destroy?.()
+      },
+      {
+        name: "screensaver",
+        dependsOn: ["inactivityWatcher"],
+        init: () => this.initScreensaver(),
+        destroy: () => this.screensaverController?.destroy?.()
+      }
+    ];
+  }
+  async runFeatureGraph(features2, stage) {
+    const pending = new Map(features2.map((feature) => [feature.name, feature]));
+    const completed = /* @__PURE__ */ new Set();
+    let guard = 0;
+    while (pending.size) {
+      guard++;
+      if (guard > features2.length * 2) {
+        throw new Error("Feature dependency graph contains a cycle or unresolved dependency.");
+      }
+      let progressed = false;
+      for (const [name, feature] of Array.from(pending.entries())) {
+        const deps = feature.dependsOn ?? [];
+        if (!deps.every((dep) => completed.has(dep))) continue;
+        if (stage === "onRouteChange" && feature.onRouteChange) {
+          await feature.onRouteChange(this.pageType);
+        } else {
+          await feature.init();
+        }
+        pending.delete(name);
+        completed.add(name);
+        progressed = true;
+      }
+      if (!progressed) {
+        const unresolved = Array.from(pending.keys()).join(", ");
+        throw new Error(`Unresolved feature dependencies: ${unresolved}`);
+      }
+    }
+  }
+  getFeatureSnapshot() {
+    return {
+      pageType: this.pageType,
+      managedFeatures: this.managedFeatures.map((f) => f.name),
+      onceFeatures: this.onceFeatures.map((f) => f.name),
+      activeSlidePlayers: this.slideshows.length,
+      activeFloatingImagesManagers: this.floatingImagesManagers.length,
+      inactivityWatcherReady: !!this.inactivityWatcher,
+      screensaverReady: !!this.screensaverController,
+      partialLoaderWatching: !!(this._partialUnsub || this._partialObserver)
+    };
+  }
+  normalizeFeaturesConfig(features2) {
+    const normalized = { ...features2 };
+    const isPositiveNumber = (value) => typeof value === "number" && Number.isFinite(value) && value > 0;
+    if (normalized.slideplayer) {
+      if (normalized.slideplayer.interval !== void 0 && !isPositiveNumber(normalized.slideplayer.interval)) {
+        this.log("warn", "Invalid slideplayer.interval; expected positive number. Falling back to default.");
+        delete normalized.slideplayer.interval;
+      }
+    }
+    if (normalized.screensaver) {
+      if (typeof normalized.screensaver.partialUrl !== "string" || !normalized.screensaver.partialUrl.trim()) {
+        this.log("warn", "Invalid screensaver.partialUrl; disabling screensaver feature.");
+        delete normalized.screensaver;
+      } else if (normalized.screensaver.delay !== void 0 && !isPositiveNumber(normalized.screensaver.delay)) {
+        this.log("warn", "Invalid screensaver.delay; removing delay override.");
+        delete normalized.screensaver.delay;
+      }
+    }
+    if (normalized.floatingImages) {
+      if (normalized.floatingImages.maxImages !== void 0 && !isPositiveNumber(normalized.floatingImages.maxImages)) {
+        this.log("warn", "Invalid floatingImages.maxImages; removing override.");
+        delete normalized.floatingImages.maxImages;
+      }
+      if (normalized.floatingImages.hoverSlowMultiplier !== void 0 && (typeof normalized.floatingImages.hoverSlowMultiplier !== "number" || normalized.floatingImages.hoverSlowMultiplier < 0)) {
+        this.log("warn", "Invalid floatingImages.hoverSlowMultiplier; removing override.");
+        delete normalized.floatingImages.hoverSlowMultiplier;
+      }
+      if (normalized.floatingImages.selector !== void 0 && typeof normalized.floatingImages.selector !== "string") {
+        this.log("warn", "Invalid floatingImages.selector; removing override.");
+        delete normalized.floatingImages.selector;
+      }
+    }
+    if (normalized.partialLoader) {
+      if (normalized.partialLoader.timeout !== void 0 && !isPositiveNumber(normalized.partialLoader.timeout)) {
+        this.log("warn", "Invalid partialLoader.timeout; removing override.");
+        delete normalized.partialLoader.timeout;
+      }
+      if (normalized.partialLoader.retryAttempts !== void 0 && !isPositiveNumber(normalized.partialLoader.retryAttempts)) {
+        this.log("warn", "Invalid partialLoader.retryAttempts; removing override.");
+        delete normalized.partialLoader.retryAttempts;
+      }
+    }
+    return normalized;
   }
 };
 
@@ -2986,8 +3180,6 @@ var app = new SpacefaceCore({
   features
 });
 app.initBase().then(async () => {
-  app.registerPjaxFeature("slideplayer", () => app.initSlidePlayer());
-  app.registerPjaxFeature("floatingImages", () => app.initFloatingImages());
   await app.initDomFeatures();
   await app.initOnceFeatures();
   app.finishInit();

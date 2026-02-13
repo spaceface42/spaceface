@@ -2,6 +2,7 @@ export const VERSION = '2.0.0';
 import { EventWatcher } from './EventWatcher.js';
 import { eventBus } from './EventBus.js';
 import { throttle } from '../features/bin/timing.js';
+import { EVENTS } from '../types/events.js';
 export class InactivityWatcher extends EventWatcher {
     static _instance = null;
     inactivityDelay;
@@ -42,7 +43,7 @@ export class InactivityWatcher extends EventWatcher {
         this.lastActiveAt = now;
         if (this.userIsInactive) {
             this.userIsInactive = false;
-            eventBus.emit('user:active', {
+            eventBus.emit(EVENTS.USER_ACTIVE, {
                 lastActiveAt: this.lastActiveAt,
                 inactivityDelay: this.inactivityDelay,
                 visible: document.visibilityState === 'visible',
@@ -56,7 +57,7 @@ export class InactivityWatcher extends EventWatcher {
     setInactive() {
         this.userIsInactive = true;
         const now = Date.now();
-        eventBus.emit('user:inactive', {
+        eventBus.emit(EVENTS.USER_INACTIVE, {
             lastActiveAt: this.lastActiveAt,
             inactiveAt: now,
             inactivityDelay: this.inactivityDelay,

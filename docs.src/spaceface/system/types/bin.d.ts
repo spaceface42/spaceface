@@ -36,13 +36,17 @@ export interface AnyListenerInterface {
     fn: (event: string, payload: any) => any;
     priority: number;
 }
-export interface EventBusInterface {
+export interface EventBusInterface<TEvents extends Record<string, unknown> = Record<string, unknown>> {
+    on<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => any, priority?: number): UnsubscribeFn;
     on<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
+    once<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => any, priority?: number): void;
     once<T = any>(event: string, fn: (payload: T) => any, priority?: number): void;
-    onAny(fn: (event: string, payload: any) => any, priority?: number): UnsubscribeFn;
+    onAny(fn: (event: keyof TEvents & string, payload: TEvents[keyof TEvents]) => any, priority?: number): UnsubscribeFn;
     off(event: string, fn: Function): void;
     offAny(fn: Function): void;
+    emit<K extends keyof TEvents>(event: K, payload?: TEvents[K]): void;
     emit<T = any>(event: string, payload?: T): void;
+    emitAsync<K extends keyof TEvents>(event: K, payload?: TEvents[K]): Promise<any[]>;
     emitAsync<T = any>(event: string, payload?: T): Promise<any[]>;
     removeAllListeners(event?: string): void;
     hasListeners(event: string): boolean;

@@ -1,0 +1,20 @@
+export const EVENTS = {
+    LOG: 'log',
+    LOG_DEBUG: 'log:debug',
+    LOG_ERROR: 'log:error',
+    TELEMETRY: 'telemetry',
+    USER_ACTIVE: 'user:active',
+    USER_INACTIVE: 'user:inactive',
+    SCREENSAVER_INITIALIZED: 'screensaver:initialized',
+    SCREENSAVER_SHOWN: 'screensaver:shown',
+    SCREENSAVER_HIDDEN: 'screensaver:hidden',
+    SCREENSAVER_ERROR: 'screensaver:error',
+    SCREENSAVER_LOG: 'screensaver:log',
+    SLIDEPLAYER_LOG: 'slideplayer:log',
+    FLOATING_IMAGES_LOG: 'floatingImages:log',
+    PARTIAL_LOADED: 'partial:loaded',
+    PARTIAL_ERROR: 'partial:error',
+    PARTIAL_LOAD_COMPLETE: 'partial:load:complete',
+    PARTIALS_ALL_LOADED: 'partials:allLoaded',
+};
+//# sourceMappingURL=events.js.map

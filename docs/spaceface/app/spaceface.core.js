@@ -1,4 +1,5 @@
 import { generateId, eventBus, DomReadyPromise, InactivityWatcher } from './symlink.js';
+import { EVENTS } from '../system/types/events.js';
 export class AppConfig {
     config;
     constructor(options = {}) {
@@ -12,8 +13,8 @@ export class AppConfig {
     }
 }
 export class SpacefaceCore {
-    static EVENT_LOG = 'log';
-    static EVENT_TELEMETRY = 'telemetry';
+    static EVENT_LOG = EVENTS.LOG;
+    static EVENT_TELEMETRY = EVENTS.TELEMETRY;
     appConfig;
     debug;
     pageType;
@@ -27,8 +28,11 @@ export class SpacefaceCore {
     _partialUnsub;
     _partialObserver;
     pjaxFeatures = new Map();
+    managedFeatures = [];
+    onceFeatures = [];
     constructor(options = {}) {
         this.appConfig = new AppConfig(options);
+        this.appConfig.config.features = this.normalizeFeaturesConfig(this.appConfig.config.features);
         this.debug = !!this.appConfig.config.debug;
         this.pageType = this.resolvePageType();
         this.startTime = performance.now();
@@ -41,6 +45,8 @@ export class SpacefaceCore {
         if (!this.appConfig.config.features) {
             this.log('warn', 'No features specified in config');
         }
+        this.setupManagedFeatures();
+        this.setupOnceFeatures();
     }
     log(level, ...args) {
         if (!this.debug && level === 'debug')
@@ -182,7 +188,7 @@ export class SpacefaceCore {
                 ...(screensaver.delay !== undefined && { inactivityDelay: screensaver.delay }),
             });
             await this.screensaverController?.init?.();
-            eventBus.emit('screensaver:initialized', id);
+            eventBus.emit(EVENTS.SCREENSAVER_INITIALIZED, id);
             this.log('info', 'Screensaver initialized:', id);
             this.emitFeatureTelemetry('screensaver', start, 'success');
         }
@@ -209,6 +215,8 @@ export class SpacefaceCore {
                 debug: config.debug ?? this.debug,
                 baseUrl: config.baseUrl ?? '/',
                 cacheEnabled: config.cacheEnabled ?? true,
+                timeout: config.timeout,
+                retryAttempts: config.retryAttempts,
             });
             await loader.loadContainer(document);
             const watchResult = loader.watch?.(document);
@@ -228,15 +236,10 @@ export class SpacefaceCore {
         }
     }
     async initDomFeatures() {
-        await this.initSlidePlayer();
-        await this.initFloatingImages();
+        await this.runFeatureGraph(this.managedFeatures, 'init');
     }
     async initOnceFeatures() {
-        const initTasks = [
-            this.initInactivityWatcher(),
-            this.initScreensaver(),
-        ];
-        await Promise.allSettled(initTasks);
+        await this.runFeatureGraph(this.onceFeatures, 'init');
         this.log('info', `Page features initialized for: ${this.pageType}`);
     }
     registerPjaxFeature(name, init, when) {
@@ -247,9 +250,7 @@ export class SpacefaceCore {
     async handlePjaxComplete() {
         this.pageType = this.resolvePageType();
         document.documentElement.classList.add(`page-${this.pageType}`);
-        this.slideshows.forEach(slideshow => slideshow.destroy?.());
-        this.slideshows = [];
-        this.destroyFloatingImagesManagers();
+        await this.runFeatureGraph(this.managedFeatures, 'onRouteChange');
         for (const { init, when } of this.pjaxFeatures.values()) {
             if (when && !when(this.pageType))
                 continue;
@@ -259,10 +260,8 @@ export class SpacefaceCore {
     destroy() {
         this._partialUnsub?.();
         this._partialObserver?.disconnect?.();
-        this.slideshows.forEach(slideshow => slideshow.destroy?.());
-        this.destroyFloatingImagesManagers();
-        this.inactivityWatcher?.destroy?.();
-        this.screensaverController?.destroy?.();
+        this.managedFeatures.forEach(feature => feature.destroy());
+        this.onceFeatures.forEach(feature => feature.destroy());
         this.featureCache.clear();
         document.querySelector('[id^="screensaver"]')?.remove();
         this.log('info', 'Spaceface destroyed, all resources released.');
@@ -321,6 +320,139 @@ export class SpacefaceCore {
     destroyFloatingImagesManagers() {
         this.floatingImagesManagers.forEach(manager => manager.destroy?.());
         this.floatingImagesManagers = [];
+    }
+    destroySlidePlayers() {
+        this.slideshows.forEach(slideshow => slideshow.destroy?.());
+        this.slideshows = [];
+    }
+    setupManagedFeatures() {
+        this.managedFeatures = [
+            {
+                name: 'slideplayer',
+                dependsOn: [],
+                init: () => this.initSlidePlayer(),
+                onRouteChange: async () => {
+                    this.destroySlidePlayers();
+                    await this.initSlidePlayer();
+                },
+                destroy: () => this.destroySlidePlayers(),
+            },
+            {
+                name: 'floatingImages',
+                dependsOn: [],
+                init: () => this.initFloatingImages(),
+                onRouteChange: async () => {
+                    this.destroyFloatingImagesManagers();
+                    await this.initFloatingImages();
+                },
+                destroy: () => this.destroyFloatingImagesManagers(),
+            },
+        ];
+    }
+    setupOnceFeatures() {
+        this.onceFeatures = [
+            {
+                name: 'inactivityWatcher',
+                dependsOn: [],
+                init: () => this.initInactivityWatcher(),
+                destroy: () => this.inactivityWatcher?.destroy?.(),
+            },
+            {
+                name: 'screensaver',
+                dependsOn: ['inactivityWatcher'],
+                init: () => this.initScreensaver(),
+                destroy: () => this.screensaverController?.destroy?.(),
+            },
+        ];
+    }
+    async runFeatureGraph(features, stage) {
+        const pending = new Map(features.map(feature => [feature.name, feature]));
+        const completed = new Set();
+        let guard = 0;
+        while (pending.size) {
+            guard++;
+            if (guard > features.length * 2) {
+                throw new Error('Feature dependency graph contains a cycle or unresolved dependency.');
+            }
+            let progressed = false;
+            for (const [name, feature] of Array.from(pending.entries())) {
+                const deps = feature.dependsOn ?? [];
+                if (!deps.every(dep => completed.has(dep)))
+                    continue;
+                if (stage === 'onRouteChange' && feature.onRouteChange) {
+                    await feature.onRouteChange(this.pageType);
+                }
+                else {
+                    await feature.init();
+                }
+                pending.delete(name);
+                completed.add(name);
+                progressed = true;
+            }
+            if (!progressed) {
+                const unresolved = Array.from(pending.keys()).join(', ');
+                throw new Error(`Unresolved feature dependencies: ${unresolved}`);
+            }
+        }
+    }
+    getFeatureSnapshot() {
+        return {
+            pageType: this.pageType,
+            managedFeatures: this.managedFeatures.map(f => f.name),
+            onceFeatures: this.onceFeatures.map(f => f.name),
+            activeSlidePlayers: this.slideshows.length,
+            activeFloatingImagesManagers: this.floatingImagesManagers.length,
+            inactivityWatcherReady: !!this.inactivityWatcher,
+            screensaverReady: !!this.screensaverController,
+            partialLoaderWatching: !!(this._partialUnsub || this._partialObserver),
+        };
+    }
+    normalizeFeaturesConfig(features) {
+        const normalized = { ...features };
+        const isPositiveNumber = (value) => typeof value === 'number' && Number.isFinite(value) && value > 0;
+        if (normalized.slideplayer) {
+            if (normalized.slideplayer.interval !== undefined && !isPositiveNumber(normalized.slideplayer.interval)) {
+                this.log('warn', 'Invalid slideplayer.interval; expected positive number. Falling back to default.');
+                delete normalized.slideplayer.interval;
+            }
+        }
+        if (normalized.screensaver) {
+            if (typeof normalized.screensaver.partialUrl !== 'string' || !normalized.screensaver.partialUrl.trim()) {
+                this.log('warn', 'Invalid screensaver.partialUrl; disabling screensaver feature.');
+                delete normalized.screensaver;
+            }
+            else if (normalized.screensaver.delay !== undefined && !isPositiveNumber(normalized.screensaver.delay)) {
+                this.log('warn', 'Invalid screensaver.delay; removing delay override.');
+                delete normalized.screensaver.delay;
+            }
+        }
+        if (normalized.floatingImages) {
+            if (normalized.floatingImages.maxImages !== undefined && !isPositiveNumber(normalized.floatingImages.maxImages)) {
+                this.log('warn', 'Invalid floatingImages.maxImages; removing override.');
+                delete normalized.floatingImages.maxImages;
+            }
+            if (normalized.floatingImages.hoverSlowMultiplier !== undefined &&
+                (typeof normalized.floatingImages.hoverSlowMultiplier !== 'number' || normalized.floatingImages.hoverSlowMultiplier < 0)) {
+                this.log('warn', 'Invalid floatingImages.hoverSlowMultiplier; removing override.');
+                delete normalized.floatingImages.hoverSlowMultiplier;
+            }
+            if (normalized.floatingImages.selector !== undefined &&
+                typeof normalized.floatingImages.selector !== 'string') {
+                this.log('warn', 'Invalid floatingImages.selector; removing override.');
+                delete normalized.floatingImages.selector;
+            }
+        }
+        if (normalized.partialLoader) {
+            if (normalized.partialLoader.timeout !== undefined && !isPositiveNumber(normalized.partialLoader.timeout)) {
+                this.log('warn', 'Invalid partialLoader.timeout; removing override.');
+                delete normalized.partialLoader.timeout;
+            }
+            if (normalized.partialLoader.retryAttempts !== undefined && !isPositiveNumber(normalized.partialLoader.retryAttempts)) {
+                this.log('warn', 'Invalid partialLoader.retryAttempts; removing override.');
+                delete normalized.partialLoader.retryAttempts;
+            }
+        }
+        return normalized;
     }
 }
 //# sourceMappingURL=spaceface.core.js.map

@@ -8,6 +8,7 @@ import { InactivityWatcher } from "../../bin/InactivityWatcher.js";
 import { PartialFetcher } from "../../bin/PartialFetcher.js";
 import { FloatingImagesManager } from "../FloatingImages/FloatingImagesManager.js";
 import type { LogPayload } from "../../types/bin.js";
+import { EVENTS } from "../../types/events.js";
 
 import type {
   ScreensaverControllerOptionsInterface,
@@ -15,6 +16,14 @@ import type {
 } from "../../types/features.js";
 
 export class ScreensaverController {
+  private static readonly STATES = {
+    IDLE: 'idle',
+    LOADING: 'loading',
+    VISIBLE: 'visible',
+    HIDING: 'hiding',
+    DESTROYED: 'destroyed',
+  } as const;
+
   private readonly partialUrl: string;
   private readonly targetSelector: string;
   private readonly inactivityDelay: number;
@@ -31,6 +40,7 @@ export class ScreensaverController {
   private _loadPromise?: Promise<void>;
   private _hideTimeout: number | null = null;
   private _bound = false;
+  private state: typeof ScreensaverController.STATES[keyof typeof ScreensaverController.STATES] = ScreensaverController.STATES.IDLE;
 
   private _onInactivity: () => void;
   private _onActivity: () => void;
@@ -71,8 +81,8 @@ export class ScreensaverController {
     if (!this.debug && level === 'debug') return;
 
     const payload: LogPayload = { scope: 'ScreensaverController', level, message, data, time: Date.now() };
-    eventBus.emit("screensaver:log", { level, message, data });
-    eventBus.emit("log", payload);
+    eventBus.emit(EVENTS.SCREENSAVER_LOG, { level, message, data });
+    eventBus.emit(EVENTS.LOG, payload);
 
     if (this.debug) {
       const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {
@@ -97,8 +107,8 @@ export class ScreensaverController {
         });
       }
 
-      this.eventBinder.bindBus("user:inactive", this._onInactivity);
-      this.eventBinder.bindBus("user:active", this._onActivity);
+      this.eventBinder.bindBus(EVENTS.USER_INACTIVE, this._onInactivity);
+      this.eventBinder.bindBus(EVENTS.USER_ACTIVE, this._onActivity);
       this._bound = true;
 
       this.log('info', 'Bound user inactivity/active events');
@@ -109,8 +119,10 @@ export class ScreensaverController {
 
   async showScreensaver(): Promise<void> {
     if (this._destroyed) return;
+    if (this.state === ScreensaverController.STATES.VISIBLE || this.state === ScreensaverController.STATES.LOADING) return;
 
     try {
+      this.state = ScreensaverController.STATES.LOADING;
       if (!this._partialLoaded) {
         if (!this._loadPromise) {
           this._loadPromise = this.partialFetcher
@@ -123,6 +135,7 @@ export class ScreensaverController {
 
       const container = document.querySelector<HTMLElement>(this.targetSelector);
       if (!container) {
+        this.state = ScreensaverController.STATES.IDLE;
         this.handleError(`Target selector "${this.targetSelector}" not found`, null);
         return;
       }
@@ -140,17 +153,21 @@ export class ScreensaverController {
         this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
       }
 
-      eventBus.emit('screensaver:shown', { targetSelector: this.targetSelector });
+      this.state = ScreensaverController.STATES.VISIBLE;
+      eventBus.emit(EVENTS.SCREENSAVER_SHOWN, { targetSelector: this.targetSelector });
       this.log('info', 'Screensaver displayed');
     } catch (error) {
+      this.state = ScreensaverController.STATES.IDLE;
       this.handleError('Failed to load or show screensaver', error);
     }
   }
 
   hideScreensaver(): void {
     if (this._destroyed) return;
+    if (this.state === ScreensaverController.STATES.IDLE || this.state === ScreensaverController.STATES.HIDING) return;
 
     try {
+      this.state = ScreensaverController.STATES.HIDING;
       const container = document.querySelector<HTMLElement>(this.targetSelector);
       if (container) {
         container.style.transition = 'opacity 0.5s ease';
@@ -160,13 +177,17 @@ export class ScreensaverController {
         }
         this._hideTimeout = window.setTimeout(() => {
           container.style.display = 'none';
+          this.state = ScreensaverController.STATES.IDLE;
           this._hideTimeout = null;
         }, 500);
+      } else {
+        this.state = ScreensaverController.STATES.IDLE;
       }
 
-      eventBus.emit('screensaver:hidden', { targetSelector: this.targetSelector });
+      eventBus.emit(EVENTS.SCREENSAVER_HIDDEN, { targetSelector: this.targetSelector });
       this.log('debug', 'Screensaver hidden');
     } catch (error) {
+      this.state = ScreensaverController.STATES.IDLE;
       this.handleError('Failed to hide screensaver', error);
     }
   }
@@ -174,6 +195,7 @@ export class ScreensaverController {
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
+    this.state = ScreensaverController.STATES.DESTROYED;
 
     this.hideScreensaver();
     try { this.screensaverManager?.destroy(); } catch (err) { this.log('warn', 'screensaverManager.destroy() failed', err); }
@@ -191,7 +213,7 @@ export class ScreensaverController {
   }
 
   private handleError(message: string, error: unknown): void {
-    eventBus.emit("screensaver:error", { message, error });
+    eventBus.emit(EVENTS.SCREENSAVER_ERROR, { message, error });
     this.onError?.(message, error);
     this.log('error', message, error);
   }

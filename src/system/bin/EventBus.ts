@@ -6,8 +6,9 @@ import {
     AnyListenerInterface,
     EventBusInterface
 } from '../types/bin.js';
+import type { SpacefaceEventMap } from '../types/events.js';
 
-export class EventBus implements EventBusInterface {
+export class EventBus<TEvents extends Record<string, unknown> = Record<string, unknown>> implements EventBusInterface<TEvents> {
     private listeners: Map<string, ListenerInterface[]> = new Map();
     private anyListeners: AnyListenerInterface[] = [];
     private onceWrappers = new WeakMap<Function, Function>();
@@ -32,6 +33,8 @@ export class EventBus implements EventBusInterface {
      * @param priority The priority of the listener.
      * @returns A function to unsubscribe the listener.
      */
+    on<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => any, priority?: number): UnsubscribeFn;
+    on<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
     on<T = any>(event: string, fn: (payload: T) => any, priority = 0): UnsubscribeFn {
         const list = this.listeners.get(event) ?? [];
         const listener: ListenerInterface = { fn, priority };
@@ -54,6 +57,8 @@ export class EventBus implements EventBusInterface {
      * @param priority The priority of the listener.
      * @returns A function to unsubscribe the listener.
      */
+    once<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => any, priority?: number): UnsubscribeFn;
+    once<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
     once<T = any>(event: string, fn: (payload: T) => any, priority = 0): UnsubscribeFn {
         const wrapper = (payload: T) => {
             this.off(event, wrapper);
@@ -97,7 +102,7 @@ export class EventBus implements EventBusInterface {
      * @param priority The priority of the listener.
      * @returns A function to unsubscribe the listener.
      */
-    onAny(fn: (event: string, payload: any) => any, priority = 0): UnsubscribeFn {
+    onAny(fn: (event: keyof TEvents & string, payload: TEvents[keyof TEvents]) => any, priority = 0): UnsubscribeFn {
         const listener: AnyListenerInterface = { fn, priority };
         let i = this.anyListeners.length;
         while (i > 0 && this.anyListeners[i - 1].priority < priority) i--;
@@ -127,6 +132,8 @@ export class EventBus implements EventBusInterface {
      * @param event The event name.
      * @param payload The event payload.
      */
+    emit<K extends keyof TEvents>(event: K, payload?: TEvents[K]): void;
+    emit<T = any>(event: string, payload?: T): void;
     emit<T = any>(event: string, payload?: T): void {
         if (!event) {
             this._handleError("Event name is undefined or empty", new Error());
@@ -162,6 +169,8 @@ export class EventBus implements EventBusInterface {
      * @param payload The event payload.
      * @returns A promise that resolves with the results of all listeners.
      */
+    async emitAsync<K extends keyof TEvents>(event: K, payload?: TEvents[K]): Promise<any[]>;
+    async emitAsync<T = any>(event: string, payload?: T): Promise<any[]>;
     async emitAsync<T = any>(event: string, payload?: T): Promise<any[]> {
         if (!event) {
             this._handleError("Event name is undefined or empty", new Error());
@@ -254,4 +263,4 @@ export class EventBus implements EventBusInterface {
     }
 }
 
-export const eventBus = new EventBus();
+export const eventBus = new EventBus<SpacefaceEventMap>();

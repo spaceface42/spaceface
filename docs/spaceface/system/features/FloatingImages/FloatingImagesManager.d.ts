@@ -29,8 +29,10 @@ export declare class FloatingImagesManager implements FloatingImagesManagerInter
     private imageSpeedOverrides;
     private unsubScreensaverShown?;
     private unsubScreensaverHidden?;
+    private unbindVisibility?;
     private pausedByScreensaver;
     private speedBeforeScreensaver;
+    private animationPolicy;
     constructor(container: HTMLElement, options?: FloatingImagesManagerOptionsInterface);
     private log;
     private setupResizeHandling;

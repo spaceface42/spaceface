@@ -3,6 +3,8 @@ import { eventBus } from '../../bin/EventBus.js';
 import { EventBinder } from '../../bin/EventBinder.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
 import { animationLoop } from '../bin/AnimationLoop.js';
+import { AnimationPolicy } from '../bin/AnimationPolicy.js';
+import { EVENTS } from '../../types/events.js';
 export class SlidePlayer {
     static SWIPE_THRESHOLD = 50;
     static VERTICAL_TOLERANCE = 30;
@@ -26,7 +28,7 @@ export class SlidePlayer {
     pointerStartY = 0;
     pointerEndX = 0;
     pointerEndY = 0;
-    pauseReasons = new Set();
+    animationPolicy = new AnimationPolicy();
     loader;
     binder;
     animateCallback;
@@ -45,7 +47,7 @@ export class SlidePlayer {
         this.loader = new AsyncImageLoader(this.container, { includePicture });
         this.binder = new EventBinder(this.debug);
         if (startPaused)
-            this.pauseReasons.add('manual');
+            this.animationPolicy.set('manual', true);
         this.animateCallback = () => this.animate();
         this.ready = this.init()
             .catch((err) => {
@@ -59,8 +61,8 @@ export class SlidePlayer {
         if (!this.debug && level === 'debug')
             return;
         const payload = { scope: 'SlidePlayer', level, message, data, time: Date.now() };
-        eventBus.emit('slideplayer:log', { level, message, data });
-        eventBus.emit('log', payload);
+        eventBus.emit(EVENTS.SLIDEPLAYER_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
             const methodMap = {
                 debug: 'debug',
@@ -105,15 +107,12 @@ export class SlidePlayer {
         }
     }
     togglePause(reason, shouldPause) {
-        if (shouldPause)
-            this.pauseReasons.add(reason);
-        else
-            this.pauseReasons.delete(reason);
+        this.animationPolicy.set(reason, shouldPause);
         this.emitPauseResumeIfChanged();
         if (this.isPaused()) {
             if (animationLoop.has(this.animateCallback))
                 animationLoop.remove(this.animateCallback);
-            this.log('debug', `Paused due to: ${Array.from(this.pauseReasons).join(', ')}`);
+            this.log('debug', `Paused due to: ${this.animationPolicy.list().join(', ')}`);
         }
         else {
             if (!animationLoop.has(this.animateCallback))
@@ -126,12 +125,12 @@ export class SlidePlayer {
         if (nowPaused !== this.lastPauseState) {
             this.lastPauseState = nowPaused;
             const event = nowPaused ? 'slideplayer:paused' : 'slideplayer:resumed';
-            this.emit(event, { reasons: Array.from(this.pauseReasons) });
+            this.emit(event, { reasons: this.animationPolicy.list() });
         }
     }
     play() { this.togglePause('manual', false); }
     pause() { this.togglePause('manual', true); }
-    isPaused() { return this.pauseReasons.size > 0; }
+    isPaused() { return this.animationPolicy.isPaused(); }
     goToSlide(index, restart = true) {
         if (index < 0 || index >= this.slides.length || index === this.currentIndex)
             return;
@@ -237,8 +236,10 @@ export class SlidePlayer {
     }
     bindActivityEvents() {
         if (this.enableBusEvents) {
-            this.binder.bindBus('user:inactive', () => this.togglePause('inactivity', true));
-            this.binder.bindBus('user:active', () => this.togglePause('inactivity', false));
+            this.binder.bindBus(EVENTS.USER_INACTIVE, () => this.togglePause('inactivity', true));
+            this.binder.bindBus(EVENTS.USER_ACTIVE, () => this.togglePause('inactivity', false));
+            this.binder.bindBus(EVENTS.SCREENSAVER_SHOWN, () => this.togglePause('screensaver', true));
+            this.binder.bindBus(EVENTS.SCREENSAVER_HIDDEN, () => this.togglePause('screensaver', false));
         }
     }
     bindUnloadEvent() {
@@ -268,7 +269,7 @@ export class SlidePlayer {
         this.slides = [];
         this.dots = [];
         this.dotsWrapper = null;
-        this.pauseReasons.clear();
+        this.animationPolicy.clear();
         this.log('info', 'SlidePlayer destroyed');
     }
     get currentSlideIndex() { return this.currentIndex; }
