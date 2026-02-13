@@ -1,4 +1,23 @@
 import type { LogPayload, PartialEventPayload } from './bin.js';
+export declare const EVENTS: {
+    readonly LOG: "log";
+    readonly LOG_DEBUG: "log:debug";
+    readonly LOG_ERROR: "log:error";
+    readonly TELEMETRY: "telemetry";
+    readonly USER_ACTIVE: "user:active";
+    readonly USER_INACTIVE: "user:inactive";
+    readonly SCREENSAVER_INITIALIZED: "screensaver:initialized";
+    readonly SCREENSAVER_SHOWN: "screensaver:shown";
+    readonly SCREENSAVER_HIDDEN: "screensaver:hidden";
+    readonly SCREENSAVER_ERROR: "screensaver:error";
+    readonly SCREENSAVER_LOG: "screensaver:log";
+    readonly SLIDEPLAYER_LOG: "slideplayer:log";
+    readonly FLOATING_IMAGES_LOG: "floatingImages:log";
+    readonly PARTIAL_LOADED: "partial:loaded";
+    readonly PARTIAL_ERROR: "partial:error";
+    readonly PARTIAL_LOAD_COMPLETE: "partial:load:complete";
+    readonly PARTIALS_ALL_LOADED: "partials:allLoaded";
+};
 export interface TelemetryPayload {
     type: string;
     feature?: string;

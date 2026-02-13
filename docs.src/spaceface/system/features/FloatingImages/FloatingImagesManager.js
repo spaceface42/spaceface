@@ -6,6 +6,8 @@ import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
 import { animationLoop } from '../bin/AnimationLoop.js';
 import { eventBus } from '../../bin/EventBus.js';
 import { debounce } from '../bin/timing.js';
+import { AnimationPolicy } from '../bin/AnimationPolicy.js';
+import { EVENTS } from '../../types/events.js';
 export class FloatingImagesManager {
     container;
     performanceMonitor;
@@ -31,8 +33,10 @@ export class FloatingImagesManager {
     imageSpeedOverrides = new WeakMap();
     unsubScreensaverShown;
     unsubScreensaverHidden;
+    unbindVisibility;
     pausedByScreensaver = false;
     speedBeforeScreensaver = 1;
+    animationPolicy = new AnimationPolicy();
     constructor(container, options = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
@@ -68,8 +72,8 @@ export class FloatingImagesManager {
         if (!this.debug && level === 'debug')
             return;
         const payload = { scope: 'FloatingImagesManager', level, message, data, time: Date.now() };
-        eventBus.emit('floatingImages:log', { level, message, data });
-        eventBus.emit('log', payload);
+        eventBus.emit(EVENTS.FLOATING_IMAGES_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
             const consoleMethodMap = {
                 debug: 'debug',
@@ -88,21 +92,28 @@ export class FloatingImagesManager {
     setupScreensaverHandling() {
         if (!this.pauseOnScreensaver)
             return;
-        this.unsubScreensaverShown = eventBus.on('screensaver:shown', () => {
+        this.unsubScreensaverShown = eventBus.on(EVENTS.SCREENSAVER_SHOWN, () => {
             if (this.pausedByScreensaver)
                 return;
             this.speedBeforeScreensaver = this.speedMultiplier;
             this.speedMultiplier = 0;
             this.pausedByScreensaver = true;
+            this.animationPolicy.set('screensaver', true);
             this.log('debug', 'Paused due to screensaver');
         });
-        this.unsubScreensaverHidden = eventBus.on('screensaver:hidden', () => {
+        this.unsubScreensaverHidden = eventBus.on(EVENTS.SCREENSAVER_HIDDEN, () => {
             if (!this.pausedByScreensaver)
                 return;
             this.speedMultiplier = this.speedBeforeScreensaver;
             this.pausedByScreensaver = false;
+            this.animationPolicy.set('screensaver', false);
             this.log('debug', 'Resumed after screensaver');
         });
+        const onVisibilityChange = () => {
+            this.animationPolicy.set('hidden', document.visibilityState === 'hidden');
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        this.unbindVisibility = () => document.removeEventListener('visibilitychange', onVisibilityChange);
     }
     updateContainerDimensions() {
         if (!this.container.isConnected) {
@@ -161,7 +172,7 @@ export class FloatingImagesManager {
     animate() {
         if (this._destroyed)
             return;
-        if (!this.isInViewport || this.speedMultiplier === 0)
+        if (!this.isInViewport || this.speedMultiplier === 0 || this.animationPolicy.isPaused())
             return;
         const skipFrame = this.performanceMonitor.update();
         if (skipFrame)
@@ -218,10 +229,12 @@ export class FloatingImagesManager {
         this.unsubscribeElement?.();
         this.unsubScreensaverShown?.();
         this.unsubScreensaverHidden?.();
+        this.unbindVisibility?.();
         this.unsubscribeWindow = undefined;
         this.unsubscribeElement = undefined;
         this.unsubScreensaverShown = undefined;
         this.unsubScreensaverHidden = undefined;
+        this.unbindVisibility = undefined;
         this.intersectionObserver.disconnect();
         this.unbindImageInteractions();
         this.images.forEach(img => img.destroy());

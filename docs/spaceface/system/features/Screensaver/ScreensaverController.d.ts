@@ -3,6 +3,7 @@ import { InactivityWatcher } from "../../bin/InactivityWatcher.js";
 import { PartialFetcher } from "../../bin/PartialFetcher.js";
 import type { ScreensaverControllerOptionsInterface } from "../../types/features.js";
 export declare class ScreensaverController {
+    private static readonly STATES;
     private readonly partialUrl;
     private readonly targetSelector;
     private readonly inactivityDelay;
@@ -17,6 +18,7 @@ export declare class ScreensaverController {
     private _loadPromise?;
     private _hideTimeout;
     private _bound;
+    private state;
     private _onInactivity;
     private _onActivity;
     constructor(options: ScreensaverControllerOptionsInterface & {

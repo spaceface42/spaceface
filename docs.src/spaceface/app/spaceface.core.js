@@ -1,4 +1,5 @@
 import { generateId, eventBus, DomReadyPromise, InactivityWatcher } from './symlink.js';
+import { EVENTS } from '../system/types/events.js';
 export class AppConfig {
     config;
     constructor(options = {}) {
@@ -12,8 +13,8 @@ export class AppConfig {
     }
 }
 export class SpacefaceCore {
-    static EVENT_LOG = 'log';
-    static EVENT_TELEMETRY = 'telemetry';
+    static EVENT_LOG = EVENTS.LOG;
+    static EVENT_TELEMETRY = EVENTS.TELEMETRY;
     appConfig;
     debug;
     pageType;
@@ -28,6 +29,7 @@ export class SpacefaceCore {
     _partialObserver;
     pjaxFeatures = new Map();
     managedFeatures = [];
+    onceFeatures = [];
     constructor(options = {}) {
         this.appConfig = new AppConfig(options);
         this.appConfig.config.features = this.normalizeFeaturesConfig(this.appConfig.config.features);
@@ -44,6 +46,7 @@ export class SpacefaceCore {
             this.log('warn', 'No features specified in config');
         }
         this.setupManagedFeatures();
+        this.setupOnceFeatures();
     }
     log(level, ...args) {
         if (!this.debug && level === 'debug')
@@ -185,7 +188,7 @@ export class SpacefaceCore {
                 ...(screensaver.delay !== undefined && { inactivityDelay: screensaver.delay }),
             });
             await this.screensaverController?.init?.();
-            eventBus.emit('screensaver:initialized', id);
+            eventBus.emit(EVENTS.SCREENSAVER_INITIALIZED, id);
             this.log('info', 'Screensaver initialized:', id);
             this.emitFeatureTelemetry('screensaver', start, 'success');
         }
@@ -233,16 +236,10 @@ export class SpacefaceCore {
         }
     }
     async initDomFeatures() {
-        for (const feature of this.managedFeatures) {
-            await feature.init();
-        }
+        await this.runFeatureGraph(this.managedFeatures, 'init');
     }
     async initOnceFeatures() {
-        const initTasks = [
-            this.initInactivityWatcher(),
-            this.initScreensaver(),
-        ];
-        await Promise.allSettled(initTasks);
+        await this.runFeatureGraph(this.onceFeatures, 'init');
         this.log('info', `Page features initialized for: ${this.pageType}`);
     }
     registerPjaxFeature(name, init, when) {
@@ -253,9 +250,7 @@ export class SpacefaceCore {
     async handlePjaxComplete() {
         this.pageType = this.resolvePageType();
         document.documentElement.classList.add(`page-${this.pageType}`);
-        for (const feature of this.managedFeatures) {
-            await (feature.onRouteChange?.(this.pageType) ?? feature.init());
-        }
+        await this.runFeatureGraph(this.managedFeatures, 'onRouteChange');
         for (const { init, when } of this.pjaxFeatures.values()) {
             if (when && !when(this.pageType))
                 continue;
@@ -266,8 +261,7 @@ export class SpacefaceCore {
         this._partialUnsub?.();
         this._partialObserver?.disconnect?.();
         this.managedFeatures.forEach(feature => feature.destroy());
-        this.inactivityWatcher?.destroy?.();
-        this.screensaverController?.destroy?.();
+        this.onceFeatures.forEach(feature => feature.destroy());
         this.featureCache.clear();
         document.querySelector('[id^="screensaver"]')?.remove();
         this.log('info', 'Spaceface destroyed, all resources released.');
@@ -335,6 +329,7 @@ export class SpacefaceCore {
         this.managedFeatures = [
             {
                 name: 'slideplayer',
+                dependsOn: [],
                 init: () => this.initSlidePlayer(),
                 onRouteChange: async () => {
                     this.destroySlidePlayers();
@@ -344,6 +339,7 @@ export class SpacefaceCore {
             },
             {
                 name: 'floatingImages',
+                dependsOn: [],
                 init: () => this.initFloatingImages(),
                 onRouteChange: async () => {
                     this.destroyFloatingImagesManagers();
@@ -352,6 +348,64 @@ export class SpacefaceCore {
                 destroy: () => this.destroyFloatingImagesManagers(),
             },
         ];
+    }
+    setupOnceFeatures() {
+        this.onceFeatures = [
+            {
+                name: 'inactivityWatcher',
+                dependsOn: [],
+                init: () => this.initInactivityWatcher(),
+                destroy: () => this.inactivityWatcher?.destroy?.(),
+            },
+            {
+                name: 'screensaver',
+                dependsOn: ['inactivityWatcher'],
+                init: () => this.initScreensaver(),
+                destroy: () => this.screensaverController?.destroy?.(),
+            },
+        ];
+    }
+    async runFeatureGraph(features, stage) {
+        const pending = new Map(features.map(feature => [feature.name, feature]));
+        const completed = new Set();
+        let guard = 0;
+        while (pending.size) {
+            guard++;
+            if (guard > features.length * 2) {
+                throw new Error('Feature dependency graph contains a cycle or unresolved dependency.');
+            }
+            let progressed = false;
+            for (const [name, feature] of Array.from(pending.entries())) {
+                const deps = feature.dependsOn ?? [];
+                if (!deps.every(dep => completed.has(dep)))
+                    continue;
+                if (stage === 'onRouteChange' && feature.onRouteChange) {
+                    await feature.onRouteChange(this.pageType);
+                }
+                else {
+                    await feature.init();
+                }
+                pending.delete(name);
+                completed.add(name);
+                progressed = true;
+            }
+            if (!progressed) {
+                const unresolved = Array.from(pending.keys()).join(', ');
+                throw new Error(`Unresolved feature dependencies: ${unresolved}`);
+            }
+        }
+    }
+    getFeatureSnapshot() {
+        return {
+            pageType: this.pageType,
+            managedFeatures: this.managedFeatures.map(f => f.name),
+            onceFeatures: this.onceFeatures.map(f => f.name),
+            activeSlidePlayers: this.slideshows.length,
+            activeFloatingImagesManagers: this.floatingImagesManagers.length,
+            inactivityWatcherReady: !!this.inactivityWatcher,
+            screensaverReady: !!this.screensaverController,
+            partialLoaderWatching: !!(this._partialUnsub || this._partialObserver),
+        };
     }
     normalizeFeaturesConfig(features) {
         const normalized = { ...features };

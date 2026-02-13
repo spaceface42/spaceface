@@ -32,7 +32,7 @@ export declare class SlidePlayer {
     private pointerStartY;
     private pointerEndX;
     private pointerEndY;
-    private pauseReasons;
+    private animationPolicy;
     private loader;
     private binder;
     private animateCallback;

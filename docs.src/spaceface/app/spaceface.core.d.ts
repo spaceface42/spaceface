@@ -4,8 +4,8 @@ export declare class AppConfig {
     constructor(options?: AppConfigOptions);
 }
 export declare class SpacefaceCore {
-    static EVENT_LOG: string;
-    static EVENT_TELEMETRY: string;
+    static EVENT_LOG: "log";
+    static EVENT_TELEMETRY: "telemetry";
     appConfig: AppConfig;
     debug: boolean;
     pageType: string;
@@ -20,6 +20,7 @@ export declare class SpacefaceCore {
     private _partialObserver?;
     private pjaxFeatures;
     private managedFeatures;
+    private onceFeatures;
     constructor(options?: AppConfigOptions);
     log(level: 'debug' | 'info' | 'warn' | 'error', ...args: unknown[]): void;
     private resolvePageType;
@@ -40,5 +41,17 @@ export declare class SpacefaceCore {
     private destroyFloatingImagesManagers;
     private destroySlidePlayers;
     private setupManagedFeatures;
+    private setupOnceFeatures;
+    private runFeatureGraph;
+    getFeatureSnapshot(): {
+        pageType: string;
+        managedFeatures: string[];
+        onceFeatures: string[];
+        activeSlidePlayers: number;
+        activeFloatingImagesManagers: number;
+        inactivityWatcherReady: boolean;
+        screensaverReady: boolean;
+        partialLoaderWatching: boolean;
+    };
     private normalizeFeaturesConfig;
 }
