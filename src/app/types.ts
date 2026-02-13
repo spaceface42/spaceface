@@ -7,6 +7,8 @@ export interface PartialLoaderFeatureConfig {
     debug?: boolean;
     baseUrl?: string;
     cacheEnabled?: boolean;
+    timeout?: number;
+    retryAttempts?: number;
 }
 
 export interface SlideplayerFeatureConfig {
@@ -89,4 +91,11 @@ export interface FeatureModuleMap {
     slideplayer: SlidePlayerModule;
     screensaver: ScreensaverControllerModule;
     floatingImages: FloatingImagesModule;
+}
+
+export interface ManagedFeatureLifecycle {
+    name: string;
+    init: () => Promise<void> | void;
+    onRouteChange?: (pageType: string) => Promise<void> | void;
+    destroy: () => void;
 }

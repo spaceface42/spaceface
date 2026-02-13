@@ -27,8 +27,10 @@ export class SpacefaceCore {
     _partialUnsub;
     _partialObserver;
     pjaxFeatures = new Map();
+    managedFeatures = [];
     constructor(options = {}) {
         this.appConfig = new AppConfig(options);
+        this.appConfig.config.features = this.normalizeFeaturesConfig(this.appConfig.config.features);
         this.debug = !!this.appConfig.config.debug;
         this.pageType = this.resolvePageType();
         this.startTime = performance.now();
@@ -41,6 +43,7 @@ export class SpacefaceCore {
         if (!this.appConfig.config.features) {
             this.log('warn', 'No features specified in config');
         }
+        this.setupManagedFeatures();
     }
     log(level, ...args) {
         if (!this.debug && level === 'debug')
@@ -209,6 +212,8 @@ export class SpacefaceCore {
                 debug: config.debug ?? this.debug,
                 baseUrl: config.baseUrl ?? '/',
                 cacheEnabled: config.cacheEnabled ?? true,
+                timeout: config.timeout,
+                retryAttempts: config.retryAttempts,
             });
             await loader.loadContainer(document);
             const watchResult = loader.watch?.(document);
@@ -228,8 +233,9 @@ export class SpacefaceCore {
         }
     }
     async initDomFeatures() {
-        await this.initSlidePlayer();
-        await this.initFloatingImages();
+        for (const feature of this.managedFeatures) {
+            await feature.init();
+        }
     }
     async initOnceFeatures() {
         const initTasks = [
@@ -247,9 +253,9 @@ export class SpacefaceCore {
     async handlePjaxComplete() {
         this.pageType = this.resolvePageType();
         document.documentElement.classList.add(`page-${this.pageType}`);
-        this.slideshows.forEach(slideshow => slideshow.destroy?.());
-        this.slideshows = [];
-        this.destroyFloatingImagesManagers();
+        for (const feature of this.managedFeatures) {
+            await (feature.onRouteChange?.(this.pageType) ?? feature.init());
+        }
         for (const { init, when } of this.pjaxFeatures.values()) {
             if (when && !when(this.pageType))
                 continue;
@@ -259,8 +265,7 @@ export class SpacefaceCore {
     destroy() {
         this._partialUnsub?.();
         this._partialObserver?.disconnect?.();
-        this.slideshows.forEach(slideshow => slideshow.destroy?.());
-        this.destroyFloatingImagesManagers();
+        this.managedFeatures.forEach(feature => feature.destroy());
         this.inactivityWatcher?.destroy?.();
         this.screensaverController?.destroy?.();
         this.featureCache.clear();
@@ -321,6 +326,79 @@ export class SpacefaceCore {
     destroyFloatingImagesManagers() {
         this.floatingImagesManagers.forEach(manager => manager.destroy?.());
         this.floatingImagesManagers = [];
+    }
+    destroySlidePlayers() {
+        this.slideshows.forEach(slideshow => slideshow.destroy?.());
+        this.slideshows = [];
+    }
+    setupManagedFeatures() {
+        this.managedFeatures = [
+            {
+                name: 'slideplayer',
+                init: () => this.initSlidePlayer(),
+                onRouteChange: async () => {
+                    this.destroySlidePlayers();
+                    await this.initSlidePlayer();
+                },
+                destroy: () => this.destroySlidePlayers(),
+            },
+            {
+                name: 'floatingImages',
+                init: () => this.initFloatingImages(),
+                onRouteChange: async () => {
+                    this.destroyFloatingImagesManagers();
+                    await this.initFloatingImages();
+                },
+                destroy: () => this.destroyFloatingImagesManagers(),
+            },
+        ];
+    }
+    normalizeFeaturesConfig(features) {
+        const normalized = { ...features };
+        const isPositiveNumber = (value) => typeof value === 'number' && Number.isFinite(value) && value > 0;
+        if (normalized.slideplayer) {
+            if (normalized.slideplayer.interval !== undefined && !isPositiveNumber(normalized.slideplayer.interval)) {
+                this.log('warn', 'Invalid slideplayer.interval; expected positive number. Falling back to default.');
+                delete normalized.slideplayer.interval;
+            }
+        }
+        if (normalized.screensaver) {
+            if (typeof normalized.screensaver.partialUrl !== 'string' || !normalized.screensaver.partialUrl.trim()) {
+                this.log('warn', 'Invalid screensaver.partialUrl; disabling screensaver feature.');
+                delete normalized.screensaver;
+            }
+            else if (normalized.screensaver.delay !== undefined && !isPositiveNumber(normalized.screensaver.delay)) {
+                this.log('warn', 'Invalid screensaver.delay; removing delay override.');
+                delete normalized.screensaver.delay;
+            }
+        }
+        if (normalized.floatingImages) {
+            if (normalized.floatingImages.maxImages !== undefined && !isPositiveNumber(normalized.floatingImages.maxImages)) {
+                this.log('warn', 'Invalid floatingImages.maxImages; removing override.');
+                delete normalized.floatingImages.maxImages;
+            }
+            if (normalized.floatingImages.hoverSlowMultiplier !== undefined &&
+                (typeof normalized.floatingImages.hoverSlowMultiplier !== 'number' || normalized.floatingImages.hoverSlowMultiplier < 0)) {
+                this.log('warn', 'Invalid floatingImages.hoverSlowMultiplier; removing override.');
+                delete normalized.floatingImages.hoverSlowMultiplier;
+            }
+            if (normalized.floatingImages.selector !== undefined &&
+                typeof normalized.floatingImages.selector !== 'string') {
+                this.log('warn', 'Invalid floatingImages.selector; removing override.');
+                delete normalized.floatingImages.selector;
+            }
+        }
+        if (normalized.partialLoader) {
+            if (normalized.partialLoader.timeout !== undefined && !isPositiveNumber(normalized.partialLoader.timeout)) {
+                this.log('warn', 'Invalid partialLoader.timeout; removing override.');
+                delete normalized.partialLoader.timeout;
+            }
+            if (normalized.partialLoader.retryAttempts !== undefined && !isPositiveNumber(normalized.partialLoader.retryAttempts)) {
+                this.log('warn', 'Invalid partialLoader.retryAttempts; removing override.');
+                delete normalized.partialLoader.retryAttempts;
+            }
+        }
+        return normalized;
     }
 }
 //# sourceMappingURL=spaceface.core.js.map

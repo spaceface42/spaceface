@@ -16,8 +16,6 @@ const app = new SpacefaceCore({
     features,
 });
 app.initBase().then(async () => {
-    app.registerPjaxFeature('slideplayer', () => app.initSlidePlayer());
-    app.registerPjaxFeature('floatingImages', () => app.initFloatingImages());
     await app.initDomFeatures();
     await app.initOnceFeatures();
     app.finishInit();

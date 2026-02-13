@@ -30,13 +30,6 @@ var init_EventBus = __esm({
           console.debug("[EventBus] Debug mode enabled");
         }
       }
-      /**
-       * Register an event listener.
-       * @param event The event name.
-       * @param fn The listener function.
-       * @param priority The priority of the listener.
-       * @returns A function to unsubscribe the listener.
-       */
       on(event, fn, priority = 0) {
         const list = this.listeners.get(event) ?? [];
         const listener = { fn, priority };
@@ -49,13 +42,6 @@ var init_EventBus = __esm({
         }
         return () => this.off(event, fn);
       }
-      /**
-       * Register a one-time event listener.
-       * @param event The event name.
-       * @param fn The listener function.
-       * @param priority The priority of the listener.
-       * @returns A function to unsubscribe the listener.
-       */
       once(event, fn, priority = 0) {
         const wrapper = (payload) => {
           this.off(event, wrapper);
@@ -113,11 +99,6 @@ var init_EventBus = __esm({
           console.debug("[EventBus] Listener removed for any event");
         }
       }
-      /**
-       * Emit an event to all registered listeners.
-       * @param event The event name.
-       * @param payload The event payload.
-       */
       emit(event, payload) {
         if (!event) {
           this._handleError("Event name is undefined or empty", new Error());
@@ -143,12 +124,6 @@ var init_EventBus = __esm({
           }
         }
       }
-      /**
-       * Emit an event asynchronously to all registered listeners.
-       * @param event The event name.
-       * @param payload The event payload.
-       * @returns A promise that resolves with the results of all listeners.
-       */
       async emitAsync(event, payload) {
         if (!event) {
           this._handleError("Event name is undefined or empty", new Error());
@@ -2576,8 +2551,10 @@ var SpacefaceCore = class _SpacefaceCore {
   _partialUnsub;
   _partialObserver;
   pjaxFeatures = /* @__PURE__ */ new Map();
+  managedFeatures = [];
   constructor(options = {}) {
     this.appConfig = new AppConfig(options);
+    this.appConfig.config.features = this.normalizeFeaturesConfig(this.appConfig.config.features);
     this.debug = !!this.appConfig.config.debug;
     this.pageType = this.resolvePageType();
     this.startTime = performance.now();
@@ -2590,6 +2567,7 @@ var SpacefaceCore = class _SpacefaceCore {
     if (!this.appConfig.config.features) {
       this.log("warn", "No features specified in config");
     }
+    this.setupManagedFeatures();
   }
   log(level, ...args) {
     if (!this.debug && level === "debug") return;
@@ -2747,7 +2725,9 @@ var SpacefaceCore = class _SpacefaceCore {
       const loader = new PartialLoader2({
         debug: config.debug ?? this.debug,
         baseUrl: config.baseUrl ?? "/",
-        cacheEnabled: config.cacheEnabled ?? true
+        cacheEnabled: config.cacheEnabled ?? true,
+        timeout: config.timeout,
+        retryAttempts: config.retryAttempts
       });
       await loader.loadContainer(document);
       const watchResult = loader.watch?.(document);
@@ -2765,8 +2745,9 @@ var SpacefaceCore = class _SpacefaceCore {
     }
   }
   async initDomFeatures() {
-    await this.initSlidePlayer();
-    await this.initFloatingImages();
+    for (const feature of this.managedFeatures) {
+      await feature.init();
+    }
   }
   async initOnceFeatures() {
     const initTasks = [
@@ -2783,9 +2764,9 @@ var SpacefaceCore = class _SpacefaceCore {
   async handlePjaxComplete() {
     this.pageType = this.resolvePageType();
     document.documentElement.classList.add(`page-${this.pageType}`);
-    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
-    this.slideshows = [];
-    this.destroyFloatingImagesManagers();
+    for (const feature of this.managedFeatures) {
+      await (feature.onRouteChange?.(this.pageType) ?? feature.init());
+    }
     for (const { init, when } of this.pjaxFeatures.values()) {
       if (when && !when(this.pageType)) continue;
       await init();
@@ -2794,8 +2775,7 @@ var SpacefaceCore = class _SpacefaceCore {
   destroy() {
     this._partialUnsub?.();
     this._partialObserver?.disconnect?.();
-    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
-    this.destroyFloatingImagesManagers();
+    this.managedFeatures.forEach((feature) => feature.destroy());
     this.inactivityWatcher?.destroy?.();
     this.screensaverController?.destroy?.();
     this.featureCache.clear();
@@ -2855,6 +2835,76 @@ var SpacefaceCore = class _SpacefaceCore {
   destroyFloatingImagesManagers() {
     this.floatingImagesManagers.forEach((manager) => manager.destroy?.());
     this.floatingImagesManagers = [];
+  }
+  destroySlidePlayers() {
+    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
+    this.slideshows = [];
+  }
+  setupManagedFeatures() {
+    this.managedFeatures = [
+      {
+        name: "slideplayer",
+        init: () => this.initSlidePlayer(),
+        onRouteChange: async () => {
+          this.destroySlidePlayers();
+          await this.initSlidePlayer();
+        },
+        destroy: () => this.destroySlidePlayers()
+      },
+      {
+        name: "floatingImages",
+        init: () => this.initFloatingImages(),
+        onRouteChange: async () => {
+          this.destroyFloatingImagesManagers();
+          await this.initFloatingImages();
+        },
+        destroy: () => this.destroyFloatingImagesManagers()
+      }
+    ];
+  }
+  normalizeFeaturesConfig(features2) {
+    const normalized = { ...features2 };
+    const isPositiveNumber = (value) => typeof value === "number" && Number.isFinite(value) && value > 0;
+    if (normalized.slideplayer) {
+      if (normalized.slideplayer.interval !== void 0 && !isPositiveNumber(normalized.slideplayer.interval)) {
+        this.log("warn", "Invalid slideplayer.interval; expected positive number. Falling back to default.");
+        delete normalized.slideplayer.interval;
+      }
+    }
+    if (normalized.screensaver) {
+      if (typeof normalized.screensaver.partialUrl !== "string" || !normalized.screensaver.partialUrl.trim()) {
+        this.log("warn", "Invalid screensaver.partialUrl; disabling screensaver feature.");
+        delete normalized.screensaver;
+      } else if (normalized.screensaver.delay !== void 0 && !isPositiveNumber(normalized.screensaver.delay)) {
+        this.log("warn", "Invalid screensaver.delay; removing delay override.");
+        delete normalized.screensaver.delay;
+      }
+    }
+    if (normalized.floatingImages) {
+      if (normalized.floatingImages.maxImages !== void 0 && !isPositiveNumber(normalized.floatingImages.maxImages)) {
+        this.log("warn", "Invalid floatingImages.maxImages; removing override.");
+        delete normalized.floatingImages.maxImages;
+      }
+      if (normalized.floatingImages.hoverSlowMultiplier !== void 0 && (typeof normalized.floatingImages.hoverSlowMultiplier !== "number" || normalized.floatingImages.hoverSlowMultiplier < 0)) {
+        this.log("warn", "Invalid floatingImages.hoverSlowMultiplier; removing override.");
+        delete normalized.floatingImages.hoverSlowMultiplier;
+      }
+      if (normalized.floatingImages.selector !== void 0 && typeof normalized.floatingImages.selector !== "string") {
+        this.log("warn", "Invalid floatingImages.selector; removing override.");
+        delete normalized.floatingImages.selector;
+      }
+    }
+    if (normalized.partialLoader) {
+      if (normalized.partialLoader.timeout !== void 0 && !isPositiveNumber(normalized.partialLoader.timeout)) {
+        this.log("warn", "Invalid partialLoader.timeout; removing override.");
+        delete normalized.partialLoader.timeout;
+      }
+      if (normalized.partialLoader.retryAttempts !== void 0 && !isPositiveNumber(normalized.partialLoader.retryAttempts)) {
+        this.log("warn", "Invalid partialLoader.retryAttempts; removing override.");
+        delete normalized.partialLoader.retryAttempts;
+      }
+    }
+    return normalized;
   }
 };
 
@@ -2986,8 +3036,6 @@ var app = new SpacefaceCore({
   features
 });
 app.initBase().then(async () => {
-  app.registerPjaxFeature("slideplayer", () => app.initSlidePlayer());
-  app.registerPjaxFeature("floatingImages", () => app.initFloatingImages());
   await app.initDomFeatures();
   await app.initOnceFeatures();
   app.finishInit();

@@ -19,6 +19,7 @@ export declare class SpacefaceCore {
     private _partialUnsub?;
     private _partialObserver?;
     private pjaxFeatures;
+    private managedFeatures;
     constructor(options?: AppConfigOptions);
     log(level: 'debug' | 'info' | 'warn' | 'error', ...args: unknown[]): void;
     private resolvePageType;
@@ -37,4 +38,7 @@ export declare class SpacefaceCore {
     private emitFeatureTelemetry;
     initFloatingImages(): Promise<void>;
     private destroyFloatingImagesManagers;
+    private destroySlidePlayers;
+    private setupManagedFeatures;
+    private normalizeFeaturesConfig;
 }

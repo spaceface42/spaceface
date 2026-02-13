@@ -23,10 +23,6 @@ const app = new SpacefaceCore({
 });
 
 app.initBase().then(async () => {
-    // Register DOM-dependent features to re-run after PJAX swaps
-    app.registerPjaxFeature('slideplayer', () => app.initSlidePlayer());
-    app.registerPjaxFeature('floatingImages', () => app.initFloatingImages());
-
     await app.initDomFeatures();
     await app.initOnceFeatures();
     app.finishInit();
