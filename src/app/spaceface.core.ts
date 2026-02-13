@@ -96,8 +96,15 @@ export class SpacefaceCore {
     private resolvePageType(): string {
         const body = document.body;
         if (body.dataset.page) return body.dataset.page;
-        const path = window.location.pathname;
-        return path === '/' ? 'home' : path === '/app' ? 'app' : 'default';
+        const rawPath = window.location.pathname;
+        const path = rawPath.replace(/\/+$/, '') || '/';
+        if (path === '/') return 'home';
+
+        const segment = path.split('/').filter(Boolean).pop() ?? 'default';
+        return segment
+            .replace(/\.html$/i, '')
+            .replace(/^_+/, '')
+            || 'default';
     }
 
     private async loadFeatureModule<K extends keyof FeatureModuleMap>(name: K): Promise<FeatureModuleMap[K] | null> {
@@ -342,6 +349,8 @@ export class SpacefaceCore {
             }
 
             this.destroyFloatingImagesManagers();
+            const shouldPauseOnScreensaver =
+                floatingImages.pauseOnScreensaver ?? (this.pageType === 'floatingimages');
             this.floatingImagesManagers = containers.map(container => {
                 return new FloatingImagesManager(container, {
                     maxImages: floatingImages.maxImages,
@@ -349,6 +358,7 @@ export class SpacefaceCore {
                     hoverBehavior: floatingImages.hoverBehavior ?? 'none',
                     hoverSlowMultiplier: floatingImages.hoverSlowMultiplier ?? 0.2,
                     tapToFreeze: floatingImages.tapToFreeze ?? true,
+                    pauseOnScreensaver: shouldPauseOnScreensaver,
                 });
             });
 

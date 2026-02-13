@@ -1,19 +1,18 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>spaceface · floating images</title>
-  <link rel="stylesheet" href="./spaceface/spacesuit/main.css" />
-  <script type="module" src="./spaceface/app/main.js"></script>
-</head>
-<body data-page="floatingimages">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>spaceface · floating images</title>
+        <link rel="stylesheet" href="./spaceface/spacesuit/main.css" />
+        <script type="module" src="./spaceface/app/main.js"></script>
+    </head>
+    <body data-page="floatingimages">
+        <!-- progressbar -->
+        <link rel="partial" src="./content/partials/progressbar.html" />
+        <!-- / progressbar -->
 
-<!-- progressbar -->
-<link rel="partial" src="./content/partials/progressbar.html" />
-<!-- / progressbar -->
-
-<header>
+        <header>
             <nav>
                 <ul class="nav">
                     <li><a spx-target href="/">home</a></li>
@@ -21,63 +20,92 @@
                         <a spx-target href="/_slideplayer.html">_slideplayer</a>
                     </li>
                     <li>
-                        <a spx-target href="/_floatingimages.html">_floatingimages</a>
+                        <a spx-target href="/_floatingimages.html"
+                            >_floatingimages</a
+                        >
                     </li>
                 </ul>
             </nav>
-  <img src="./content/placeholder.svg" width="128" height="128" alt="sandor zsolt graphic designer" />
-</header>
+            <img
+                src="./content/placeholder.svg"
+                width="128"
+                height="128"
+                alt="sandor zsolt graphic designer"
+            />
+        </header>
 
-<main id="main" data-pjax="container">
-  <h1>spaceface</h1>
-  <h3>floating images</h3>
+        <main id="main" data-pjax="container">
+            <h1>spaceface</h1>
+            <h3>floating images</h3>
 
-  <section class="floating-images-demo">
-    <style>
-      .floating-images-demo {
-        position: relative;
-        width: 100%;
-        min-height: 70vh;
-        border: 1px solid #d8d8d8;
-        overflow: hidden;
-        background: radial-gradient(circle at center, #ffffff 0%, #f3f5f7 65%, #e9edf0 100%);
-      }
+            <section class="floating-images-demo">
+                <style>
+                    .floating-images-demo {
+                        position: relative;
+                        width: 100%;
+                        min-height: 70vh;
+                        border: 1px solid #d8d8d8;
+                        overflow: hidden;
+                        background: radial-gradient(
+                            circle at center,
+                            #ffffff 0%,
+                            #f3f5f7 65%,
+                            #e9edf0 100%
+                        );
+                    }
 
-      .floating-images-container {
-        position: absolute;
-        inset: 0;
-      }
+                    .floating-images-container {
+                        position: absolute;
+                        inset: 0;
+                    }
 
-      .floating-image {
-        position: absolute;
-        opacity: 0;
-        transition: opacity 0.75s ease;
-        max-height: 18vh;
-        width: auto;
-      }
-    </style>
+                    .floating-image {
+                        position: absolute;
+                        opacity: 0;
+                        transition: opacity 0.75s ease;
+                        max-height: 18vh;
+                        width: auto;
+                    }
+                </style>
 
-    <div class="floating-images-container" aria-label="Floating images demo">
-      <img src="/content/feature/rick-and-morty/rick.gif" class="floating-image" alt="Rick" />
-      <img src="/content/feature/rick-and-morty/head.gif" class="floating-image" alt="Head" />
-      <img src="/content/feature/rick-and-morty/morty-dream.gif" class="floating-image" alt="Morty dream" />
-      <img src="/content/feature/rick-and-morty/summer.gif" class="floating-image" alt="Summer" />
-      <img src="/content/feature/rick-and-morty/morty.gif" class="floating-image" alt="Morty" />
-      <img src="/content/feature/rick-and-morty/jessica.gif" class="floating-image" alt="Jessica" />
-      <img src="/content/feature/rick-and-morty/mom.gif" class="floating-image" alt="Mom" />
-      <img src="/content/feature/rick-and-morty/dad.gif" class="floating-image" alt="Dad" />
-      <img src="/content/feature/rick-and-morty/picklerick.gif" class="floating-image" alt="Pickle Rick" />
-      <img src="/content/feature/rick-and-morty/squanchi.gif" class="floating-image" alt="Squanchy" />
-      <img src="/content/feature/rick-and-morty/anim3.gif" class="floating-image" alt="Animated effect" />
-    </div>
-  </section>
-</main>
+                <div
+                    class="floating-images-container"
+                    aria-label="Floating images demo"
+                >
+                    <img
+                        src="/content/feature/floatingimages/a.svg"
+                        class="floating-image"
+                        alt="floatingimage-1"
+                    />
+                    <img
+                        src="/content/feature/floatingimages/b.svg"
+                        class="floating-image"
+                        alt="floatingimage-1"
+                    />
+                    <img
+                        src="/content/feature/floatingimages/c.svg"
+                        class="floating-image"
+                        alt="floatingimage-1"
+                    />
+                    <img
+                        src="/content/feature/floatingimages/d.svg"
+                        class="floating-image"
+                        alt="floatingimage-1"
+                    />
+                    <img
+                        src="/content/feature/floatingimages/e.svg"
+                        class="floating-image"
+                        alt="floatingimage-1"
+                    />
+                    floatingimages
+                </div>
+            </section>
+        </main>
 
-<!-- footer -->
-<footer>
-<link rel="partial" src="./content/partials/footer.html" />
-</footer>
-<!-- / footer -->
-
-</body>
+        <!-- footer -->
+        <footer>
+            <link rel="partial" src="./content/partials/footer.html" />
+        </footer>
+        <!-- / footer -->
+    </body>
 </html>

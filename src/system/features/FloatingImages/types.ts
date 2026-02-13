@@ -6,6 +6,7 @@ export interface FloatingImagesManagerOptionsInterface {
     hoverBehavior?: 'none' | 'slow' | 'stop';
     hoverSlowMultiplier?: number;
     tapToFreeze?: boolean;
+    pauseOnScreensaver?: boolean;
 }
 
 export interface FloatingImageOptionsInterface {
