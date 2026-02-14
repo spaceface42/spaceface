@@ -3,14 +3,15 @@
     "version": "1.3.0",
     "type": "module",
     "devDependencies": {
+        "cross-env": "^10.1.0",
         "esbuild": "^0.27.2",
         "typescript": "^5.2.0"
     },
     "scripts": {
         "build": "node ./bin/build.js && node ./bin/build-html.js",
-        "build:dev": "tsc && HTML_SWAP_BUNDLE=0 node ./bin/build-html.js",
-        "build:prod:pjax": "ENTRY=./src/app/main.pjax.ts node ./bin/build.js && node ./bin/build-html.js",
-        "build:prod": "ENTRY=./src/app/main.prod.ts node ./bin/build.js && node ./bin/build-html.js",
+        "build:dev": "tsc && cross-env HTML_SWAP_BUNDLE=0 node ./bin/build-html.js",
+        "build:prod:pjax": "cross-env ENTRY=./src/app/main.pjax.ts node ./bin/build.js && node ./bin/build-html.js",
+        "build:prod": "cross-env ENTRY=./src/app/main.prod.ts node ./bin/build.js && node ./bin/build-html.js",
         "build:html": "node ./bin/build-html.js",
         "typecheck": "tsc --noEmit"
     }
