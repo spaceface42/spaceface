@@ -1,5 +1,9 @@
 import type { FloatingImagesManagerOptionsInterface } from '../system/features/FloatingImages/types.js';
-import type { FloatingImagesManagerInterface, ScreensaverControllerOptionsInterface } from '../system/types/features.js';
+import type {
+    FloatingImagesManagerInterface,
+    ScreensaverControllerOptionsInterface,
+    ScrollDeckInterface
+} from '../system/types/features.js';
 import type { PartialLoadResultInterface, PartialLoaderOptionsInterface } from '../system/types/bin.js';
 
 export interface PartialLoaderFeatureConfig {
@@ -25,11 +29,29 @@ export interface FloatingImagesFeatureConfig extends FloatingImagesManagerOption
     selector?: string;
 }
 
+export interface ScrollDeckFeatureConfig {
+    selector?: string;
+    slideSelector?: string;
+    trackSelector?: string;
+    hudSelector?: string;
+    hintSelector?: string;
+    autoCreateHud?: boolean;
+    includePicture?: boolean;
+    debug?: boolean;
+    topStripPx?: number;
+    gate?: number;
+    backZPx?: number;
+    backScaleEnd?: number;
+    scrollPerSegment?: number;
+    hideHintAfter?: number;
+}
+
 export interface SpacefaceFeaturesConfig {
     partialLoader?: PartialLoaderFeatureConfig;
     slideplayer?: SlideplayerFeatureConfig;
     screensaver?: ScreensaverFeatureConfig;
     floatingImages?: FloatingImagesFeatureConfig;
+    scrollDeck?: ScrollDeckFeatureConfig;
 }
 
 export interface AppConfigOptions {
@@ -54,6 +76,8 @@ export interface ScreensaverControllerInstance {
     init?: () => Promise<void>;
     destroy?: () => void;
 }
+
+export interface ScrollDeckInstance extends ScrollDeckInterface {}
 
 export interface PartialLoaderInstance {
     loadContainer: (container?: ParentNode) => Promise<PartialLoadResultInterface[]>;
@@ -86,11 +110,19 @@ export interface FloatingImagesModule {
     ) => FloatingImagesManagerInterface;
 }
 
+export interface ScrollDeckModule {
+    ScrollDeck: new (
+        containerOrSelector: string | HTMLElement,
+        options?: ScrollDeckFeatureConfig
+    ) => ScrollDeckInstance;
+}
+
 export interface FeatureModuleMap {
     partialLoader: PartialLoaderModule;
     slideplayer: SlidePlayerModule;
     screensaver: ScreensaverControllerModule;
     floatingImages: FloatingImagesModule;
+    scrollDeck: ScrollDeckModule;
 }
 
 export interface ManagedFeatureLifecycle {

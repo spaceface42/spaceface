@@ -15,6 +15,19 @@ const features = {
         hoverSlowMultiplier: 0.2,
         tapToFreeze: true,
     },
+    scrollDeck: {
+        selector: '.scroll-deck-container',
+        slideSelector: '.slide',
+        trackSelector: '#track',
+        hudSelector: '#hud',
+        hintSelector: '#hint',
+        topStripPx: 100,
+        gate: 0.12,
+        backZPx: -220,
+        backScaleEnd: 0.78,
+        scrollPerSegment: 1.6,
+        hideHintAfter: 0.12,
+    },
     screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
 } satisfies SpacefaceFeaturesConfig;
 

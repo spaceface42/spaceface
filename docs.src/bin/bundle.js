@@ -30,13 +30,6 @@ var init_EventBus = __esm({
           console.debug("[EventBus] Debug mode enabled");
         }
       }
-      /**
-       * Register an event listener.
-       * @param event The event name.
-       * @param fn The listener function.
-       * @param priority The priority of the listener.
-       * @returns A function to unsubscribe the listener.
-       */
       on(event, fn, priority = 0) {
         const list = this.listeners.get(event) ?? [];
         const listener = { fn, priority };
@@ -49,13 +42,6 @@ var init_EventBus = __esm({
         }
         return () => this.off(event, fn);
       }
-      /**
-       * Register a one-time event listener.
-       * @param event The event name.
-       * @param fn The listener function.
-       * @param priority The priority of the listener.
-       * @returns A function to unsubscribe the listener.
-       */
       once(event, fn, priority = 0) {
         const wrapper = (payload) => {
           this.off(event, wrapper);
@@ -113,11 +99,6 @@ var init_EventBus = __esm({
           console.debug("[EventBus] Listener removed for any event");
         }
       }
-      /**
-       * Emit an event to all registered listeners.
-       * @param event The event name.
-       * @param payload The event payload.
-       */
       emit(event, payload) {
         if (!event) {
           this._handleError("Event name is undefined or empty", new Error());
@@ -143,12 +124,6 @@ var init_EventBus = __esm({
           }
         }
       }
-      /**
-       * Emit an event asynchronously to all registered listeners.
-       * @param event The event name.
-       * @param payload The event payload.
-       * @returns A promise that resolves with the results of all listeners.
-       */
       async emitAsync(event, payload) {
         if (!event) {
           this._handleError("Event name is undefined or empty", new Error());
@@ -437,6 +412,33 @@ var init_timing = __esm({
   }
 });
 
+// src/system/types/events.ts
+var EVENTS;
+var init_events = __esm({
+  "src/system/types/events.ts"() {
+    "use strict";
+    EVENTS = {
+      LOG: "log",
+      LOG_DEBUG: "log:debug",
+      LOG_ERROR: "log:error",
+      TELEMETRY: "telemetry",
+      USER_ACTIVE: "user:active",
+      USER_INACTIVE: "user:inactive",
+      SCREENSAVER_INITIALIZED: "screensaver:initialized",
+      SCREENSAVER_SHOWN: "screensaver:shown",
+      SCREENSAVER_HIDDEN: "screensaver:hidden",
+      SCREENSAVER_ERROR: "screensaver:error",
+      SCREENSAVER_LOG: "screensaver:log",
+      SLIDEPLAYER_LOG: "slideplayer:log",
+      FLOATING_IMAGES_LOG: "floatingImages:log",
+      PARTIAL_LOADED: "partial:loaded",
+      PARTIAL_ERROR: "partial:error",
+      PARTIAL_LOAD_COMPLETE: "partial:load:complete",
+      PARTIALS_ALL_LOADED: "partials:allLoaded"
+    };
+  }
+});
+
 // src/system/bin/InactivityWatcher.ts
 var InactivityWatcher;
 var init_InactivityWatcher = __esm({
@@ -445,6 +447,7 @@ var init_InactivityWatcher = __esm({
     init_EventWatcher();
     init_EventBus();
     init_timing();
+    init_events();
     InactivityWatcher = class _InactivityWatcher extends EventWatcher {
       static _instance = null;
       inactivityDelay;
@@ -504,7 +507,7 @@ var init_InactivityWatcher = __esm({
         this.lastActiveAt = now;
         if (this.userIsInactive) {
           this.userIsInactive = false;
-          eventBus.emit("user:active", {
+          eventBus.emit(EVENTS.USER_ACTIVE, {
             lastActiveAt: this.lastActiveAt,
             inactivityDelay: this.inactivityDelay,
             visible: document.visibilityState === "visible"
@@ -520,7 +523,7 @@ var init_InactivityWatcher = __esm({
       setInactive() {
         this.userIsInactive = true;
         const now = Date.now();
-        eventBus.emit("user:inactive", {
+        eventBus.emit(EVENTS.USER_INACTIVE, {
           lastActiveAt: this.lastActiveAt,
           inactiveAt: now,
           inactivityDelay: this.inactivityDelay,
@@ -879,7 +882,7 @@ var init_PartialLoader = __esm({
     "use strict";
     init_timing();
     init_EventBus();
-    VERSION = "nextworld-1.3.0";
+    VERSION = "2.0.0";
     PartialLoader = class {
       cache = /* @__PURE__ */ new Map();
       loadingPromises = /* @__PURE__ */ new Map();
@@ -1197,169 +1200,6 @@ var init_PartialFetcher = __esm({
   }
 });
 
-// src/system/bin/ServiceWorkerManager.ts
-var ServiceWorkerManager_exports = {};
-__export(ServiceWorkerManager_exports, {
-  ServiceWorkerManager: () => ServiceWorkerManager,
-  VERSION: () => VERSION2
-});
-var VERSION2, ServiceWorkerManager;
-var init_ServiceWorkerManager = __esm({
-  "src/system/bin/ServiceWorkerManager.ts"() {
-    "use strict";
-    VERSION2 = "nextworld-1.0.0";
-    ServiceWorkerManager = class {
-      swPath;
-      options;
-      customConfig;
-      registration = null;
-      isSupported;
-      constructor(swPath = "/sw.js", options = {}, customConfig = {}) {
-        this.swPath = swPath;
-        this.options = {
-          scope: "/",
-          updateViaCache: "none",
-          ...options
-        };
-        this.customConfig = customConfig;
-        this.isSupported = "serviceWorker" in navigator;
-      }
-      /**
-       * Register the service worker
-       */
-      async register() {
-        if (!this.isSupported) {
-          throw new Error("ServiceWorker not supported");
-        }
-        try {
-          this.registration = await navigator.serviceWorker.register(
-            this.swPath,
-            this.options
-          );
-          this.setupEventListeners();
-          return this.registration;
-        } catch (error) {
-          console.error("SW registration failed:", error);
-          throw error;
-        }
-      }
-      /**
-       * Apply custom configuration after registration
-       */
-      configure() {
-        if (this.customConfig.strategy) {
-          this.setStrategy(this.customConfig.strategy);
-        }
-      }
-      /**
-       * Unregister the service worker
-       */
-      async unregister() {
-        if (!this.registration) return false;
-        try {
-          return await this.registration.unregister();
-        } catch (error) {
-          console.error("SW unregistration failed:", error);
-          return false;
-        }
-      }
-      /**
-       * Update the service worker
-       */
-      async update() {
-        if (!this.registration) return null;
-        try {
-          await this.registration.update();
-          return null;
-        } catch (error) {
-          console.error("SW update failed:", error);
-          return null;
-        }
-      }
-      /**
-       * Get registration status
-       */
-      getStatus() {
-        if (!this.registration) return "unregistered";
-        if (this.registration.installing) return "installing";
-        if (this.registration.waiting) return "waiting";
-        if (this.registration.active) return "active";
-        return "unknown";
-      }
-      /**
-       * Setup lifecycle event listeners
-       */
-      setupEventListeners() {
-        if (!this.registration) return;
-        this.registration.addEventListener("updatefound", () => {
-          const newWorker = this.registration?.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener("statechange", () => {
-            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-              this.onUpdateAvailable?.(newWorker);
-            }
-          });
-        });
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          this.onControllerChange?.();
-        });
-      }
-      /**
-       * Send a message to the service worker
-       */
-      async postMessage(message, transfer) {
-        const sw = navigator.serviceWorker.controller;
-        if (!sw) throw new Error("No active service worker");
-        if (transfer) {
-          sw.postMessage(message, { transfer });
-        } else {
-          sw.postMessage(message);
-        }
-      }
-      /**
-       * Wait for message from service worker
-       */
-      waitForMessage(timeout = 5e3) {
-        return new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("Message timeout")), timeout);
-          const handler = (event) => {
-            clearTimeout(timer);
-            navigator.serviceWorker.removeEventListener("message", handler);
-            resolve(event.data);
-          };
-          navigator.serviceWorker.addEventListener("message", handler);
-        });
-      }
-      /**
-       * Activate the waiting service worker
-       */
-      async activateWaiting() {
-        if (!this.registration?.waiting) return false;
-        try {
-          await this.postMessage({ type: "SKIP_WAITING" });
-          return true;
-        } catch (error) {
-          console.error("Failed to activate waiting SW:", error);
-          return false;
-        }
-      }
-      /**
-       * Set runtime cache strategy (e.g., cache-first or network-first)
-       */
-      setStrategy(config = {}) {
-        if (!navigator.serviceWorker.controller) {
-          console.warn("No active SW to set strategy");
-          return;
-        }
-        this.postMessage({
-          type: "SET_STRATEGY",
-          payload: config
-        });
-      }
-    };
-  }
-});
-
 // src/system/features/bin/AsyncImageLoader.ts
 var AsyncImageLoader;
 var init_AsyncImageLoader = __esm({
@@ -1368,6 +1208,7 @@ var init_AsyncImageLoader = __esm({
     AsyncImageLoader = class {
       container;
       includePicture;
+      debug;
       cache = /* @__PURE__ */ new WeakMap();
       destroyed = false;
       constructor(container, options = {}) {
@@ -1376,8 +1217,10 @@ var init_AsyncImageLoader = __esm({
         }
         this.container = container;
         this.includePicture = options.includePicture ?? false;
+        this.debug = options.debug ?? false;
       }
       logDebug(message, data) {
+        if (!this.debug) return;
         console.debug(`[AsyncImageLoader] ${message}`, data);
       }
       ensureActive(methodName) {
@@ -1577,13 +1420,40 @@ var init_AnimationLoop = __esm({
   }
 });
 
+// src/system/features/bin/AnimationPolicy.ts
+var AnimationPolicy;
+var init_AnimationPolicy = __esm({
+  "src/system/features/bin/AnimationPolicy.ts"() {
+    "use strict";
+    AnimationPolicy = class {
+      pausedReasons = /* @__PURE__ */ new Set();
+      set(reason, paused) {
+        if (paused) this.pausedReasons.add(reason);
+        else this.pausedReasons.delete(reason);
+      }
+      has(reason) {
+        return this.pausedReasons.has(reason);
+      }
+      isPaused() {
+        return this.pausedReasons.size > 0;
+      }
+      list() {
+        return Array.from(this.pausedReasons);
+      }
+      clear() {
+        this.pausedReasons.clear();
+      }
+    };
+  }
+});
+
 // src/system/features/SlidePlayer/SlidePlayer.ts
 var SlidePlayer_exports = {};
 __export(SlidePlayer_exports, {
   SlidePlayer: () => SlidePlayer,
-  VERSION: () => VERSION3
+  VERSION: () => VERSION2
 });
-var VERSION3, SlidePlayer;
+var VERSION2, SlidePlayer;
 var init_SlidePlayer = __esm({
   "src/system/features/SlidePlayer/SlidePlayer.ts"() {
     "use strict";
@@ -1591,7 +1461,9 @@ var init_SlidePlayer = __esm({
     init_EventBinder();
     init_AsyncImageLoader();
     init_AnimationLoop();
-    VERSION3 = "nextworld-1.2.0";
+    init_AnimationPolicy();
+    init_events();
+    VERSION2 = "2.0.0";
     SlidePlayer = class _SlidePlayer {
       static SWIPE_THRESHOLD = 50;
       static VERTICAL_TOLERANCE = 30;
@@ -1615,7 +1487,7 @@ var init_SlidePlayer = __esm({
       pointerStartY = 0;
       pointerEndX = 0;
       pointerEndY = 0;
-      pauseReasons = /* @__PURE__ */ new Set();
+      animationPolicy = new AnimationPolicy();
       loader;
       binder;
       animateCallback;
@@ -1642,7 +1514,7 @@ var init_SlidePlayer = __esm({
         this.debug = debug;
         this.loader = new AsyncImageLoader(this.container, { includePicture });
         this.binder = new EventBinder(this.debug);
-        if (startPaused) this.pauseReasons.add("manual");
+        if (startPaused) this.animationPolicy.set("manual", true);
         this.animateCallback = () => this.animate();
         this.ready = this.init().catch((err) => {
           this.initError = err;
@@ -1655,8 +1527,8 @@ var init_SlidePlayer = __esm({
       log(level, message, data) {
         if (!this.debug && level === "debug") return;
         const payload = { scope: "SlidePlayer", level, message, data, time: Date.now() };
-        eventBus.emit("slideplayer:log", { level, message, data });
-        eventBus.emit("log", payload);
+        eventBus.emit(EVENTS.SLIDEPLAYER_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
           const methodMap = {
             debug: "debug",
@@ -1700,12 +1572,11 @@ var init_SlidePlayer = __esm({
       }
       /** ---- Pause / Resume ---- */
       togglePause(reason, shouldPause) {
-        if (shouldPause) this.pauseReasons.add(reason);
-        else this.pauseReasons.delete(reason);
+        this.animationPolicy.set(reason, shouldPause);
         this.emitPauseResumeIfChanged();
         if (this.isPaused()) {
           if (animationLoop.has(this.animateCallback)) animationLoop.remove(this.animateCallback);
-          this.log("debug", `Paused due to: ${Array.from(this.pauseReasons).join(", ")}`);
+          this.log("debug", `Paused due to: ${this.animationPolicy.list().join(", ")}`);
         } else {
           if (!animationLoop.has(this.animateCallback)) animationLoop.add(this.animateCallback);
           this.log("debug", "Resumed playback");
@@ -1716,7 +1587,7 @@ var init_SlidePlayer = __esm({
         if (nowPaused !== this.lastPauseState) {
           this.lastPauseState = nowPaused;
           const event = nowPaused ? "slideplayer:paused" : "slideplayer:resumed";
-          this.emit(event, { reasons: Array.from(this.pauseReasons) });
+          this.emit(event, { reasons: this.animationPolicy.list() });
         }
       }
       play() {
@@ -1726,7 +1597,7 @@ var init_SlidePlayer = __esm({
         this.togglePause("manual", true);
       }
       isPaused() {
-        return this.pauseReasons.size > 0;
+        return this.animationPolicy.isPaused();
       }
       /** ---- Slide Navigation ---- */
       goToSlide(index, restart = true) {
@@ -1829,8 +1700,10 @@ var init_SlidePlayer = __esm({
       }
       bindActivityEvents() {
         if (this.enableBusEvents) {
-          this.binder.bindBus("user:inactive", () => this.togglePause("inactivity", true));
-          this.binder.bindBus("user:active", () => this.togglePause("inactivity", false));
+          this.binder.bindBus(EVENTS.USER_INACTIVE, () => this.togglePause("inactivity", true));
+          this.binder.bindBus(EVENTS.USER_ACTIVE, () => this.togglePause("inactivity", false));
+          this.binder.bindBus(EVENTS.SCREENSAVER_SHOWN, () => this.togglePause("screensaver", true));
+          this.binder.bindBus(EVENTS.SCREENSAVER_HIDDEN, () => this.togglePause("screensaver", false));
         }
       }
       bindUnloadEvent() {
@@ -1858,7 +1731,7 @@ var init_SlidePlayer = __esm({
         this.slides = [];
         this.dots = [];
         this.dotsWrapper = null;
-        this.pauseReasons.clear();
+        this.animationPolicy.clear();
         this.log("info", "SlidePlayer destroyed");
       }
       /** ---- Public getters ---- */
@@ -1933,6 +1806,9 @@ var init_FloatingImage = __esm({
         this.element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         this.logDebug("Position updated", { x, y });
         return true;
+      }
+      getElement() {
+        return this.element;
       }
       update(multiplier, dims, applyPosition = true) {
         if (!this.element) {
@@ -2079,7 +1955,12 @@ var init_ResizeManager = __esm({
     ResizeManager = class {
       windowCallbacks = /* @__PURE__ */ new Map();
       elementObservers = /* @__PURE__ */ new Map();
+      debug = false;
+      setDebugMode(enabled) {
+        this.debug = enabled;
+      }
       logDebug(message, data) {
+        if (!this.debug) return;
         console.debug(`[ResizeManager] ${message}`, data);
       }
       wrapCallback(cb, options) {
@@ -2177,7 +2058,12 @@ var init_ResizeManager = __esm({
 });
 
 // src/system/features/FloatingImages/FloatingImagesManager.ts
-var FloatingImagesManager;
+var FloatingImagesManager_exports = {};
+__export(FloatingImagesManager_exports, {
+  FloatingImagesManager: () => FloatingImagesManager,
+  VERSION: () => VERSION3
+});
+var VERSION3, FloatingImagesManager;
 var init_FloatingImagesManager = __esm({
   "src/system/features/FloatingImages/FloatingImagesManager.ts"() {
     "use strict";
@@ -2188,6 +2074,9 @@ var init_FloatingImagesManager = __esm({
     init_AnimationLoop();
     init_EventBus();
     init_timing();
+    init_AnimationPolicy();
+    init_events();
+    VERSION3 = "2.1.0";
     FloatingImagesManager = class {
       container;
       performanceMonitor;
@@ -2204,9 +2093,26 @@ var init_FloatingImagesManager = __esm({
       containerWidth;
       containerHeight;
       debug;
+      hoverBehavior;
+      hoverSlowMultiplier;
+      tapToFreeze;
+      pauseOnScreensaver;
+      interactionCleanups = [];
+      frozenElements = /* @__PURE__ */ new WeakSet();
+      imageSpeedOverrides = /* @__PURE__ */ new WeakMap();
+      unsubScreensaverShown;
+      unsubScreensaverHidden;
+      unbindVisibility;
+      pausedByScreensaver = false;
+      speedBeforeScreensaver = 1;
+      animationPolicy = new AnimationPolicy();
       constructor(container, options = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
+        this.hoverBehavior = options.hoverBehavior ?? "none";
+        this.hoverSlowMultiplier = options.hoverSlowMultiplier ?? 0.2;
+        this.tapToFreeze = options.tapToFreeze ?? true;
+        this.pauseOnScreensaver = options.pauseOnScreensaver ?? false;
         this.performanceMonitor = new PerformanceMonitor();
         const perfSettings = this.performanceMonitor.getRecommendedSettings();
         this.maxImages = options.maxImages ?? perfSettings.maxImages;
@@ -2217,6 +2123,7 @@ var init_FloatingImagesManager = __esm({
         }, { threshold: 0 });
         this.intersectionObserver.observe(this.container);
         this.setupResizeHandling();
+        this.setupScreensaverHandling();
         this.imageLoader = new AsyncImageLoader(this.container);
         this.updateContainerDimensions();
         this.animateCallback = () => this.animate();
@@ -2232,8 +2139,8 @@ var init_FloatingImagesManager = __esm({
       log(level, message, data) {
         if (!this.debug && level === "debug") return;
         const payload = { scope: "FloatingImagesManager", level, message, data, time: Date.now() };
-        eventBus.emit("floatingImages:log", { level, message, data });
-        eventBus.emit("log", payload);
+        eventBus.emit(EVENTS.FLOATING_IMAGES_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
           const consoleMethodMap = {
             debug: "debug",
@@ -2248,6 +2155,29 @@ var init_FloatingImagesManager = __esm({
       setupResizeHandling() {
         this.unsubscribeWindow = resizeManager.onWindow(() => this.handleResize());
         this.unsubscribeElement = resizeManager.onElement(this.container, () => this.handleResize());
+      }
+      setupScreensaverHandling() {
+        if (!this.pauseOnScreensaver) return;
+        this.unsubScreensaverShown = eventBus.on(EVENTS.SCREENSAVER_SHOWN, () => {
+          if (this.pausedByScreensaver) return;
+          this.speedBeforeScreensaver = this.speedMultiplier;
+          this.speedMultiplier = 0;
+          this.pausedByScreensaver = true;
+          this.animationPolicy.set("screensaver", true);
+          this.log("debug", "Paused due to screensaver");
+        });
+        this.unsubScreensaverHidden = eventBus.on(EVENTS.SCREENSAVER_HIDDEN, () => {
+          if (!this.pausedByScreensaver) return;
+          this.speedMultiplier = this.speedBeforeScreensaver;
+          this.pausedByScreensaver = false;
+          this.animationPolicy.set("screensaver", false);
+          this.log("debug", "Resumed after screensaver");
+        });
+        const onVisibilityChange = () => {
+          this.animationPolicy.set("hidden", document.visibilityState === "hidden");
+        };
+        document.addEventListener("visibilitychange", onVisibilityChange);
+        this.unbindVisibility = () => document.removeEventListener("visibilitychange", onVisibilityChange);
       }
       updateContainerDimensions() {
         if (!this.container.isConnected) {
@@ -2277,6 +2207,7 @@ var init_FloatingImagesManager = __esm({
         if (this.images.length >= this.maxImages) return;
         const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
         this.images.push(floatingImage);
+        this.bindImageInteraction(el);
       }
       handleResize = debounce(() => {
         try {
@@ -2299,11 +2230,19 @@ var init_FloatingImagesManager = __esm({
       }, 200);
       animate() {
         if (this._destroyed) return;
+        if (!this.isInViewport || this.speedMultiplier === 0 || this.animationPolicy.isPaused()) return;
         const skipFrame = this.performanceMonitor.update();
-        if (skipFrame || !this.isInViewport || this.speedMultiplier === 0) return;
+        if (skipFrame) return;
         const multiplier = this.speedMultiplier;
         const dims = { width: this.containerWidth, height: this.containerHeight };
-        this.images = this.images.filter((img) => img.update(multiplier, dims));
+        this.images = this.images.filter((img) => {
+          const el = img.getElement();
+          const imageMultiplier = el ? this.imageSpeedOverrides.get(el) ?? multiplier : multiplier;
+          if (imageMultiplier <= 0) {
+            return img.updatePosition();
+          }
+          return img.update(imageMultiplier, dims);
+        });
       }
       resetAllImagePositions() {
         const dims = { width: this.containerWidth, height: this.containerHeight };
@@ -2319,11 +2258,13 @@ var init_FloatingImagesManager = __esm({
           }
           this.images.forEach((img) => img.destroy());
           this.images.length = 0;
+          this.unbindImageInteractions();
           const dims = { width: this.containerWidth, height: this.containerHeight };
           const imgElements = Array.from(this.container.querySelectorAll(".floating-image")).slice(0, this.maxImages);
           imgElements.forEach((el) => {
             const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
             this.images.push(floatingImage);
+            this.bindImageInteraction(el);
           });
           this.log("info", "Images reinitialized", { count: this.images.length });
         } catch (error) {
@@ -2338,15 +2279,65 @@ var init_FloatingImagesManager = __esm({
         }
         this.unsubscribeWindow?.();
         this.unsubscribeElement?.();
+        this.unsubScreensaverShown?.();
+        this.unsubScreensaverHidden?.();
+        this.unbindVisibility?.();
         this.unsubscribeWindow = void 0;
         this.unsubscribeElement = void 0;
+        this.unsubScreensaverShown = void 0;
+        this.unsubScreensaverHidden = void 0;
+        this.unbindVisibility = void 0;
         this.intersectionObserver.disconnect();
+        this.unbindImageInteractions();
         this.images.forEach((img) => img.destroy());
         this.images.length = 0;
         this.imageLoader.destroy();
         this.containerWidth = 0;
         this.containerHeight = 0;
         this.log("info", "FloatingImagesManager destroyed");
+      }
+      bindImageInteraction(el) {
+        const hoverEnabled = this.hoverBehavior !== "none";
+        const touchEnabled = this.tapToFreeze;
+        if (!hoverEnabled && !touchEnabled) return;
+        const onPointerEnter = () => {
+          if (this.hoverBehavior === "none") return;
+          if (this.frozenElements.has(el)) return;
+          if (this.hoverBehavior === "stop") {
+            this.imageSpeedOverrides.set(el, 0);
+            return;
+          }
+          this.imageSpeedOverrides.set(el, this.hoverSlowMultiplier);
+        };
+        const onPointerLeave = () => {
+          if (this.frozenElements.has(el)) return;
+          this.imageSpeedOverrides.delete(el);
+        };
+        const onPointerUp = (event) => {
+          if (!this.tapToFreeze || event.pointerType !== "touch") return;
+          if (this.frozenElements.has(el)) {
+            this.frozenElements.delete(el);
+            this.imageSpeedOverrides.delete(el);
+            return;
+          }
+          this.frozenElements.add(el);
+          this.imageSpeedOverrides.set(el, 0);
+        };
+        el.addEventListener("pointerenter", onPointerEnter);
+        el.addEventListener("pointerleave", onPointerLeave);
+        el.addEventListener("pointerup", onPointerUp);
+        this.interactionCleanups.push(() => {
+          el.removeEventListener("pointerenter", onPointerEnter);
+          el.removeEventListener("pointerleave", onPointerLeave);
+          el.removeEventListener("pointerup", onPointerUp);
+          this.imageSpeedOverrides.delete(el);
+        });
+      }
+      unbindImageInteractions() {
+        this.interactionCleanups.forEach((unsub) => unsub());
+        this.interactionCleanups = [];
+        this.frozenElements = /* @__PURE__ */ new WeakSet();
+        this.imageSpeedOverrides = /* @__PURE__ */ new WeakMap();
       }
     };
   }
@@ -2367,8 +2358,16 @@ var init_ScreensaverController = __esm({
     init_InactivityWatcher();
     init_PartialFetcher();
     init_FloatingImagesManager();
-    VERSION4 = "nextworld-1.2.0";
-    ScreensaverController = class {
+    init_events();
+    VERSION4 = "2.0.0";
+    ScreensaverController = class _ScreensaverController {
+      static STATES = {
+        IDLE: "idle",
+        LOADING: "loading",
+        VISIBLE: "visible",
+        HIDING: "hiding",
+        DESTROYED: "destroyed"
+      };
       partialUrl;
       targetSelector;
       inactivityDelay;
@@ -2384,6 +2383,7 @@ var init_ScreensaverController = __esm({
       _loadPromise;
       _hideTimeout = null;
       _bound = false;
+      state = _ScreensaverController.STATES.IDLE;
       _onInactivity;
       _onActivity;
       constructor(options) {
@@ -2407,8 +2407,8 @@ var init_ScreensaverController = __esm({
       log(level, message, data) {
         if (!this.debug && level === "debug") return;
         const payload = { scope: "ScreensaverController", level, message, data, time: Date.now() };
-        eventBus.emit("screensaver:log", { level, message, data });
-        eventBus.emit("log", payload);
+        eventBus.emit(EVENTS.SCREENSAVER_LOG, { level, message, data });
+        eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
           const consoleMethodMap = {
             debug: "debug",
@@ -2429,8 +2429,8 @@ var init_ScreensaverController = __esm({
               inactivityDelay: this.inactivityDelay
             });
           }
-          this.eventBinder.bindBus("user:inactive", this._onInactivity);
-          this.eventBinder.bindBus("user:active", this._onActivity);
+          this.eventBinder.bindBus(EVENTS.USER_INACTIVE, this._onInactivity);
+          this.eventBinder.bindBus(EVENTS.USER_ACTIVE, this._onActivity);
           this._bound = true;
           this.log("info", "Bound user inactivity/active events");
         } catch (error) {
@@ -2439,7 +2439,9 @@ var init_ScreensaverController = __esm({
       }
       async showScreensaver() {
         if (this._destroyed) return;
+        if (this.state === _ScreensaverController.STATES.VISIBLE || this.state === _ScreensaverController.STATES.LOADING) return;
         try {
+          this.state = _ScreensaverController.STATES.LOADING;
           if (!this._partialLoaded) {
             if (!this._loadPromise) {
               this._loadPromise = this.partialFetcher.load(this.partialUrl, this.targetSelector).then(() => {
@@ -2452,6 +2454,7 @@ var init_ScreensaverController = __esm({
           }
           const container = document.querySelector(this.targetSelector);
           if (!container) {
+            this.state = _ScreensaverController.STATES.IDLE;
             this.handleError(`Target selector "${this.targetSelector}" not found`, null);
             return;
           }
@@ -2466,14 +2469,19 @@ var init_ScreensaverController = __esm({
             this.screensaverManager.destroy();
             this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
           }
+          this.state = _ScreensaverController.STATES.VISIBLE;
+          eventBus.emit(EVENTS.SCREENSAVER_SHOWN, { targetSelector: this.targetSelector });
           this.log("info", "Screensaver displayed");
         } catch (error) {
+          this.state = _ScreensaverController.STATES.IDLE;
           this.handleError("Failed to load or show screensaver", error);
         }
       }
       hideScreensaver() {
         if (this._destroyed) return;
+        if (this.state === _ScreensaverController.STATES.IDLE || this.state === _ScreensaverController.STATES.HIDING) return;
         try {
+          this.state = _ScreensaverController.STATES.HIDING;
           const container = document.querySelector(this.targetSelector);
           if (container) {
             container.style.transition = "opacity 0.5s ease";
@@ -2483,17 +2491,23 @@ var init_ScreensaverController = __esm({
             }
             this._hideTimeout = window.setTimeout(() => {
               container.style.display = "none";
+              this.state = _ScreensaverController.STATES.IDLE;
               this._hideTimeout = null;
             }, 500);
+          } else {
+            this.state = _ScreensaverController.STATES.IDLE;
           }
+          eventBus.emit(EVENTS.SCREENSAVER_HIDDEN, { targetSelector: this.targetSelector });
           this.log("debug", "Screensaver hidden");
         } catch (error) {
+          this.state = _ScreensaverController.STATES.IDLE;
           this.handleError("Failed to hide screensaver", error);
         }
       }
       destroy() {
         if (this._destroyed) return;
         this._destroyed = true;
+        this.state = _ScreensaverController.STATES.DESTROYED;
         this.hideScreensaver();
         try {
           this.screensaverManager?.destroy();
@@ -2511,9 +2525,261 @@ var init_ScreensaverController = __esm({
         this.log("info", "ScreensaverController destroyed");
       }
       handleError(message, error) {
-        eventBus.emit("screensaver:error", { message, error });
+        eventBus.emit(EVENTS.SCREENSAVER_ERROR, { message, error });
         this.onError?.(message, error);
         this.log("error", message, error);
+      }
+    };
+  }
+});
+
+// src/system/features/ScrollDeck/ScrollDeck.ts
+var ScrollDeck_exports = {};
+__export(ScrollDeck_exports, {
+  ScrollDeck: () => ScrollDeck,
+  VERSION: () => VERSION5
+});
+var VERSION5, ScrollDeck;
+var init_ScrollDeck = __esm({
+  "src/system/features/ScrollDeck/ScrollDeck.ts"() {
+    "use strict";
+    init_EventBinder();
+    init_AsyncImageLoader();
+    init_ResizeManager();
+    VERSION5 = "1.0.0";
+    ScrollDeck = class _ScrollDeck {
+      static DEFAULT_SLIDE_SELECTOR = ".slide";
+      static DEFAULT_TRACK_SELECTOR = "#track";
+      static DEFAULT_HUD_SELECTOR = "#hud";
+      static DEFAULT_HINT_SELECTOR = "#hint";
+      static DEFAULT_TOP_STRIP_PX = 100;
+      static DEFAULT_GATE = 0.12;
+      static DEFAULT_BACK_Z_PX = -220;
+      static DEFAULT_BACK_SCALE_END = 0.78;
+      static DEFAULT_SCROLL_PER_SEGMENT = 1.6;
+      static DEFAULT_HINT_HIDE_PROGRESS = 0.12;
+      container;
+      binder;
+      loader;
+      debug;
+      slideSelector;
+      trackSelector;
+      hudSelector;
+      hintSelector;
+      autoCreateHud;
+      topStripPx;
+      gate;
+      backZPx;
+      backScaleEnd;
+      scrollPerSegment;
+      hideHintAfter;
+      slides = [];
+      dots = [];
+      track = null;
+      hint = null;
+      hud = null;
+      unsubscribeWindowResize;
+      unsubscribeTrackResize;
+      rafPending = false;
+      isDestroyed = false;
+      initError = null;
+      ready;
+      constructor(containerOrSelector, options = {}) {
+        this.container = this.resolveContainer(containerOrSelector);
+        this.debug = !!options.debug;
+        this.binder = new EventBinder(this.debug);
+        this.loader = new AsyncImageLoader(this.container, {
+          includePicture: options.includePicture ?? false,
+          debug: this.debug
+        });
+        this.slideSelector = options.slideSelector ?? _ScrollDeck.DEFAULT_SLIDE_SELECTOR;
+        this.trackSelector = options.trackSelector ?? _ScrollDeck.DEFAULT_TRACK_SELECTOR;
+        this.hudSelector = options.hudSelector ?? _ScrollDeck.DEFAULT_HUD_SELECTOR;
+        this.hintSelector = options.hintSelector ?? _ScrollDeck.DEFAULT_HINT_SELECTOR;
+        this.autoCreateHud = options.autoCreateHud ?? true;
+        this.topStripPx = Math.max(0, options.topStripPx ?? _ScrollDeck.DEFAULT_TOP_STRIP_PX);
+        this.gate = this.clamp(options.gate ?? _ScrollDeck.DEFAULT_GATE, 0.01, 0.99);
+        this.backZPx = options.backZPx ?? _ScrollDeck.DEFAULT_BACK_Z_PX;
+        this.backScaleEnd = this.clamp(options.backScaleEnd ?? _ScrollDeck.DEFAULT_BACK_SCALE_END, 0.01, 1);
+        this.scrollPerSegment = Math.max(0.25, options.scrollPerSegment ?? _ScrollDeck.DEFAULT_SCROLL_PER_SEGMENT);
+        this.hideHintAfter = this.clamp(options.hideHintAfter ?? _ScrollDeck.DEFAULT_HINT_HIDE_PROGRESS, 0, 1);
+        this.ready = this.init().catch((err) => {
+          this.initError = err;
+          this.log("error", "ScrollDeck init failed", err);
+        }).then(() => {
+        });
+      }
+      log(level, message, data) {
+        if (!this.debug && level === "debug") return;
+        const logger = {
+          debug: "debug",
+          info: "info",
+          warn: "warn",
+          error: "error"
+        };
+        console[logger[level]]?.(`[ScrollDeck] [${level.toUpperCase()}] ${message}`, data);
+      }
+      resolveContainer(containerOrSelector) {
+        const container = typeof containerOrSelector === "string" ? document.querySelector(containerOrSelector) : containerOrSelector;
+        if (!container) throw new Error("ScrollDeck: container element not found.");
+        return container;
+      }
+      async init() {
+        await this.loader.waitForImagesToLoad();
+        this.refreshElements();
+        if (!this.slides.length) {
+          this.log("warn", `No slides found with selector "${this.slideSelector}".`);
+          return;
+        }
+        this.setupDots();
+        this.setDeckHeight();
+        this.bindEvents();
+        this.render();
+        this.log("info", "ScrollDeck initialized", { slides: this.slides.length });
+      }
+      refreshElements() {
+        this.slides = Array.from(this.container.querySelectorAll(this.slideSelector));
+        this.track = this.container.querySelector(this.trackSelector);
+        this.hud = this.container.querySelector(this.hudSelector);
+        this.hint = this.container.querySelector(this.hintSelector);
+        if (!this.track) {
+          this.track = this.container;
+          this.log("warn", `Track not found with selector "${this.trackSelector}". Falling back to container.`);
+        }
+      }
+      setupDots() {
+        if (!this.hud && this.autoCreateHud) {
+          this.hud = document.createElement("div");
+          this.hud.id = this.hudSelector.replace(/^#/, "") || "hud";
+          this.container.appendChild(this.hud);
+        }
+        if (!this.hud) return;
+        this.hud.innerHTML = "";
+        this.dots = this.slides.map(() => {
+          const dot = document.createElement("div");
+          dot.className = "hud-dot";
+          this.hud.appendChild(dot);
+          return dot;
+        });
+      }
+      bindEvents() {
+        this.binder.bindDOM(window, "scroll", () => this.requestRender(), { passive: true });
+        this.unsubscribeWindowResize = resizeManager.onWindow(() => {
+          this.setDeckHeight();
+          this.requestRender();
+        });
+        if (this.track) {
+          this.unsubscribeTrackResize = resizeManager.onElement(this.track, () => {
+            this.requestRender();
+          }, { debounceMs: 50 });
+        }
+      }
+      setDeckHeight() {
+        const vh = window.innerHeight;
+        this.container.style.height = `${(this.slides.length * this.scrollPerSegment + 1) * vh}px`;
+      }
+      requestRender() {
+        if (this.isDestroyed || this.rafPending) return;
+        this.rafPending = true;
+        requestAnimationFrame(() => {
+          this.rafPending = false;
+          this.render();
+        });
+      }
+      clamp(value, min = 0, max = 1) {
+        return Math.max(min, Math.min(max, value));
+      }
+      norm(value, start, end) {
+        return this.clamp((value - start) / (end - start));
+      }
+      easeOutQuart(t) {
+        return 1 - Math.pow(1 - t, 4);
+      }
+      easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+      hideSlide(slide) {
+        const h = this.track?.clientHeight || window.innerHeight;
+        slide.style.visibility = "hidden";
+        slide.style.zIndex = "0";
+        slide.style.transform = `translate3d(0, ${h}px, 0) scale(1)`;
+      }
+      showSlide(slide, ty, tz, scale, z) {
+        slide.style.visibility = "visible";
+        slide.style.zIndex = String(z);
+        slide.style.transform = `translate3d(0, ${ty}px, ${tz}px) scale(${scale})`;
+      }
+      getProgress() {
+        const vh = window.innerHeight;
+        const yInDeck = -this.container.getBoundingClientRect().top;
+        const n = this.slides.length;
+        return this.clamp(yInDeck / (this.scrollPerSegment * vh), 0, n);
+      }
+      renderDots(segment, local) {
+        if (!this.dots.length) return;
+        let activeDot = segment;
+        if (segment > 0 && local < this.gate) activeDot = segment - 1;
+        this.dots.forEach((dot, index) => dot.classList.toggle("active", index === activeDot));
+      }
+      renderHint(progress) {
+        if (!this.hint) return;
+        this.hint.style.opacity = progress < this.hideHintAfter ? "1" : "0";
+      }
+      render() {
+        if (this.isDestroyed || !this.slides.length) return;
+        const n = this.slides.length;
+        const progress = this.getProgress();
+        const segment = Math.min(Math.floor(progress), n - 1);
+        const local = this.clamp(progress - segment, 0, 1);
+        const cardH = this.track?.clientHeight || window.innerHeight;
+        const startY = Math.max(0, cardH - this.topStripPx);
+        this.slides.forEach((slide) => this.hideSlide(slide));
+        this.renderDots(segment, local);
+        this.renderHint(progress);
+        if (segment === 0) {
+          const t2 = this.easeOutQuart(local);
+          const ty = startY * (1 - t2);
+          this.showSlide(this.slides[0], ty, 0, 1, 10);
+          return;
+        }
+        const prev = segment - 1;
+        const curr = segment;
+        const prevSlide = this.slides[prev];
+        const currSlide = this.slides[curr];
+        if (!prevSlide || !currSlide) return;
+        if (local < this.gate) {
+          const t2 = this.easeInOutCubic(this.norm(local, 0, this.gate));
+          const tz = this.backZPx * t2;
+          const scale = 1 + (this.backScaleEnd - 1) * t2;
+          this.showSlide(prevSlide, 0, tz, scale, 5);
+          return;
+        }
+        const t = this.easeOutQuart(this.norm(local, this.gate, 1));
+        const prevScale = this.backScaleEnd - 0.04 * t;
+        const currY = startY * (1 - t);
+        this.showSlide(prevSlide, 0, this.backZPx, prevScale, 4);
+        this.showSlide(currSlide, currY, 0, 1, 10);
+      }
+      refresh() {
+        if (this.isDestroyed) return;
+        this.refreshElements();
+        this.setupDots();
+        this.setDeckHeight();
+        this.requestRender();
+      }
+      destroy() {
+        if (this.isDestroyed) return;
+        this.isDestroyed = true;
+        this.unsubscribeWindowResize?.();
+        this.unsubscribeTrackResize?.();
+        this.binder.unbindAll();
+        this.loader.destroy();
+        this.slides = [];
+        this.dots = [];
+        this.track = null;
+        this.hud = null;
+        this.hint = null;
+        this.log("info", "ScrollDeck destroyed");
       }
     };
   }
@@ -2601,138 +2867,22 @@ function generateId(prefix = "id", length = 9, useCrypto = false) {
   return `${prefix}-${randomString}`;
 }
 
-// src/app/symlink.ts
-init_ServiceWorkerManager();
-
-// src/app/pjax.ts
-var Pjax = class {
-  containerSelector;
-  linkSelector;
-  scrollToTop;
-  cacheEnabled;
-  cache = /* @__PURE__ */ new Map();
-  currentRequest;
-  constructor(options = {}) {
-    this.containerSelector = options.containerSelector ?? '[data-pjax="container"]';
-    this.linkSelector = options.linkSelector ?? "a[href]";
-    this.scrollToTop = options.scrollToTop ?? true;
-    this.cacheEnabled = options.cache ?? true;
-  }
-  init() {
-    document.addEventListener("click", this.onClick, true);
-    window.addEventListener("popstate", this.onPopState);
-  }
-  destroy() {
-    document.removeEventListener("click", this.onClick, true);
-    window.removeEventListener("popstate", this.onPopState);
-    this.currentRequest?.abort();
-    this.currentRequest = void 0;
-  }
-  onClick = (event) => {
-    if (event.defaultPrevented) return;
-    if (event.button !== 0) return;
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const target = event.target;
-    const link = target?.closest?.(this.linkSelector);
-    if (!link) return;
-    if (link.hasAttribute("download")) return;
-    if (link.getAttribute("rel") === "external") return;
-    if (link.target && link.target !== "_self") return;
-    if (link.dataset.noPjax !== void 0) return;
-    const href = link.href;
-    if (!href) return;
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin) return;
-    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
-      return;
-    }
-    event.preventDefault();
-    void this.load(url.toString(), true);
-  };
-  onPopState = () => {
-    void this.load(window.location.href, false);
-  };
-  async load(url, pushState) {
-    const container = document.querySelector(this.containerSelector);
-    if (!container) return;
-    this.currentRequest?.abort();
-    const controller = new AbortController();
-    this.currentRequest = controller;
-    container.setAttribute("data-pjax-loading", "true");
-    document.dispatchEvent(new CustomEvent("pjax:before", { detail: { url } }));
-    try {
-      const cached = this.cacheEnabled ? this.cache.get(url) : void 0;
-      let title;
-      let html;
-      if (cached) {
-        ({ title, html } = cached);
-      } else {
-        const res = await fetch(url, {
-          method: "GET",
-          headers: { "X-PJAX": "true" },
-          signal: controller.signal,
-          credentials: "same-origin"
-        });
-        if (!res.ok) throw new Error(`PJAX HTTP ${res.status}`);
-        const text = await res.text();
-        const parsed = new DOMParser().parseFromString(text, "text/html");
-        const nextContainer = parsed.querySelector(this.containerSelector);
-        if (!nextContainer) throw new Error(`PJAX container "${this.containerSelector}" not found`);
-        title = parsed.title || document.title;
-        html = nextContainer.innerHTML;
-        if (this.cacheEnabled) {
-          this.cache.set(url, { title, html, url });
-        }
-      }
-      container.innerHTML = html;
-      document.title = title;
-      if (pushState) {
-        history.pushState({ pjax: true }, "", url);
-      }
-      if (this.scrollToTop) {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      }
-      document.dispatchEvent(new CustomEvent("pjax:complete", { detail: { url } }));
-    } catch (error) {
-      if (error?.name !== "AbortError") {
-        document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error } }));
-        window.location.href = url;
-      }
-    } finally {
-      container.removeAttribute("data-pjax-loading");
-    }
-  }
-};
-function initPjax(options = {}) {
-  const pjax = new Pjax(options);
-  pjax.init();
-  return pjax;
-}
-
-// src/app/main.pjax.ts
+// src/app/spaceface.core.ts
+init_events();
 var AppConfig = class {
   config;
   constructor(options = {}) {
     this.config = {
-      hostname: window.location.hostname,
-      production: window.location.hostname !== "localhost" && !window.location.hostname.includes("127.0.0.1"),
+      hostname: options.hostname ?? window.location.hostname,
+      production: options.production ?? (window.location.hostname !== "localhost" && !window.location.hostname.includes("127.0.0.1")),
       features: options.features ?? {},
       ...options
     };
   }
-  get(key) {
-    return key.split(".").reduce((value, k) => {
-      if (value?.[k] === void 0) {
-        console.log(`[spaceface] Config key "${key}" is undefined`);
-        return void 0;
-      }
-      return value[k];
-    }, this.config);
-  }
 };
-var Spaceface = class _Spaceface {
-  static EVENT_LOG = "log";
-  static EVENT_TELEMETRY = "telemetry";
+var SpacefaceCore = class _SpacefaceCore {
+  static EVENT_LOG = EVENTS.LOG;
+  static EVENT_TELEMETRY = EVENTS.TELEMETRY;
   appConfig;
   debug;
   pageType;
@@ -2742,11 +2892,16 @@ var Spaceface = class _Spaceface {
   inactivityWatcher = null;
   screensaverController = null;
   slideshows = [];
-  swManager;
+  floatingImagesManagers = [];
+  scrollDecks = [];
   _partialUnsub;
   _partialObserver;
+  pjaxFeatures = /* @__PURE__ */ new Map();
+  managedFeatures = [];
+  onceFeatures = [];
   constructor(options = {}) {
     this.appConfig = new AppConfig(options);
+    this.appConfig.config.features = this.normalizeFeaturesConfig(this.appConfig.config.features);
     this.debug = !!this.appConfig.config.debug;
     this.pageType = this.resolvePageType();
     this.startTime = performance.now();
@@ -2754,11 +2909,14 @@ var Spaceface = class _Spaceface {
       partialLoader: () => Promise.resolve().then(() => (init_PartialLoader(), PartialLoader_exports)),
       slideplayer: () => Promise.resolve().then(() => (init_SlidePlayer(), SlidePlayer_exports)),
       screensaver: () => Promise.resolve().then(() => (init_ScreensaverController(), ScreensaverController_exports)),
-      serviceWorker: () => Promise.resolve().then(() => (init_ServiceWorkerManager(), ServiceWorkerManager_exports))
+      floatingImages: () => Promise.resolve().then(() => (init_FloatingImagesManager(), FloatingImagesManager_exports)),
+      scrollDeck: () => Promise.resolve().then(() => (init_ScrollDeck(), ScrollDeck_exports))
     };
     if (!this.appConfig.config.features) {
       this.log("warn", "No features specified in config");
     }
+    this.setupManagedFeatures();
+    this.setupOnceFeatures();
   }
   log(level, ...args) {
     if (!this.debug && level === "debug") return;
@@ -2773,7 +2931,7 @@ var Spaceface = class _Spaceface {
       data,
       time: Date.now()
     };
-    eventBus.emit(_Spaceface.EVENT_LOG, payload);
+    eventBus.emit(_SpacefaceCore.EVENT_LOG, payload);
     if (this.debug) {
       console[level]?.(`[spaceface] [${level.toUpperCase()}]`, ...args);
     }
@@ -2781,8 +2939,11 @@ var Spaceface = class _Spaceface {
   resolvePageType() {
     const body = document.body;
     if (body.dataset.page) return body.dataset.page;
-    const path = window.location.pathname;
-    return path === "/" ? "home" : path === "/app" ? "app" : "default";
+    const rawPath = window.location.pathname;
+    const path = rawPath.replace(/\/+$/, "") || "/";
+    if (path === "/") return "home";
+    const segment = path.split("/").filter(Boolean).pop() ?? "default";
+    return segment.replace(/\.html$/i, "").replace(/^_+/, "") || "default";
   }
   async loadFeatureModule(name) {
     if (this.featureCache.has(name)) return this.featureCache.get(name);
@@ -2799,61 +2960,24 @@ var Spaceface = class _Spaceface {
       return null;
     }
   }
-  async initializeFeatures() {
-    await this.initSlidePlayer();
-    const initTasks = [
-      this.initInactivityWatcher(),
-      this.initScreensaver(),
-      this.initServiceWorker()
-    ];
-    await Promise.allSettled(initTasks);
-    this.log("info", `Page features initialized for: ${this.pageType}`);
-  }
-  async init() {
+  async initBase() {
     this.log("info", `App initialization started (Page: ${this.pageType})`);
     document.documentElement.classList.add("js-enabled", `page-${this.pageType}`);
     await DomReadyPromise.ready();
     this.log("info", "DOM ready");
-    await this.initializeFeatures();
+  }
+  finishInit() {
     const duration = (performance.now() - this.startTime).toFixed(2);
     this.log("info", `App initialized in ${duration}ms`);
-    eventBus.emit(_Spaceface.EVENT_TELEMETRY, {
+    eventBus.emit(_SpacefaceCore.EVENT_TELEMETRY, {
       type: "init:duration",
       value: duration,
       page: this.pageType
     });
   }
-  async handlePjaxComplete() {
-    this.pageType = this.resolvePageType();
-    document.documentElement.classList.add(`page-${this.pageType}`);
-    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
-    this.slideshows = [];
-    await this.initSlidePlayer();
-  }
-  emitFeatureTelemetry(feature, startTime, status, error) {
-    const duration = (performance.now() - startTime).toFixed(2);
-    eventBus.emit(_Spaceface.EVENT_TELEMETRY, {
-      type: "feature:init",
-      feature,
-      status,
-      duration,
-      page: this.pageType,
-      error
-    });
-  }
-  destroy() {
-    this._partialUnsub?.();
-    this._partialObserver?.disconnect?.();
-    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
-    this.inactivityWatcher?.destroy?.();
-    this.screensaverController?.destroy?.();
-    this.featureCache.clear();
-    document.querySelector('[id^="screensaver"]')?.remove();
-    this.log("info", "Spaceface destroyed, all resources released.");
-  }
   async initInactivityWatcher() {
     const start = performance.now();
-    const screensaver = this.appConfig.config.features?.screensaver;
+    const screensaver = this.appConfig.config.features.screensaver;
     if (!screensaver || this.inactivityWatcher) {
       this.emitFeatureTelemetry("inactivityWatcher", start, "skipped");
       return;
@@ -2871,7 +2995,7 @@ var Spaceface = class _Spaceface {
   }
   async initSlidePlayer() {
     const start = performance.now();
-    const slideplayer = this.appConfig.config.features?.slideplayer;
+    const slideplayer = this.appConfig.config.features.slideplayer;
     if (!slideplayer) {
       this.emitFeatureTelemetry("slideplayer", start, "skipped");
       return;
@@ -2901,7 +3025,7 @@ var Spaceface = class _Spaceface {
   }
   async initScreensaver() {
     const start = performance.now();
-    const screensaver = this.appConfig.config.features?.screensaver;
+    const screensaver = this.appConfig.config.features.screensaver;
     if (!screensaver?.partialUrl) {
       this.log("error", "Screensaver configuration is missing or incomplete");
       this.emitFeatureTelemetry("screensaver", start, "skipped");
@@ -2925,7 +3049,7 @@ var Spaceface = class _Spaceface {
         ...screensaver.delay !== void 0 && { inactivityDelay: screensaver.delay }
       });
       await this.screensaverController?.init?.();
-      eventBus.emit("screensaver:initialized", id);
+      eventBus.emit(EVENTS.SCREENSAVER_INITIALIZED, id);
       this.log("info", "Screensaver initialized:", id);
       this.emitFeatureTelemetry("screensaver", start, "success");
     } catch (error) {
@@ -2933,53 +3057,407 @@ var Spaceface = class _Spaceface {
       this.emitFeatureTelemetry("screensaver", start, "error", error);
     }
   }
-  async initServiceWorker() {
+  async initPartialLoader() {
     const start = performance.now();
-    if (!this.appConfig.config.features?.serviceWorker) {
-      this.emitFeatureTelemetry("serviceWorker", start, "skipped");
-      return;
+    const config = this.appConfig.config.features.partialLoader;
+    if (!config?.enabled) {
+      this.emitFeatureTelemetry("partialLoader", start, "skipped");
+      return null;
     }
     try {
-      const module = await this.loadFeatureModule("serviceWorker");
-      const Manager = module?.default;
-      if (!Manager) {
-        this.emitFeatureTelemetry("serviceWorker", start, "skipped");
-        return;
+      const module = await this.loadFeatureModule("partialLoader");
+      const PartialLoader2 = module?.PartialLoader;
+      if (!PartialLoader2) {
+        this.emitFeatureTelemetry("partialLoader", start, "skipped");
+        return null;
       }
-      this.swManager = new Manager("/sw.js", {}, {
-        strategy: { images: "cache-first", others: "network-first" }
+      const loader = new PartialLoader2({
+        debug: config.debug ?? this.debug,
+        baseUrl: config.baseUrl ?? "/",
+        cacheEnabled: config.cacheEnabled ?? true,
+        timeout: config.timeout,
+        retryAttempts: config.retryAttempts
       });
-      if (this.swManager) {
-        await this.swManager.register();
-        this.swManager.configure();
-        this.log("info", "Service Worker registered and configured");
-        this.emitFeatureTelemetry("serviceWorker", start, "success");
+      await loader.loadContainer(document);
+      const watchResult = loader.watch?.(document);
+      if (typeof watchResult === "function") {
+        this._partialUnsub = watchResult;
+      } else if (watchResult) {
+        this._partialObserver = watchResult;
       }
+      this.log("info", "PartialLoader initialized");
+      this.emitFeatureTelemetry("partialLoader", start, "success");
+      return loader;
     } catch (error) {
-      this.emitFeatureTelemetry("serviceWorker", start, "error", error);
+      this.emitFeatureTelemetry("partialLoader", start, "error", error);
       throw error;
     }
   }
-};
-var app = new Spaceface({
-  features: {
-    slideplayer: { interval: 5e3, includePicture: false, showDots: false },
-    screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" },
-    serviceWorker: true
+  async initDomFeatures() {
+    await this.runFeatureGraph(this.managedFeatures, "init");
   }
+  async initOnceFeatures() {
+    await this.runFeatureGraph(this.onceFeatures, "init");
+    this.log("info", `Page features initialized for: ${this.pageType}`);
+  }
+  registerPjaxFeature(name, init, when) {
+    if (this.pjaxFeatures.has(name)) return;
+    this.pjaxFeatures.set(name, { init, when });
+  }
+  async handlePjaxComplete() {
+    this.pageType = this.resolvePageType();
+    document.documentElement.classList.add(`page-${this.pageType}`);
+    await this.runFeatureGraph(this.managedFeatures, "onRouteChange");
+    for (const { init, when } of this.pjaxFeatures.values()) {
+      if (when && !when(this.pageType)) continue;
+      await init();
+    }
+  }
+  destroy() {
+    this._partialUnsub?.();
+    this._partialObserver?.disconnect?.();
+    this.managedFeatures.forEach((feature) => feature.destroy());
+    this.onceFeatures.forEach((feature) => feature.destroy());
+    this.featureCache.clear();
+    document.querySelector('[id^="screensaver"]')?.remove();
+    this.log("info", "Spaceface destroyed, all resources released.");
+  }
+  emitFeatureTelemetry(feature, startTime, status, error) {
+    const duration = (performance.now() - startTime).toFixed(2);
+    eventBus.emit(_SpacefaceCore.EVENT_TELEMETRY, {
+      type: "feature:init",
+      feature,
+      status,
+      duration,
+      page: this.pageType,
+      error
+    });
+  }
+  async initFloatingImages() {
+    const start = performance.now();
+    const floatingImages = this.appConfig.config.features.floatingImages;
+    if (!floatingImages) {
+      this.emitFeatureTelemetry("floatingImages", start, "skipped");
+      return;
+    }
+    try {
+      const module = await this.loadFeatureModule("floatingImages");
+      const FloatingImagesManager2 = module?.FloatingImagesManager;
+      if (!FloatingImagesManager2) {
+        this.emitFeatureTelemetry("floatingImages", start, "skipped");
+        return;
+      }
+      const selector = floatingImages.selector ?? ".floating-images-container";
+      const containers = Array.from(document.querySelectorAll(selector));
+      if (!containers.length) {
+        this.emitFeatureTelemetry("floatingImages", start, "skipped");
+        return;
+      }
+      this.destroyFloatingImagesManagers();
+      const shouldPauseOnScreensaver = floatingImages.pauseOnScreensaver ?? this.pageType === "floatingimages";
+      this.floatingImagesManagers = containers.map((container) => {
+        return new FloatingImagesManager2(container, {
+          maxImages: floatingImages.maxImages,
+          debug: floatingImages.debug ?? this.debug,
+          hoverBehavior: floatingImages.hoverBehavior ?? "none",
+          hoverSlowMultiplier: floatingImages.hoverSlowMultiplier ?? 0.2,
+          tapToFreeze: floatingImages.tapToFreeze ?? true,
+          pauseOnScreensaver: shouldPauseOnScreensaver
+        });
+      });
+      this.log("info", `${this.floatingImagesManagers.length} FloatingImages instance(s) loaded`);
+      this.emitFeatureTelemetry("floatingImages", start, "success");
+    } catch (error) {
+      this.emitFeatureTelemetry("floatingImages", start, "error", error);
+      throw error;
+    }
+  }
+  async initScrollDeck() {
+    const start = performance.now();
+    const scrollDeck = this.appConfig.config.features.scrollDeck;
+    if (!scrollDeck) {
+      this.emitFeatureTelemetry("scrollDeck", start, "skipped");
+      return;
+    }
+    try {
+      const module = await this.loadFeatureModule("scrollDeck");
+      const ScrollDeck2 = module?.ScrollDeck;
+      if (!ScrollDeck2) {
+        this.emitFeatureTelemetry("scrollDeck", start, "skipped");
+        return;
+      }
+      const selector = scrollDeck.selector ?? ".scroll-deck-container";
+      const containers = Array.from(document.querySelectorAll(selector));
+      if (!containers.length) {
+        this.emitFeatureTelemetry("scrollDeck", start, "skipped");
+        return;
+      }
+      this.destroyScrollDecks();
+      this.scrollDecks = containers.map((container) => {
+        const instance = new ScrollDeck2(container, { ...scrollDeck });
+        instance.ready?.then?.(() => {
+        });
+        return instance;
+      });
+      this.log("info", `${this.scrollDecks.length} ScrollDeck instance(s) loaded`);
+      this.emitFeatureTelemetry("scrollDeck", start, "success");
+    } catch (error) {
+      this.emitFeatureTelemetry("scrollDeck", start, "error", error);
+      throw error;
+    }
+  }
+  destroyFloatingImagesManagers() {
+    this.floatingImagesManagers.forEach((manager) => manager.destroy?.());
+    this.floatingImagesManagers = [];
+  }
+  destroySlidePlayers() {
+    this.slideshows.forEach((slideshow) => slideshow.destroy?.());
+    this.slideshows = [];
+  }
+  destroyScrollDecks() {
+    this.scrollDecks.forEach((deck) => deck.destroy?.());
+    this.scrollDecks = [];
+  }
+  setupManagedFeatures() {
+    this.managedFeatures = [
+      {
+        name: "slideplayer",
+        dependsOn: [],
+        init: () => this.initSlidePlayer(),
+        onRouteChange: async () => {
+          this.destroySlidePlayers();
+          await this.initSlidePlayer();
+        },
+        destroy: () => this.destroySlidePlayers()
+      },
+      {
+        name: "floatingImages",
+        dependsOn: [],
+        init: () => this.initFloatingImages(),
+        onRouteChange: async () => {
+          this.destroyFloatingImagesManagers();
+          await this.initFloatingImages();
+        },
+        destroy: () => this.destroyFloatingImagesManagers()
+      },
+      {
+        name: "scrollDeck",
+        dependsOn: [],
+        init: () => this.initScrollDeck(),
+        onRouteChange: async () => {
+          this.destroyScrollDecks();
+          await this.initScrollDeck();
+        },
+        destroy: () => this.destroyScrollDecks()
+      }
+    ];
+  }
+  setupOnceFeatures() {
+    this.onceFeatures = [
+      {
+        name: "inactivityWatcher",
+        dependsOn: [],
+        init: () => this.initInactivityWatcher(),
+        destroy: () => this.inactivityWatcher?.destroy?.()
+      },
+      {
+        name: "screensaver",
+        dependsOn: ["inactivityWatcher"],
+        init: () => this.initScreensaver(),
+        destroy: () => this.screensaverController?.destroy?.()
+      }
+    ];
+  }
+  async runFeatureGraph(features2, stage) {
+    const pending = new Map(features2.map((feature) => [feature.name, feature]));
+    const completed = /* @__PURE__ */ new Set();
+    let guard = 0;
+    while (pending.size) {
+      guard++;
+      if (guard > features2.length * 2) {
+        throw new Error("Feature dependency graph contains a cycle or unresolved dependency.");
+      }
+      let progressed = false;
+      for (const [name, feature] of Array.from(pending.entries())) {
+        const deps = feature.dependsOn ?? [];
+        if (!deps.every((dep) => completed.has(dep))) continue;
+        if (stage === "onRouteChange" && feature.onRouteChange) {
+          await feature.onRouteChange(this.pageType);
+        } else {
+          await feature.init();
+        }
+        pending.delete(name);
+        completed.add(name);
+        progressed = true;
+      }
+      if (!progressed) {
+        const unresolved = Array.from(pending.keys()).join(", ");
+        throw new Error(`Unresolved feature dependencies: ${unresolved}`);
+      }
+    }
+  }
+  getFeatureSnapshot() {
+    return {
+      pageType: this.pageType,
+      managedFeatures: this.managedFeatures.map((f) => f.name),
+      onceFeatures: this.onceFeatures.map((f) => f.name),
+      activeSlidePlayers: this.slideshows.length,
+      activeFloatingImagesManagers: this.floatingImagesManagers.length,
+      activeScrollDecks: this.scrollDecks.length,
+      inactivityWatcherReady: !!this.inactivityWatcher,
+      screensaverReady: !!this.screensaverController,
+      partialLoaderWatching: !!(this._partialUnsub || this._partialObserver)
+    };
+  }
+  normalizeFeaturesConfig(features2) {
+    const normalized = { ...features2 };
+    const isPositiveNumber = (value) => typeof value === "number" && Number.isFinite(value) && value > 0;
+    if (normalized.slideplayer) {
+      if (normalized.slideplayer.interval !== void 0 && !isPositiveNumber(normalized.slideplayer.interval)) {
+        this.log("warn", "Invalid slideplayer.interval; expected positive number. Falling back to default.");
+        delete normalized.slideplayer.interval;
+      }
+    }
+    if (normalized.screensaver) {
+      if (typeof normalized.screensaver.partialUrl !== "string" || !normalized.screensaver.partialUrl.trim()) {
+        this.log("warn", "Invalid screensaver.partialUrl; disabling screensaver feature.");
+        delete normalized.screensaver;
+      } else if (normalized.screensaver.delay !== void 0 && !isPositiveNumber(normalized.screensaver.delay)) {
+        this.log("warn", "Invalid screensaver.delay; removing delay override.");
+        delete normalized.screensaver.delay;
+      }
+    }
+    if (normalized.floatingImages) {
+      if (normalized.floatingImages.maxImages !== void 0 && !isPositiveNumber(normalized.floatingImages.maxImages)) {
+        this.log("warn", "Invalid floatingImages.maxImages; removing override.");
+        delete normalized.floatingImages.maxImages;
+      }
+      if (normalized.floatingImages.hoverSlowMultiplier !== void 0 && (typeof normalized.floatingImages.hoverSlowMultiplier !== "number" || normalized.floatingImages.hoverSlowMultiplier < 0)) {
+        this.log("warn", "Invalid floatingImages.hoverSlowMultiplier; removing override.");
+        delete normalized.floatingImages.hoverSlowMultiplier;
+      }
+      if (normalized.floatingImages.selector !== void 0 && typeof normalized.floatingImages.selector !== "string") {
+        this.log("warn", "Invalid floatingImages.selector; removing override.");
+        delete normalized.floatingImages.selector;
+      }
+    }
+    if (normalized.scrollDeck) {
+      if (normalized.scrollDeck.selector !== void 0 && typeof normalized.scrollDeck.selector !== "string") {
+        this.log("warn", "Invalid scrollDeck.selector; removing override.");
+        delete normalized.scrollDeck.selector;
+      }
+      if (normalized.scrollDeck.slideSelector !== void 0 && typeof normalized.scrollDeck.slideSelector !== "string") {
+        this.log("warn", "Invalid scrollDeck.slideSelector; removing override.");
+        delete normalized.scrollDeck.slideSelector;
+      }
+      if (normalized.scrollDeck.trackSelector !== void 0 && typeof normalized.scrollDeck.trackSelector !== "string") {
+        this.log("warn", "Invalid scrollDeck.trackSelector; removing override.");
+        delete normalized.scrollDeck.trackSelector;
+      }
+      if (normalized.scrollDeck.hudSelector !== void 0 && typeof normalized.scrollDeck.hudSelector !== "string") {
+        this.log("warn", "Invalid scrollDeck.hudSelector; removing override.");
+        delete normalized.scrollDeck.hudSelector;
+      }
+      if (normalized.scrollDeck.hintSelector !== void 0 && typeof normalized.scrollDeck.hintSelector !== "string") {
+        this.log("warn", "Invalid scrollDeck.hintSelector; removing override.");
+        delete normalized.scrollDeck.hintSelector;
+      }
+      if (normalized.scrollDeck.autoCreateHud !== void 0 && typeof normalized.scrollDeck.autoCreateHud !== "boolean") {
+        this.log("warn", "Invalid scrollDeck.autoCreateHud; removing override.");
+        delete normalized.scrollDeck.autoCreateHud;
+      }
+      const numericKeys = [
+        "topStripPx",
+        "gate",
+        "backZPx",
+        "backScaleEnd",
+        "scrollPerSegment",
+        "hideHintAfter"
+      ];
+      numericKeys.forEach((key) => {
+        const val = normalized.scrollDeck?.[key];
+        if (val !== void 0 && (typeof val !== "number" || !Number.isFinite(val))) {
+          this.log("warn", `Invalid scrollDeck.${String(key)}; removing override.`);
+          if (normalized.scrollDeck) {
+            delete normalized.scrollDeck[key];
+          }
+        }
+      });
+    }
+    if (normalized.partialLoader) {
+      if (normalized.partialLoader.timeout !== void 0 && !isPositiveNumber(normalized.partialLoader.timeout)) {
+        this.log("warn", "Invalid partialLoader.timeout; removing override.");
+        delete normalized.partialLoader.timeout;
+      }
+      if (normalized.partialLoader.retryAttempts !== void 0 && !isPositiveNumber(normalized.partialLoader.retryAttempts)) {
+        this.log("warn", "Invalid partialLoader.retryAttempts; removing override.");
+        delete normalized.partialLoader.retryAttempts;
+      }
+    }
+    return normalized;
+  }
+};
+
+// src/app/main.ts
+var features = {
+  partialLoader: { enabled: true, debug: true, baseUrl: "/", cacheEnabled: true },
+  slideplayer: { interval: 5e3, includePicture: false },
+  floatingImages: {
+    selector: ".floating-images-container",
+    maxImages: 24,
+    debug: false,
+    hoverBehavior: "slow",
+    hoverSlowMultiplier: 0.2,
+    tapToFreeze: true
+  },
+  scrollDeck: {
+    selector: ".scroll-deck-container",
+    slideSelector: ".slide",
+    trackSelector: "#track",
+    hudSelector: "#hud",
+    hintSelector: "#hint",
+    topStripPx: 100,
+    gate: 0.12,
+    backZPx: -220,
+    backScaleEnd: 0.78,
+    scrollPerSegment: 1.6,
+    hideHintAfter: 0.12
+  },
+  screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" }
+};
+var app = new SpacefaceCore({
+  features
 });
-app.init().then(() => {
-  initPjax({ containerSelector: '[data-pjax="container"]' });
-  document.addEventListener("pjax:complete", () => {
-    void app.handlePjaxComplete();
+app.initBase().then(async () => {
+  await app.initPartialLoader();
+  await app.initDomFeatures();
+  await app.initOnceFeatures();
+  app.finishInit();
+});
+var isDev = ["localhost", "127.0.0.1"].some(
+  (host) => window.location.hostname.includes(host)
+);
+if (isDev) {
+  eventBus.onAny((eventName, payload) => {
+    if (eventName === "log:debug") return;
+    if (eventName === "log" && payload?.level === "debug") return;
+    const { level = "log", args, ...otherDetails } = payload ?? {};
+    if (!payload) return console.log(`[spaceface onAny] Event: ${eventName} \u2013 no payload!`);
+    if (typeof payload === "string") return console.log(`[spaceface onAny] Event: ${eventName} [LOG]`, payload);
+    const fullMessage = args ?? otherDetails ?? "(no details)";
+    const methodMap = {
+      debug: "debug",
+      info: "info",
+      warn: "warn",
+      error: "error",
+      log: "log"
+    };
+    const method = methodMap[level] ?? "log";
+    console[method](`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] \u2013`, fullMessage);
   });
-});
+}
 window.addEventListener("beforeunload", () => {
   app.destroy();
   app.log("info", "App destroyed on beforeunload");
 });
-export {
-  AppConfig,
-  Spaceface
-};
 //# sourceMappingURL=bundle.js.map

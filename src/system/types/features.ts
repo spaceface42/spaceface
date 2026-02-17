@@ -8,6 +8,13 @@ export interface FloatingImagesManagerInterface {
     init?(): Promise<void>;
 }
 
+// ScrollDeck shared runtime contract
+export interface ScrollDeckInterface {
+    ready?: Promise<void>;
+    refresh?: () => void;
+    destroy?: () => void;
+}
+
 // ScreensaverController
 export interface ScreensaverControllerOptionsInterface {
     /** URL of the partial HTML to load when the screensaver shows */
