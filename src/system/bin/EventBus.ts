@@ -1,4 +1,3 @@
-export const VERSION = '2.0.0' as const;
 
 import {
     UnsubscribeFn,

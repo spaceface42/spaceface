@@ -1,6 +1,5 @@
 // src/spaceface/system/features/bin/AnimationLoop.ts
 
-export const VERSION = '2.0.0' as const;
 
 type FrameCallback = () => void;
 

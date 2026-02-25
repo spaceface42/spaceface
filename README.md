@@ -15,6 +15,7 @@ It provides small, framework-free modules for:
 - `src/app/startup.ts`: shared startup flow used by all entry files
 - `src/app/config/features.ts`: shared feature presets
 - `src/app/dev/devEventLogger.ts`: dev-only event logging helper
+- Version source: `package.json` is the single project version source.
 
 ## Entrypoints
 
@@ -37,6 +38,8 @@ Production fallback entry without PJAX.
 `bin/build-html.js` composes HTML from `docs.src` into `docs` and swaps script references to the bundle.
 
 ## Build Commands
+
+- Node version: use `.nvmrc` (`nvm use`) before install/build.
 
 - `npm run build:dev`
 Compile TS modules to `docs.src/spaceface` (`tsc`) and pre-render HTML to `docs` without swapping module scripts to bundle files.

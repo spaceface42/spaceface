@@ -1,5 +1,4 @@
 // src/system/bin/PartialFetcher.ts
-export const VERSION = '2.0.0' as const;
 
 import { eventBus } from "./EventBus.js";
 import { PartialLoader } from "./PartialLoader.js";

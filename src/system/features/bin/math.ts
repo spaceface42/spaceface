@@ -1,6 +1,5 @@
 // src/spaceface/system/features/bin/math.ts
 
-export const VERSION = '2.0.0' as const;
 
 /**
  * Clamps a number within the inclusive range specified by the minimum and maximum values.

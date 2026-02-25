@@ -219,7 +219,8 @@ var init_EventWatcher = __esm({
       // To deduplicate log:debug messages
       loggedMessages = /* @__PURE__ */ new Set();
       constructor(target, debug = false) {
-        if (!target || typeof target.addEventListener !== "function" || typeof target.removeEventListener !== "function") {
+        const maybeTarget = target;
+        if (!target || typeof maybeTarget.addEventListener !== "function" || typeof maybeTarget.removeEventListener !== "function") {
           throw new Error(`${this.constructor.name}: target must be a valid EventTarget.`);
         }
         this.target = target;
@@ -244,11 +245,23 @@ var init_EventWatcher = __esm({
               time: Date.now()
             };
             eventBus.emit("log", logPayload);
-          } catch (_) {
+          } catch {
           }
           if (this.debug) {
-            const method = { debug: "debug", info: "info", warn: "warn", error: "error" }[level] ?? "log";
-            console[method](`[${this.constructor.name}] [${level.toUpperCase()}]`, message2, payload2);
+            switch (level) {
+              case "debug":
+                console.debug(`[${this.constructor.name}] [${level.toUpperCase()}]`, message2, payload2);
+                break;
+              case "info":
+                console.info(`[${this.constructor.name}] [${level.toUpperCase()}]`, message2, payload2);
+                break;
+              case "warn":
+                console.warn(`[${this.constructor.name}] [${level.toUpperCase()}]`, message2, payload2);
+                break;
+              case "error":
+                console.error(`[${this.constructor.name}] [${level.toUpperCase()}]`, message2, payload2);
+                break;
+            }
           }
           return;
         }
@@ -277,7 +290,7 @@ var init_EventWatcher = __esm({
             console.warn("Failed to log debug event", { message, payload, error });
           }
         }
-        console.debug?.(`[${this.constructor.name}] [DEBUG]`, message, payload);
+        console.debug(`[${this.constructor.name}] [DEBUG]`, message, payload);
       }
       checkDestroyed() {
         if (this.destroyed) {
@@ -360,9 +373,9 @@ function debounce(func, delay = 300, immediate = false) {
   function debounced(...args) {
     const callNow = immediate && timer.id === null;
     timer.set(() => {
-      if (!immediate) func.apply(this, args);
+      if (!immediate) func(...args);
     }, delay);
-    if (callNow) func.apply(this, args);
+    if (callNow) func(...args);
   }
   debounced.cancel = () => timer.cancel();
   return debounced;
@@ -377,18 +390,17 @@ function throttle(func, delay = 100, options = {}) {
   const { leading = true, trailing = true } = options;
   let lastCall = 0;
   let lastArgs = null;
-  let lastThis = null;
   const timer = createTimeout();
   function invoke() {
     lastCall = leading ? Date.now() : 0;
-    func.apply(lastThis, lastArgs);
-    lastArgs = lastThis = null;
+    if (!lastArgs) return;
+    func(...lastArgs);
+    lastArgs = null;
   }
   function throttled(...args) {
     const now = Date.now();
     if (lastCall === 0 && !leading) lastCall = now;
     lastArgs = args;
-    lastThis = this;
     const remaining = delay - (now - lastCall);
     if (remaining <= 0 || remaining > delay) {
       timer.cancel();
@@ -402,7 +414,7 @@ function throttle(func, delay = 100, options = {}) {
   throttled.cancel = () => {
     timer.cancel();
     lastCall = 0;
-    lastArgs = lastThis = null;
+    lastArgs = null;
   };
   return throttled;
 }
@@ -729,7 +741,8 @@ var init_EventBinder = __esm({
        * @param options Optional event listener options
        */
       bindDOM(target, event, handler, options = false) {
-        if (!target || typeof target.addEventListener !== "function" || typeof target.removeEventListener !== "function") {
+        const maybeTarget = target;
+        if (!target || typeof maybeTarget.addEventListener !== "function" || typeof maybeTarget.removeEventListener !== "function") {
           this.logger.warn(`Invalid DOM target for bindDOM: ${String(target)}`);
           return;
         }
@@ -1530,13 +1543,20 @@ var init_SlidePlayer = __esm({
         eventBus.emit(EVENTS.SLIDEPLAYER_LOG, { level, message, data });
         eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
-          const methodMap = {
-            debug: "debug",
-            info: "info",
-            warn: "warn",
-            error: "error"
-          };
-          console[methodMap[level]]?.(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+          switch (level) {
+            case "debug":
+              console.debug(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "info":
+              console.info(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "warn":
+              console.warn(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "error":
+              console.error(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+              break;
+          }
         }
       }
       resolveContainer(containerOrSelector) {
@@ -1715,7 +1735,8 @@ var init_SlidePlayer = __esm({
         if (Math.abs(dx) >= _SlidePlayer.SWIPE_THRESHOLD && Math.abs(dy) < _SlidePlayer.VERTICAL_TOLERANCE) {
           const direction = dx < 0 ? "next" : "prev";
           this.log("debug", `Swipe detected`, { dx, dy, direction });
-          dx < 0 ? this.next() : this.prev();
+          if (dx < 0) this.next();
+          else this.prev();
         }
       }
       emit(type, detail, busEvent) {
@@ -2030,7 +2051,7 @@ var init_ResizeManager = __esm({
         try {
           const rect = el.getBoundingClientRect();
           return { width: rect.width, height: rect.height };
-        } catch (error) {
+        } catch {
           throw new Error("ResizeManager: Failed to get element size.");
         }
       }
@@ -2039,7 +2060,7 @@ var init_ResizeManager = __esm({
        */
       destroy() {
         this.logDebug("Destroying ResizeManager");
-        for (const [cb, handler] of this.windowCallbacks.entries()) {
+        for (const [, handler] of this.windowCallbacks.entries()) {
           window.removeEventListener("resize", handler);
         }
         this.windowCallbacks.clear();
@@ -2142,14 +2163,20 @@ var init_FloatingImagesManager = __esm({
         eventBus.emit(EVENTS.FLOATING_IMAGES_LOG, { level, message, data });
         eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
-          const consoleMethodMap = {
-            debug: "debug",
-            info: "info",
-            warn: "warn",
-            error: "error"
-          };
-          const method = consoleMethodMap[level] ?? "log";
-          console[method](`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+          switch (level) {
+            case "debug":
+              console.debug(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "info":
+              console.info(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "warn":
+              console.warn(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "error":
+              console.error(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+              break;
+          }
         }
       }
       setupResizeHandling() {
@@ -2410,14 +2437,20 @@ var init_ScreensaverController = __esm({
         eventBus.emit(EVENTS.SCREENSAVER_LOG, { level, message, data });
         eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
-          const consoleMethodMap = {
-            debug: "debug",
-            info: "info",
-            warn: "warn",
-            error: "error"
-          };
-          const method = consoleMethodMap[level] ?? "log";
-          console[method](`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+          switch (level) {
+            case "debug":
+              console.debug(`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "info":
+              console.info(`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "warn":
+              console.warn(`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+              break;
+            case "error":
+              console.error(`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+              break;
+          }
         }
       }
       async init() {
@@ -2544,10 +2577,11 @@ function initPjax(options = {}) {
   pjax.init();
   return pjax;
 }
-var Pjax;
+var isAbortError, Pjax;
 var init_pjax = __esm({
   "src/app/pjax.ts"() {
     "use strict";
+    isAbortError = (error) => error instanceof DOMException && error.name === "AbortError";
     Pjax = class {
       containerSelector;
       linkSelector;
@@ -2643,7 +2677,7 @@ var init_pjax = __esm({
           }
           document.dispatchEvent(new CustomEvent("pjax:complete", { detail: { url } }));
         } catch (error) {
-          if (error?.name !== "AbortError") {
+          if (!isAbortError(error)) {
             document.dispatchEvent(new CustomEvent("pjax:error", { detail: { url, error } }));
             window.location.href = url;
           }
@@ -2699,7 +2733,6 @@ var DomReadyPromise = class {
     const selectorList = Array.isArray(selectors) ? selectors : [selectors];
     const foundElements = /* @__PURE__ */ new Map();
     return new Promise((resolve, reject) => {
-      let timeoutId;
       const checkForElements = () => {
         for (const selector of selectorList) {
           if (!foundElements.has(selector)) {
@@ -2713,20 +2746,11 @@ var DomReadyPromise = class {
         }
       };
       const observer = new MutationObserver(checkForElements);
-      const cleanup = () => {
-        observer.disconnect();
-        if (timeoutId !== void 0) clearTimeout(timeoutId);
-        signal?.removeEventListener("abort", onAbort);
-      };
-      const onAbort = () => {
-        cleanup();
+      if (signal?.aborted) {
         reject(new DOMException("waitForElement aborted", "AbortError"));
-      };
-      if (signal?.aborted) return onAbort();
-      signal?.addEventListener("abort", onAbort, { once: true });
-      observer.observe(root, { childList: true, subtree: true });
-      checkForElements();
-      timeoutId = window.setTimeout(() => {
+        return;
+      }
+      const timeoutId = window.setTimeout(() => {
         cleanup();
         const missing = selectorList.filter((s) => !foundElements.has(s));
         reject(new DOMException(
@@ -2734,6 +2758,18 @@ var DomReadyPromise = class {
           "TimeoutError"
         ));
       }, timeout);
+      const cleanup = () => {
+        observer.disconnect();
+        clearTimeout(timeoutId);
+        signal?.removeEventListener("abort", onAbort);
+      };
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException("waitForElement aborted", "AbortError"));
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      observer.observe(root, { childList: true, subtree: true });
+      checkForElements();
     });
   }
 };
@@ -2757,16 +2793,18 @@ function generateId(prefix = "id", length = 9, useCrypto = false) {
 
 // src/app/dev/devEventLogger.ts
 function attachDevEventLogger(options = {}) {
-  const isDevHost = ["localhost", "127.0.0.1"].some(
+  const isDevHost2 = ["localhost", "127.0.0.1"].some(
     (host) => window.location.hostname.includes(host)
   );
-  if (!isDevHost) return;
+  if (!isDevHost2) return;
   eventBus.onAny((eventName, payload) => {
     if (!options.includeDebug) {
+      const maybeLevel = typeof payload === "object" && payload !== null && "level" in payload ? payload.level : void 0;
       if (eventName === "log:debug") return;
-      if (eventName === "log" && payload?.level === "debug") return;
+      if (eventName === "log" && maybeLevel === "debug") return;
     }
-    const { level = "log", args, ...otherDetails } = payload ?? {};
+    const objectPayload = typeof payload === "object" && payload !== null ? payload : void 0;
+    const { level = "log", args, ...otherDetails } = objectPayload ?? {};
     if (!payload) {
       console.log(`[spaceface onAny] Event: ${eventName} - no payload`);
       return;
@@ -2776,15 +2814,23 @@ function attachDevEventLogger(options = {}) {
       return;
     }
     const fullMessage = args ?? otherDetails ?? "(no details)";
-    const methodMap = {
-      debug: "debug",
-      info: "info",
-      warn: "warn",
-      error: "error",
-      log: "log"
-    };
-    const method = methodMap[level] ?? "log";
-    console[method](`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+    const method = ["debug", "info", "warn", "error", "log"].includes(level) ? level : "log";
+    switch (method) {
+      case "debug":
+        console.debug(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+        break;
+      case "info":
+        console.info(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+        break;
+      case "warn":
+        console.warn(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+        break;
+      case "error":
+        console.error(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+        break;
+      default:
+        console.log(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+    }
   });
 }
 
@@ -3274,11 +3320,15 @@ function startup(options) {
   return app;
 }
 
-// src/app/main.ts
+// src/app/main.pjax.ts
+var isDevHost = ["localhost", "127.0.0.1"].some(
+  (host) => window.location.hostname.includes(host)
+);
 startup({
-  features: devFeatures,
-  debug: true,
-  usePartialLoader: true,
-  enableDevEventLogging: () => attachDevEventLogger({ includeDebug: true })
+  features: defaultFeatures,
+  debug: isDevHost,
+  usePjax: true,
+  pjaxContainerSelector: '[data-pjax="container"]',
+  enableDevEventLogging: () => attachDevEventLogger({ includeDebug: isDevHost })
 });
 //# sourceMappingURL=bundle.js.map
