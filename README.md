@@ -10,16 +10,19 @@ It provides small, framework-free modules for:
 ## Architecture
 
 - `src/system/`: reusable runtime and feature modules
-- `src/app/`: app entrypoints and boot orchestration
+- `src/app/`: app entrypoints and startup orchestration
 - `src/app/spaceface.core.ts`: shared app core used by all entrypoints
+- `src/app/startup.ts`: shared startup flow used by all entry files
+- `src/app/config/features.ts`: shared feature presets
+- `src/app/dev/devEventLogger.ts`: dev-only event logging helper
 
 ## Entrypoints
 
 - `src/app/main.ts`
-Development entry. Runtime partial loading is enabled.
+Development entry. Runtime partial loading is enabled and debug/event logging is enabled on localhost.
 
 - `src/app/main.pjax.ts`
-Production entry with PJAX. Runtime partial loading is disabled because HTML is pre-rendered during build.
+PJAX entry. Runtime partial loading is disabled because HTML is pre-rendered during build.
 
 - `src/app/main.prod.ts`
 Production fallback entry without PJAX.
@@ -36,16 +39,16 @@ Production fallback entry without PJAX.
 ## Build Commands
 
 - `npm run build:dev`
-Build TypeScript modules (`tsc`) and pre-render HTML without bundle script swapping.
+Compile TS modules to `docs.src/spaceface` (`tsc`) and pre-render HTML to `docs` without swapping module scripts to bundle files.
 
 - `npm run build:prod:pjax`
-Build with `main.pjax.ts` and pre-render HTML.
+Bundle with `ENTRY=./src/app/main.pjax.ts` and pre-render HTML (bundle script swap enabled).
 
 - `npm run build:prod`
-Build with `main.prod.ts` and pre-render HTML.
+Bundle with `ENTRY=./src/app/main.prod.ts` and pre-render HTML (bundle script swap enabled).
 
 - `npm run build`
-Default build (`main.pjax.ts`) and pre-render HTML.
+Default production bundle build (`main.pjax.ts`) and pre-render HTML.
 
 - `npm run typecheck`
 Run TypeScript checks without emitting output.
@@ -54,6 +57,7 @@ Run TypeScript checks without emitting output.
 
 - PJAX swaps container `innerHTML`. Scripts inside swapped HTML do not auto-execute.
 - If page-specific behavior is required after PJAX navigation, initialize it from the main bundle on `pjax:complete`.
+- For local debug logs, run `npm run build:dev` and serve `docs/` from `localhost` or `127.0.0.1`.
 
 ## Feature Behavior
 
