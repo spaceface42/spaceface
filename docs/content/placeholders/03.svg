@@ -1,0 +1,24 @@
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 620 620">
+  <defs>
+    <style>
+      path {
+        fill: none;
+        stroke: rgba(141,41,241,0.9);
+        stroke-width: 2px;
+        stroke-linecap: round;
+        shape-rendering: geometricPrecision;
+      }
+    </style>
+  </defs>
+
+  <path d="
+  M523,142
+  C575,206 599,293 582,373
+  C566,453 509,527 436,558
+  C363,589 275,576 204,537
+  C134,499 82,435 62,361
+  C42,286 54,201 100,138
+  C147,75 229,35 310,35
+  C391,35 473,75 523,142
+  Z"/>
+</svg>

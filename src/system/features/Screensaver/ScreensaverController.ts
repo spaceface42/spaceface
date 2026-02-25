@@ -194,10 +194,9 @@ export class ScreensaverController {
 
   destroy(): void {
     if (this._destroyed) return;
+    this.hideScreensaver();
     this._destroyed = true;
     this.state = ScreensaverController.STATES.DESTROYED;
-
-    this.hideScreensaver();
     try { this.screensaverManager?.destroy(); } catch (err) { this.log('warn', 'screensaverManager.destroy() failed', err); }
     this.eventBinder.unbindAll();
     this._partialLoaded = false;

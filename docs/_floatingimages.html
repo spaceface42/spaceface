@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>spaceface · floating images</title>
         <link rel="stylesheet" href="./spaceface/spacesuit/main.css" />
-        <script type="module" src="./bin/bundle.min.js"></script>
+        <script type="module" src="./spaceface/app/main.js"></script>
     </head>
     <body data-page="floatingimages">
         <!-- progressbar -->
@@ -34,19 +34,16 @@
         <!-- / progressbar -->
 
         <header>
+            <!-- nav -->
             <nav>
-                <ul class="nav">
-                    <li><a spx-target href="/">home</a></li>
-                    <li>
-                        <a spx-target href="/_slideplayer.html">_slideplayer</a>
-                    </li>
-                    <li>
-                        <a spx-target href="/_floatingimages.html"
-                            >_floatingimages</a
-                        >
-                    </li>
-                </ul>
-            </nav>
+    <ul class="nav">
+        <li><a spx-target href="/">home</a></li>
+        <li><a spx-target href="/_slideplayer.html">_slideplayer</a></li>
+        <li><a spx-target href="/_floatingimages.html">_floatingimages</a></li>
+    </ul>
+</nav>
+
+            <!-- / nav -->
             <img
                 src="./content/placeholder.svg"
                 width="128"
@@ -70,8 +67,8 @@
                         background: radial-gradient(
                             circle at center,
                             #ffffff 0%,
-                            #f3f5f7 65%,
-                            #e9edf0 100%
+                            #ffffff 65%,
+                            #d4d5d6 100%
                         );
                     }
 
@@ -94,27 +91,37 @@
                     aria-label="Floating images demo"
                 >
                     <img
-                        src="/content/feature/floatingimages/a.svg"
+                        src="/content/placeholders/01.svg"
                         class="floating-image"
                         alt="floatingimage-1"
                     />
                     <img
-                        src="/content/feature/floatingimages/b.svg"
+                        src="/content/placeholders/02.svg"
                         class="floating-image"
                         alt="floatingimage-1"
                     />
                     <img
-                        src="/content/feature/floatingimages/c.svg"
+                        src="/content/placeholders/03.svg"
                         class="floating-image"
                         alt="floatingimage-1"
                     />
                     <img
-                        src="/content/feature/floatingimages/d.svg"
+                        src="/content/placeholders/04.svg"
                         class="floating-image"
                         alt="floatingimage-1"
                     />
                     <img
-                        src="/content/feature/floatingimages/e.svg"
+                        src="/content/placeholders/face.svg"
+                        class="floating-image"
+                        alt="floatingimage-1"
+                    />
+                                        <img
+                        src="/content/placeholders/06.svg"
+                        class="floating-image"
+                        alt="floatingimage-1"
+                    />
+                                        <img
+                        src="/content/placeholders/05.svg"
                         class="floating-image"
                         alt="floatingimage-1"
                     />
