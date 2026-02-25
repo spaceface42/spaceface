@@ -1,6 +1,5 @@
 // src/spaceface/system/bin/InactivityWatcher.ts
 
-export const VERSION = '2.0.0' as const;
 
 import { EventWatcher } from './EventWatcher.js';
 import { eventBus } from './EventBus.js';

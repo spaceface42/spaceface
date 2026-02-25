@@ -1,5 +1,4 @@
 // src/spaceface/system/bin/EventWatcher.ts
-export const VERSION = '2.0.0' as const;
 
 import { eventBus } from "./EventBus.js";
 import type { LogPayload } from "../types/bin.js";

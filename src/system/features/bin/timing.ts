@@ -1,6 +1,5 @@
 // src/spaceface/system/features/bin/timing.ts
 
-export const VERSION = '2.0.0' as const;
 
 /** Generic type: function with cancel method */
 export type CancellableFunction<T> = T & { cancel: () => void };

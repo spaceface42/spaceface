@@ -1,5 +1,4 @@
 // src/spaceface/system/bin/PartialLoader.ts
-export const VERSION = '2.0.0' as const;
 
 import { debounce } from "../features/bin/timing.js";
 import { eventBus } from "./EventBus.js";

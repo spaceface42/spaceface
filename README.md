@@ -15,6 +15,7 @@ It provides small, framework-free modules for:
 - `src/app/startup.ts`: shared startup flow used by all entry files
 - `src/app/config/features.ts`: shared feature presets
 - `src/app/dev/devEventLogger.ts`: dev-only event logging helper
+- Version source: `package.json` is the single project version source.
 
 ## Entrypoints
 

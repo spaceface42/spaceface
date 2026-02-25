@@ -1,6 +1,5 @@
 // src/spaceface/system/features/bin/PerformanceMonitor.ts
 
-export const VERSION = '2.0.0' as const;
 
 import {
   PerformanceLevel,

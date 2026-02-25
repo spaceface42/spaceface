@@ -1,5 +1,4 @@
 // src/system/bin/EventLogger.ts
-export const VERSION = '2.0.0' as const;
 
 import { eventBus } from '../bin/EventBus.js';
 

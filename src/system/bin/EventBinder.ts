@@ -9,7 +9,6 @@
  * Provides a single utility class for safely attaching and
  * detaching event handlers in a structured way.
  */
-export const VERSION = '2.0.0' as const;
 
 import {
   DomBinding,

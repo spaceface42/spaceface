@@ -1,6 +1,5 @@
 // src/spaceface/system/bin/DomReadyPromise.ts
 
-export const VERSION = '2.0.0' as const;
 
 import { WaitForElementOptions } from '../types/bin.js';
 

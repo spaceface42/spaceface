@@ -1,6 +1,5 @@
 // src/spaceface/features/FloatingImages/FloatingImagesManager.ts
 
-export const VERSION = '2.1.0' as const;
 
 import { FloatingImage } from './FloatingImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
