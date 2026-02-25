@@ -5,12 +5,18 @@ export function attachDevEventLogger(options = {}) {
         return;
     eventBus.onAny((eventName, payload) => {
         if (!options.includeDebug) {
+            const maybeLevel = (typeof payload === 'object' &&
+                payload !== null &&
+                'level' in payload) ? payload.level : undefined;
             if (eventName === 'log:debug')
                 return;
-            if (eventName === 'log' && payload?.level === 'debug')
+            if (eventName === 'log' && maybeLevel === 'debug')
                 return;
         }
-        const { level = 'log', args, ...otherDetails } = payload ?? {};
+        const objectPayload = typeof payload === 'object' && payload !== null
+            ? payload
+            : undefined;
+        const { level = 'log', args, ...otherDetails } = objectPayload ?? {};
         if (!payload) {
             console.log(`[spaceface onAny] Event: ${eventName} - no payload`);
             return;
@@ -20,15 +26,25 @@ export function attachDevEventLogger(options = {}) {
             return;
         }
         const fullMessage = args ?? otherDetails ?? '(no details)';
-        const methodMap = {
-            debug: 'debug',
-            info: 'info',
-            warn: 'warn',
-            error: 'error',
-            log: 'log',
-        };
-        const method = methodMap[level] ?? 'log';
-        console[method](`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+        const method = ['debug', 'info', 'warn', 'error', 'log'].includes(level)
+            ? level
+            : 'log';
+        switch (method) {
+            case 'debug':
+                console.debug(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+                break;
+            case 'info':
+                console.info(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+                break;
+            case 'warn':
+                console.warn(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+                break;
+            case 'error':
+                console.error(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+                break;
+            default:
+                console.log(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+        }
     });
 }
 //# sourceMappingURL=devEventLogger.js.map

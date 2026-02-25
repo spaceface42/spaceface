@@ -4,6 +4,11 @@ export const VERSION = '2.0.0' as const;
 import { eventBus } from "./EventBus.js";
 import type { LogPayload } from "../types/bin.js";
 
+type EventTargetLike = EventTarget & {
+    addEventListener: (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
+    removeEventListener: (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions) => void;
+};
+
 export abstract class EventWatcher {
     protected readonly target: EventTarget;
     protected readonly debug: boolean;
@@ -21,7 +26,8 @@ export abstract class EventWatcher {
 
     constructor(target: EventTarget, debug: boolean = false) {
         // Use duck-typing so code runs in environments where EventTarget isn't constructible
-        if (!target || typeof (target as any).addEventListener !== "function" || typeof (target as any).removeEventListener !== "function") {
+        const maybeTarget = target as Partial<EventTargetLike>;
+        if (!target || typeof maybeTarget.addEventListener !== "function" || typeof maybeTarget.removeEventListener !== "function") {
             throw new Error(`${this.constructor.name}: target must be a valid EventTarget.`);
         }
         this.target = target;
@@ -48,10 +54,22 @@ export abstract class EventWatcher {
                     time: Date.now(),
                 };
                 eventBus.emit("log", logPayload);
-            } catch (_) { /* ignore eventBus errors */ }
+            } catch { /* ignore eventBus errors */ }
             if (this.debug) {
-                const method = { debug: 'debug', info: 'info', warn: 'warn', error: 'error' }[level] ?? 'log';
-                (console as any)[method](`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                switch (level) {
+                    case 'debug':
+                        console.debug(`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                        break;
+                    case 'info':
+                        console.info(`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                        break;
+                    case 'warn':
+                        console.warn(`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                        break;
+                    case 'error':
+                        console.error(`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                        break;
+                }
             }
             return;
         }
@@ -82,7 +100,7 @@ export abstract class EventWatcher {
                 console.warn("Failed to log debug event", { message, payload, error });
             }
         }
-        (console as any).debug?.(`[${this.constructor.name}] [DEBUG]`, message, payload);
+        console.debug(`[${this.constructor.name}] [DEBUG]`, message, payload);
     }
 
     protected checkDestroyed() {
@@ -123,7 +141,7 @@ export abstract class EventWatcher {
     protected removeAllDomListeners() {
         for (const { type, handler, options } of this.domListeners) {
             try {
-                this.target.removeEventListener(type, handler, options as any);
+                this.target.removeEventListener(type, handler, options as boolean | EventListenerOptions | undefined);
                 if (this.debug) {
                     this.log('debug', `Removed DOM listener`, { type, handler });
                 }

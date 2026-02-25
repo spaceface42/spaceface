@@ -44,7 +44,6 @@ export class DomReadyPromise {
         const foundElements: Map<string, T> = new Map();
 
         return new Promise((resolve, reject) => {
-            let timeoutId: number | undefined;
             const checkForElements = () => {
                 for (const selector of selectorList) {
                     if (!foundElements.has(selector)) {
@@ -61,10 +60,23 @@ export class DomReadyPromise {
             };
 
             const observer = new MutationObserver(checkForElements);
+            if (signal?.aborted) {
+                reject(new DOMException('waitForElement aborted', 'AbortError'));
+                return;
+            }
+
+            const timeoutId = window.setTimeout(() => {
+                cleanup();
+                const missing = selectorList.filter(s => !foundElements.has(s));
+                reject(new DOMException(
+                    `Element(s) "${missing.join(', ')}" not found within ${timeout}ms in root: ${root.nodeName}`,
+                    'TimeoutError'
+                ));
+            }, timeout);
 
             const cleanup = () => {
                 observer.disconnect();
-                if (timeoutId !== undefined) clearTimeout(timeoutId);
+                clearTimeout(timeoutId);
                 signal?.removeEventListener('abort', onAbort);
             };
 
@@ -73,21 +85,11 @@ export class DomReadyPromise {
                 reject(new DOMException('waitForElement aborted', 'AbortError'));
             };
 
-            if (signal?.aborted) return onAbort();
             signal?.addEventListener('abort', onAbort, { once: true });
 
             observer.observe(root, { childList: true, subtree: true });
             // Check immediately in case elements already exist
             checkForElements();
-
-            timeoutId = window.setTimeout(() => {
-                cleanup();
-                const missing = selectorList.filter(s => !foundElements.has(s));
-                reject(new DOMException(
-                    `Element(s) "${missing.join(', ')}" not found within ${timeout}ms in root: ${root.nodeName}`,
-                    'TimeoutError'
-                ));
-            }, timeout);
         });
     }
 }

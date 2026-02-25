@@ -23,7 +23,7 @@ export type EventBinderStats = {
 };
 
 export interface EventBinderInterface {
-  bindBus(event: string, handler: (...args: any[]) => void): void;
+  bindBus(event: string, handler: (...args: unknown[]) => void): void;
   bindDOM(
     target: EventTarget,
     event: string,
@@ -40,37 +40,37 @@ export type UnsubscribeFn = () => void;
 
 export interface BusBindingInterface {
   event: string;
-  handler: (...args: any[]) => void;
+  handler: (...args: unknown[]) => void;
   unsubscribe: UnsubscribeFn;
 }
 
-export interface ListenerInterface<T = any> {
-  fn: (payload: T) => any;
+export interface ListenerInterface {
+  fn: (...args: unknown[]) => unknown;
   priority: number;
 }
 
 export interface AnyListenerInterface {
-  fn: (event: string, payload: any) => any;
+  fn: (...args: unknown[]) => unknown;
   priority: number;
 }
 
 export interface EventBusInterface<TEvents extends Record<string, unknown> = Record<string, unknown>> {
-  on<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => any, priority?: number): UnsubscribeFn;
-  on<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
-  once<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => any, priority?: number): void;
-  once<T = any>(event: string, fn: (payload: T) => any, priority?: number): void;
-  onAny(fn: (event: keyof TEvents & string, payload: TEvents[keyof TEvents]) => any, priority?: number): UnsubscribeFn;
-  off(event: string, fn: Function): void;
-  offAny(fn: Function): void;
+  on<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => unknown, priority?: number): UnsubscribeFn;
+  on<T = unknown>(event: string, fn: (payload: T) => unknown, priority?: number): UnsubscribeFn;
+  once<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => unknown, priority?: number): void;
+  once<T = unknown>(event: string, fn: (payload: T) => unknown, priority?: number): void;
+  onAny(fn: (event: keyof TEvents & string, payload: TEvents[keyof TEvents]) => unknown, priority?: number): UnsubscribeFn;
+  off(event: string, fn: (...args: unknown[]) => unknown): void;
+  offAny(fn: (...args: unknown[]) => unknown): void;
   emit<K extends keyof TEvents>(event: K, payload?: TEvents[K]): void;
-  emit<T = any>(event: string, payload?: T): void;
-  emitAsync<K extends keyof TEvents>(event: K, payload?: TEvents[K]): Promise<any[]>;
-  emitAsync<T = any>(event: string, payload?: T): Promise<any[]>;
+  emit<T = unknown>(event: string, payload?: T): void;
+  emitAsync<K extends keyof TEvents>(event: K, payload?: TEvents[K]): Promise<unknown[]>;
+  emitAsync<T = unknown>(event: string, payload?: T): Promise<unknown[]>;
   removeAllListeners(event?: string): void;
   hasListeners(event: string): boolean;
   listenerCount(event: string): number;
   eventNames(): string[];
-  getListeners(event: string): Function[];
+  getListeners(event: string): Array<(...args: unknown[]) => unknown>;
 }
 
 // Logging
@@ -78,7 +78,7 @@ export interface LogPayload {
   scope: string;
   level: 'debug' | 'info' | 'warn' | 'error' | 'event';
   message: string;
-  data?: any;
+  data?: unknown;
   time?: number;
 }
 
@@ -129,7 +129,7 @@ export interface PartialEventPayload {
   targetSelector?: string;
   html?: string;
   cached?: boolean;
-  error?: any;
+  error?: unknown;
 }
 
 // asyncimageloader

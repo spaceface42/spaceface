@@ -31,10 +31,10 @@ export function debounce(func, delay = 300, immediate = false) {
         const callNow = immediate && timer.id === null;
         timer.set(() => {
             if (!immediate)
-                func.apply(this, args);
+                func(...args);
         }, delay);
         if (callNow)
-            func.apply(this, args);
+            func(...args);
     }
     debounced.cancel = () => timer.cancel();
     return debounced;
@@ -49,19 +49,19 @@ export function throttle(func, delay = 100, options = {}) {
     const { leading = true, trailing = true } = options;
     let lastCall = 0;
     let lastArgs = null;
-    let lastThis = null;
     const timer = createTimeout();
     function invoke() {
         lastCall = leading ? Date.now() : 0;
-        func.apply(lastThis, lastArgs);
-        lastArgs = lastThis = null;
+        if (!lastArgs)
+            return;
+        func(...lastArgs);
+        lastArgs = null;
     }
     function throttled(...args) {
         const now = Date.now();
         if (lastCall === 0 && !leading)
             lastCall = now;
         lastArgs = args;
-        lastThis = this;
         const remaining = delay - (now - lastCall);
         if (remaining <= 0 || remaining > delay) {
             timer.cancel();
@@ -77,7 +77,7 @@ export function throttle(func, delay = 100, options = {}) {
     throttled.cancel = () => {
         timer.cancel();
         lastCall = 0;
-        lastArgs = lastThis = null;
+        lastArgs = null;
     };
     return throttled;
 }

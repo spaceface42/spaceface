@@ -53,6 +53,12 @@ Default production bundle build (`main.pjax.ts`) and pre-render HTML.
 - `npm run typecheck`
 Run TypeScript checks without emitting output.
 
+- `npm run lint`
+Run ESLint for `src/` (currently warning-focused).
+
+- `npm run lint:fix`
+Run ESLint with auto-fixes where possible.
+
 ## Notes
 
 - PJAX swaps container `innerHTML`. Scripts inside swapped HTML do not auto-execute.

@@ -19,7 +19,6 @@ export class DomReadyPromise {
         const selectorList = Array.isArray(selectors) ? selectors : [selectors];
         const foundElements = new Map();
         return new Promise((resolve, reject) => {
-            let timeoutId;
             const checkForElements = () => {
                 for (const selector of selectorList) {
                     if (!foundElements.has(selector)) {
@@ -36,26 +35,27 @@ export class DomReadyPromise {
                 }
             };
             const observer = new MutationObserver(checkForElements);
+            if (signal?.aborted) {
+                reject(new DOMException('waitForElement aborted', 'AbortError'));
+                return;
+            }
+            const timeoutId = window.setTimeout(() => {
+                cleanup();
+                const missing = selectorList.filter(s => !foundElements.has(s));
+                reject(new DOMException(`Element(s) "${missing.join(', ')}" not found within ${timeout}ms in root: ${root.nodeName}`, 'TimeoutError'));
+            }, timeout);
             const cleanup = () => {
                 observer.disconnect();
-                if (timeoutId !== undefined)
-                    clearTimeout(timeoutId);
+                clearTimeout(timeoutId);
                 signal?.removeEventListener('abort', onAbort);
             };
             const onAbort = () => {
                 cleanup();
                 reject(new DOMException('waitForElement aborted', 'AbortError'));
             };
-            if (signal?.aborted)
-                return onAbort();
             signal?.addEventListener('abort', onAbort, { once: true });
             observer.observe(root, { childList: true, subtree: true });
             checkForElements();
-            timeoutId = window.setTimeout(() => {
-                cleanup();
-                const missing = selectorList.filter(s => !foundElements.has(s));
-                reject(new DOMException(`Element(s) "${missing.join(', ')}" not found within ${timeout}ms in root: ${root.nodeName}`, 'TimeoutError'));
-            }, timeout);
         });
     }
 }

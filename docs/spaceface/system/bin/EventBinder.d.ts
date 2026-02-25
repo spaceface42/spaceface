@@ -9,10 +9,10 @@ export declare class EventBinder implements EventBinderInterface {
     private debug;
     attachTo(signal: AbortSignal): () => void;
     setDebugMode(enable: boolean): void;
-    bindBus(event: string, handler: (...args: any[]) => void): void;
+    bindBus(event: string, handler: (...args: unknown[]) => void): void;
     bindDOM(target: EventTarget, event: string, handler: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void;
     unbindAll(): void;
-    unbindBus(event: string, handler: (...args: any[]) => void): boolean;
+    unbindBus(event: string, handler: (...args: unknown[]) => void): boolean;
     unbindDOM(target: EventTarget, event: string, handler: EventListenerOrEventListenerObject): boolean;
     getStats(): EventBinderStats;
     hasBindings(): boolean;

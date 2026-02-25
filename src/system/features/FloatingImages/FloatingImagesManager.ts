@@ -95,14 +95,20 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         eventBus.emit(EVENTS.LOG, payload);
 
         if (this.debug) {
-            const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {
-                debug: 'debug',
-                info: 'info',
-                warn: 'warn',
-                error: 'error',
-            };
-            const method = consoleMethodMap[level] ?? 'log';
-            (console as any)[method](`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+            switch (level) {
+                case 'debug':
+                    console.debug(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'info':
+                    console.info(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'warn':
+                    console.warn(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'error':
+                    console.error(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    break;
+            }
         }
     }
 

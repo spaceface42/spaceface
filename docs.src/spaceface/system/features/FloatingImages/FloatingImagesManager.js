@@ -75,14 +75,20 @@ export class FloatingImagesManager {
         eventBus.emit(EVENTS.FLOATING_IMAGES_LOG, { level, message, data });
         eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
-            const consoleMethodMap = {
-                debug: 'debug',
-                info: 'info',
-                warn: 'warn',
-                error: 'error',
-            };
-            const method = consoleMethodMap[level] ?? 'log';
-            console[method](`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+            switch (level) {
+                case 'debug':
+                    console.debug(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'info':
+                    console.info(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'warn':
+                    console.warn(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'error':
+                    console.error(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    break;
+            }
         }
     }
     setupResizeHandling() {

@@ -3,7 +3,7 @@
 export const VERSION = '2.0.0' as const;
 
 /** Generic type: function with cancel method */
-export type CancellableFunction<T extends (...args: any[]) => void> = T & { cancel: () => void };
+export type CancellableFunction<T> = T & { cancel: () => void };
 
 /** Internal helper: manages a timeout with cancel support */
 function createTimeout(): { id: number | null; set: (fn: () => void, ms: number) => void; cancel: () => void } {
@@ -36,11 +36,11 @@ function createTimeout(): { id: number | null; set: (fn: () => void, ms: number)
  * @param immediate - If `true`, trigger the function on the leading edge.
  * @returns A debounced function with a `cancel` method.
  */
-export function debounce<T extends (...args: any[]) => void>(
-  func: T,
+export function debounce<Args extends unknown[]>(
+  func: (...args: Args) => void,
   delay = 300,
   immediate = false
-): CancellableFunction<(...args: Parameters<T>) => void> {
+): CancellableFunction<(...args: Args) => void> {
   if (typeof func !== 'function') {
     throw new TypeError('Expected a function for debounce');
   }
@@ -50,14 +50,14 @@ export function debounce<T extends (...args: any[]) => void>(
 
   const timer = createTimeout();
 
-  function debounced(this: ThisParameterType<T>, ...args: Parameters<T>) {
+  function debounced(...args: Args) {
     const callNow = immediate && timer.id === null;
 
     timer.set(() => {
-      if (!immediate) func.apply(this, args);
+      if (!immediate) func(...args);
     }, delay);
 
-    if (callNow) func.apply(this, args);
+    if (callNow) func(...args);
   }
 
   debounced.cancel = () => timer.cancel();
@@ -74,11 +74,11 @@ export function debounce<T extends (...args: any[]) => void>(
  * @param options - Options to control leading and trailing edge calls.
  * @returns A throttled function with a `cancel` method.
  */
-export function throttle<T extends (...args: any[]) => void>(
-  func: T,
+export function throttle<Args extends unknown[]>(
+  func: (...args: Args) => void,
   delay = 100,
   options: { leading?: boolean; trailing?: boolean } = {}
-): CancellableFunction<(...args: Parameters<T>) => void> {
+): CancellableFunction<(...args: Args) => void> {
   if (typeof func !== 'function') {
     throw new TypeError('Expected a function for throttle');
   }
@@ -88,22 +88,21 @@ export function throttle<T extends (...args: any[]) => void>(
 
   const { leading = true, trailing = true } = options;
   let lastCall = 0;
-  let lastArgs: Parameters<T> | null = null;
-  let lastThis: ThisParameterType<T> | null = null;
+  let lastArgs: Args | null = null;
   const timer = createTimeout();
 
   function invoke() {
     lastCall = leading ? Date.now() : 0;
-    func.apply(lastThis!, lastArgs!);
-    lastArgs = lastThis = null;
+    if (!lastArgs) return;
+    func(...lastArgs);
+    lastArgs = null;
   }
 
-  function throttled(this: ThisParameterType<T>, ...args: Parameters<T>) {
+  function throttled(...args: Args) {
     const now = Date.now();
     if (lastCall === 0 && !leading) lastCall = now;
 
     lastArgs = args;
-    lastThis = this;
 
     const remaining = delay - (now - lastCall);
 
@@ -120,7 +119,7 @@ export function throttle<T extends (...args: any[]) => void>(
   throttled.cancel = () => {
     timer.cancel();
     lastCall = 0;
-    lastArgs = lastThis = null;
+    lastArgs = null;
   };
 
   return throttled;

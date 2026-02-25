@@ -9,7 +9,7 @@ export interface LogEntry {
   level: LogLevel;
   scope: string;
   message: string;
-  data?: any;
+  data?: unknown;
   time: number;
 }
 
@@ -40,7 +40,7 @@ export class EventLogger {
    * @param message The log message.
    * @param data Optional additional data to log.
    */
-  private log(level: LogLevel, message: string, data?: any) {
+  private log(level: LogLevel, message: string, data?: unknown) {
     if (!this.shouldLog(level)) return;
 
     const entry: LogEntry = {
@@ -75,7 +75,7 @@ export class EventLogger {
    * @param message The log message.
    * @param data Optional additional data to log.
    */
-  private consoleOutput(level: LogLevel, message: string, data?: any) {
+  private consoleOutput(level: LogLevel, message: string, data?: unknown) {
     let method: 'log' | 'warn' | 'error';
     switch (level) {
       case 'warn': method = 'warn'; break;
@@ -99,9 +99,9 @@ export class EventLogger {
     return this.fallbackLogs;
   }
 
-  debug(msg: string, data?: any) { this.log('debug', msg, data); }
-  info(msg: string, data?: any) { this.log('info', msg, data); }
-  warn(msg: string, data?: any) { this.log('warn', msg, data); }
-  event(msg: string, data?: any) { this.log('event', msg, data); }
-  error(msg: string, data?: any) { this.log('error', msg, data); }
+  debug(msg: string, data?: unknown) { this.log('debug', msg, data); }
+  info(msg: string, data?: unknown) { this.log('info', msg, data); }
+  warn(msg: string, data?: unknown) { this.log('warn', msg, data); }
+  event(msg: string, data?: unknown) { this.log('event', msg, data); }
+  error(msg: string, data?: unknown) { this.log('error', msg, data); }
 }

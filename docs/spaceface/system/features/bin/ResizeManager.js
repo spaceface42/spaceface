@@ -71,13 +71,13 @@ export class ResizeManager {
             const rect = el.getBoundingClientRect();
             return { width: rect.width, height: rect.height };
         }
-        catch (error) {
+        catch {
             throw new Error("ResizeManager: Failed to get element size.");
         }
     }
     destroy() {
         this.logDebug("Destroying ResizeManager");
-        for (const [cb, handler] of this.windowCallbacks.entries()) {
+        for (const [, handler] of this.windowCallbacks.entries()) {
             window.removeEventListener("resize", handler);
         }
         this.windowCallbacks.clear();
