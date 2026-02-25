@@ -64,13 +64,20 @@ export class SlidePlayer {
         eventBus.emit(EVENTS.SLIDEPLAYER_LOG, { level, message, data });
         eventBus.emit(EVENTS.LOG, payload);
         if (this.debug) {
-            const methodMap = {
-                debug: 'debug',
-                info: 'info',
-                warn: 'warn',
-                error: 'error'
-            };
-            console[methodMap[level]]?.(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+            switch (level) {
+                case 'debug':
+                    console.debug(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'info':
+                    console.info(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'warn':
+                    console.warn(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+                    break;
+                case 'error':
+                    console.error(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+                    break;
+            }
         }
     }
     resolveContainer(containerOrSelector) {
@@ -251,7 +258,10 @@ export class SlidePlayer {
         if (Math.abs(dx) >= SlidePlayer.SWIPE_THRESHOLD && Math.abs(dy) < SlidePlayer.VERTICAL_TOLERANCE) {
             const direction = dx < 0 ? 'next' : 'prev';
             this.log('debug', `Swipe detected`, { dx, dy, direction });
-            dx < 0 ? this.next() : this.prev();
+            if (dx < 0)
+                this.next();
+            else
+                this.prev();
         }
     }
     emit(type, detail, busEvent) {

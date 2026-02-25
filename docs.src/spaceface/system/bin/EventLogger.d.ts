@@ -4,7 +4,7 @@ export interface LogEntry {
     level: LogLevel;
     scope: string;
     message: string;
-    data?: any;
+    data?: unknown;
     time: number;
 }
 export declare class EventLogger {
@@ -16,9 +16,9 @@ export declare class EventLogger {
     private log;
     private consoleOutput;
     getFallbackLogs(): LogEntry[];
-    debug(msg: string, data?: any): void;
-    info(msg: string, data?: any): void;
-    warn(msg: string, data?: any): void;
-    event(msg: string, data?: any): void;
-    error(msg: string, data?: any): void;
+    debug(msg: string, data?: unknown): void;
+    info(msg: string, data?: unknown): void;
+    warn(msg: string, data?: unknown): void;
+    event(msg: string, data?: unknown): void;
+    error(msg: string, data?: unknown): void;
 }

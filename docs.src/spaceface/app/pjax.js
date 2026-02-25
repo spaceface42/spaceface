@@ -1,3 +1,4 @@
+const isAbortError = (error) => error instanceof DOMException && error.name === 'AbortError';
 export class Pjax {
     containerSelector;
     linkSelector;
@@ -108,7 +109,7 @@ export class Pjax {
             document.dispatchEvent(new CustomEvent('pjax:complete', { detail: { url } }));
         }
         catch (error) {
-            if (error?.name !== 'AbortError') {
+            if (!isAbortError(error)) {
                 document.dispatchEvent(new CustomEvent('pjax:error', { detail: { url, error } }));
                 window.location.href = url;
             }

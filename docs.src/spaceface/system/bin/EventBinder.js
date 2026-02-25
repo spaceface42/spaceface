@@ -56,7 +56,8 @@ export class EventBinder {
         }
     }
     bindDOM(target, event, handler, options = false) {
-        if (!target || typeof target.addEventListener !== "function" || typeof target.removeEventListener !== "function") {
+        const maybeTarget = target;
+        if (!target || typeof maybeTarget.addEventListener !== "function" || typeof maybeTarget.removeEventListener !== "function") {
             this.logger.warn(`Invalid DOM target for bindDOM: ${String(target)}`);
             return;
         }

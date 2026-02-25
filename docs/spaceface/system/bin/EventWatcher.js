@@ -7,7 +7,8 @@ export class EventWatcher {
     domListeners = new Set();
     loggedMessages = new Set();
     constructor(target, debug = false) {
-        if (!target || typeof target.addEventListener !== "function" || typeof target.removeEventListener !== "function") {
+        const maybeTarget = target;
+        if (!target || typeof maybeTarget.addEventListener !== "function" || typeof maybeTarget.removeEventListener !== "function") {
             throw new Error(`${this.constructor.name}: target must be a valid EventTarget.`);
         }
         this.target = target;
@@ -31,10 +32,22 @@ export class EventWatcher {
                 };
                 eventBus.emit("log", logPayload);
             }
-            catch (_) { }
+            catch { }
             if (this.debug) {
-                const method = { debug: 'debug', info: 'info', warn: 'warn', error: 'error' }[level] ?? 'log';
-                console[method](`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                switch (level) {
+                    case 'debug':
+                        console.debug(`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                        break;
+                    case 'info':
+                        console.info(`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                        break;
+                    case 'warn':
+                        console.warn(`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                        break;
+                    case 'error':
+                        console.error(`[${this.constructor.name}] [${level.toUpperCase()}]`, message, payload);
+                        break;
+                }
             }
             return;
         }
@@ -66,7 +79,7 @@ export class EventWatcher {
                 console.warn("Failed to log debug event", { message, payload, error });
             }
         }
-        console.debug?.(`[${this.constructor.name}] [DEBUG]`, message, payload);
+        console.debug(`[${this.constructor.name}] [DEBUG]`, message, payload);
     }
     checkDestroyed() {
         if (this.destroyed) {

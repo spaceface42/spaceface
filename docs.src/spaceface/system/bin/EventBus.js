@@ -13,7 +13,7 @@ export class EventBus {
     }
     on(event, fn, priority = 0) {
         const list = this.listeners.get(event) ?? [];
-        const listener = { fn, priority };
+        const listener = { fn: fn, priority };
         let i = list.length;
         while (i > 0 && list[i - 1].priority < priority)
             i--;
@@ -49,7 +49,7 @@ export class EventBus {
             : (this.listeners.get(event)?.length ?? 0) > 0;
     }
     onAny(fn, priority = 0) {
-        const listener = { fn, priority };
+        const listener = { fn: fn, priority };
         let i = this.anyListeners.length;
         while (i > 0 && this.anyListeners[i - 1].priority < priority)
             i--;
