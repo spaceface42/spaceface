@@ -26,6 +26,11 @@ interface IEventBinderDebugPayload {
   details: unknown;
 }
 
+type EventTargetLike = EventTarget & {
+  addEventListener: (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => void;
+  removeEventListener: (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions) => void;
+};
+
 /**
  * EventBinder
  *
@@ -99,7 +104,7 @@ export class EventBinder implements EventBinderInterface {
    * @param event Event name
    * @param handler Event handler function
    */
-  bindBus(event: string, handler: (...args: any[]) => void): void {
+  bindBus(event: string, handler: (...args: unknown[]) => void): void {
     if (this.IBusBindings.find(b => b.event === event && b.handler === handler)) {
       this.debug("bus:bind:duplicate", { event, handler });
       return;
@@ -127,7 +132,8 @@ export class EventBinder implements EventBinderInterface {
     options: AddEventListenerOptions | boolean = false
   ): void {
     // Duck-typing check so this works in non-browser/test runtimes where EventTarget instanceof may fail
-    if (!target || typeof (target as any).addEventListener !== "function" || typeof (target as any).removeEventListener !== "function") {
+    const maybeTarget = target as Partial<EventTargetLike>;
+    if (!target || typeof maybeTarget.addEventListener !== "function" || typeof maybeTarget.removeEventListener !== "function") {
       this.logger.warn(`Invalid DOM target for bindDOM: ${String(target)}`);
       return;
     }
@@ -151,7 +157,7 @@ export class EventBinder implements EventBinderInterface {
     }
 
     try {
-      (target as EventTarget).addEventListener(event, handler, normalizedOptions);
+      (target as EventTargetLike).addEventListener(event, handler, normalizedOptions);
       this.domBindings.push({ target, event, handler, options: normalizedOptions, controller });
       this.debug("dom:bind", { event, handler, target, options: normalizedOptions });
     } catch (err) {
@@ -196,7 +202,7 @@ export class EventBinder implements EventBinderInterface {
    * @param handler Event handler
    * @returns True if successfully unbound, false otherwise
    */
-  unbindBus(event: string, handler: (...args: any[]) => void): boolean {
+  unbindBus(event: string, handler: (...args: unknown[]) => void): boolean {
     const i = this.IBusBindings.findIndex(b => b.event === event && b.handler === handler);
     if (i === -1) return false;
 

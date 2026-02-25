@@ -85,14 +85,20 @@ export class ScreensaverController {
     eventBus.emit(EVENTS.LOG, payload);
 
     if (this.debug) {
-      const consoleMethodMap: Record<'debug' | 'info' | 'warn' | 'error', keyof Console> = {
-        debug: 'debug',
-        info: 'info',
-        warn: 'warn',
-        error: 'error'
-      };
-      const method = consoleMethodMap[level] ?? 'log';
-      (console as any)[method](`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+      switch (level) {
+        case 'debug':
+          console.debug(`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+          break;
+        case 'info':
+          console.info(`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+          break;
+        case 'warn':
+          console.warn(`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+          break;
+        case 'error':
+          console.error(`[ScreensaverController] [${level.toUpperCase()}]`, message, data);
+          break;
+      }
     }
   }
 

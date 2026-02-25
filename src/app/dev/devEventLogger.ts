@@ -4,19 +4,35 @@ export interface DevEventLoggerOptions {
     includeDebug?: boolean;
 }
 
+type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'log';
+type EventPayloadObject = {
+    level?: LogLevel;
+    args?: unknown;
+    [key: string]: unknown;
+};
+
 export function attachDevEventLogger(options: DevEventLoggerOptions = {}): void {
     const isDevHost = ['localhost', '127.0.0.1'].some(host =>
         window.location.hostname.includes(host),
     );
     if (!isDevHost) return;
 
-    eventBus.onAny((eventName: string, payload: any) => {
+    eventBus.onAny((eventName: string, payload: unknown) => {
         if (!options.includeDebug) {
+            const maybeLevel = (
+                typeof payload === 'object' &&
+                payload !== null &&
+                'level' in payload
+            ) ? (payload as { level?: unknown }).level : undefined;
             if (eventName === 'log:debug') return;
-            if (eventName === 'log' && payload?.level === 'debug') return;
+            if (eventName === 'log' && maybeLevel === 'debug') return;
         }
 
-        const { level = 'log', args, ...otherDetails } = payload ?? {};
+        const objectPayload: EventPayloadObject | undefined =
+            typeof payload === 'object' && payload !== null
+                ? payload as EventPayloadObject
+                : undefined;
+        const { level = 'log', args, ...otherDetails } = objectPayload ?? {};
         if (!payload) {
             console.log(`[spaceface onAny] Event: ${eventName} - no payload`);
             return;
@@ -27,14 +43,24 @@ export function attachDevEventLogger(options: DevEventLoggerOptions = {}): void 
         }
 
         const fullMessage = args ?? otherDetails ?? '(no details)';
-        const methodMap: Record<'debug' | 'info' | 'warn' | 'error' | 'log', keyof Console> = {
-            debug: 'debug',
-            info: 'info',
-            warn: 'warn',
-            error: 'error',
-            log: 'log',
-        };
-        const method = methodMap[level as keyof typeof methodMap] ?? 'log';
-        (console as any)[method](`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+        const method = (['debug', 'info', 'warn', 'error', 'log'] as const).includes(level)
+            ? level
+            : 'log';
+        switch (method) {
+            case 'debug':
+                console.debug(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+                break;
+            case 'info':
+                console.info(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+                break;
+            case 'warn':
+                console.warn(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+                break;
+            case 'error':
+                console.error(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+                break;
+            default:
+                console.log(`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] -`, fullMessage);
+        }
     });
 }

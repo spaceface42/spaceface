@@ -106,13 +106,20 @@ export class SlidePlayer {
     eventBus.emit(EVENTS.SLIDEPLAYER_LOG, { level, message, data });
     eventBus.emit(EVENTS.LOG, payload);
     if (this.debug) {
-      const methodMap: Record<typeof level, keyof Console> = {
-        debug: 'debug',
-        info: 'info',
-        warn: 'warn',
-        error: 'error'
-      };
-      (console as any)[methodMap[level]]?.(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+      switch (level) {
+        case 'debug':
+          console.debug(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+          break;
+        case 'info':
+          console.info(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+          break;
+        case 'warn':
+          console.warn(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+          break;
+        case 'error':
+          console.error(`[SlidePlayer] [${level.toUpperCase()}]`, message, data);
+          break;
+      }
     }
   }
 
@@ -312,11 +319,12 @@ export class SlidePlayer {
     if (Math.abs(dx) >= SlidePlayer.SWIPE_THRESHOLD && Math.abs(dy) < SlidePlayer.VERTICAL_TOLERANCE) {
       const direction = dx < 0 ? 'next' : 'prev';
       this.log('debug', `Swipe detected`, { dx, dy, direction });
-      dx < 0 ? this.next() : this.prev();
+      if (dx < 0) this.next();
+      else this.prev();
     }
   }
 
-  private emit(type: string, detail: any, busEvent?: string): void {
+  private emit(type: string, detail: unknown, busEvent?: string): void {
     this.container.dispatchEvent(new CustomEvent(type, { detail, bubbles: true }));
     if (this.enableBusEvents && busEvent) eventBus.emit(busEvent, detail);
   }

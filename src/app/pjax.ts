@@ -13,6 +13,9 @@ type CachedEntry = {
     url: string;
 };
 
+const isAbortError = (error: unknown): boolean =>
+    error instanceof DOMException && error.name === 'AbortError';
+
 export class Pjax {
     private containerSelector: string;
     private linkSelector: string;
@@ -133,7 +136,7 @@ export class Pjax {
 
             document.dispatchEvent(new CustomEvent('pjax:complete', { detail: { url } }));
         } catch (error) {
-            if ((error as any)?.name !== 'AbortError') {
+            if (!isAbortError(error)) {
                 document.dispatchEvent(new CustomEvent('pjax:error', { detail: { url, error } }));
                 window.location.href = url;
             }

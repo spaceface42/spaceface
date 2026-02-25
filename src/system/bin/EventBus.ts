@@ -11,7 +11,7 @@ import type { SpacefaceEventMap } from '../types/events.js';
 export class EventBus<TEvents extends Record<string, unknown> = Record<string, unknown>> implements EventBusInterface<TEvents> {
     private listeners: Map<string, ListenerInterface[]> = new Map();
     private anyListeners: AnyListenerInterface[] = [];
-    private onceWrappers = new WeakMap<Function, Function>();
+    private onceWrappers = new WeakMap<(...args: unknown[]) => unknown, (...args: unknown[]) => unknown>();
     private emittingError = false;
     private debugMode = false; // Debug mode flag
 
@@ -33,11 +33,11 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
      * @param priority The priority of the listener.
      * @returns A function to unsubscribe the listener.
      */
-    on<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => any, priority?: number): UnsubscribeFn;
-    on<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
-    on<T = any>(event: string, fn: (payload: T) => any, priority = 0): UnsubscribeFn {
+    on<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => unknown, priority?: number): UnsubscribeFn;
+    on<T = unknown>(event: string, fn: (payload: T) => unknown, priority?: number): UnsubscribeFn;
+    on<T = unknown>(event: string, fn: (payload: T) => unknown, priority = 0): UnsubscribeFn {
         const list = this.listeners.get(event) ?? [];
-        const listener: ListenerInterface = { fn, priority };
+        const listener: ListenerInterface = { fn: fn as (...args: unknown[]) => unknown, priority };
         let i = list.length;
         while (i > 0 && list[i - 1].priority < priority) i--;
         list.splice(i, 0, listener);
@@ -47,7 +47,7 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
             console.debug(`[EventBus] Listener added for event: ${event}`, { priority });
         }
 
-        return () => this.off(event, fn);
+        return () => this.off(event, fn as (...args: unknown[]) => unknown);
     }
 
     /**
@@ -57,16 +57,16 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
      * @param priority The priority of the listener.
      * @returns A function to unsubscribe the listener.
      */
-    once<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => any, priority?: number): UnsubscribeFn;
-    once<T = any>(event: string, fn: (payload: T) => any, priority?: number): UnsubscribeFn;
-    once<T = any>(event: string, fn: (payload: T) => any, priority = 0): UnsubscribeFn {
+    once<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => unknown, priority?: number): UnsubscribeFn;
+    once<T = unknown>(event: string, fn: (payload: T) => unknown, priority?: number): UnsubscribeFn;
+    once<T = unknown>(event: string, fn: (payload: T) => unknown, priority = 0): UnsubscribeFn {
         const wrapper = (payload: T) => {
-            this.off(event, wrapper);
+            this.off(event, wrapper as (...args: unknown[]) => unknown);
             fn(payload);
         };
-        this.onceWrappers.set(fn, wrapper);
+        this.onceWrappers.set(fn as (...args: unknown[]) => unknown, wrapper as (...args: unknown[]) => unknown);
         this.on(event, wrapper, priority);
-        return () => this.off(event, fn);
+        return () => this.off(event, fn as (...args: unknown[]) => unknown);
     }
 
     /**
@@ -74,7 +74,7 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
      * @param event The event name.
      * @param fn The listener function to remove.
      */
-    off(event: string, fn: Function): void {
+    off(event: string, fn: (...args: unknown[]) => unknown): void {
         const list = this.listeners.get(event);
         if (!list) return;
         const wrapper = this.onceWrappers.get(fn) ?? fn;
@@ -102,8 +102,8 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
      * @param priority The priority of the listener.
      * @returns A function to unsubscribe the listener.
      */
-    onAny(fn: (event: keyof TEvents & string, payload: TEvents[keyof TEvents]) => any, priority = 0): UnsubscribeFn {
-        const listener: AnyListenerInterface = { fn, priority };
+    onAny(fn: (event: keyof TEvents & string, payload: TEvents[keyof TEvents]) => unknown, priority = 0): UnsubscribeFn {
+        const listener: AnyListenerInterface = { fn: fn as (...args: unknown[]) => unknown, priority };
         let i = this.anyListeners.length;
         while (i > 0 && this.anyListeners[i - 1].priority < priority) i--;
         this.anyListeners.splice(i, 0, listener);
@@ -112,14 +112,14 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
             console.debug("[EventBus] Listener added for any event", { priority });
         }
 
-        return () => this.offAny(fn);
+        return () => this.offAny(fn as (...args: unknown[]) => unknown);
     }
 
     /**
      * Remove a listener for any event.
      * @param fn The listener function to remove.
      */
-    offAny(fn: Function): void {
+    offAny(fn: (...args: unknown[]) => unknown): void {
         this.anyListeners = this.anyListeners.filter(l => l.fn !== fn);
 
         if (this.debugMode) {
@@ -133,8 +133,8 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
      * @param payload The event payload.
      */
     emit<K extends keyof TEvents>(event: K, payload?: TEvents[K]): void;
-    emit<T = any>(event: string, payload?: T): void;
-    emit<T = any>(event: string, payload?: T): void {
+    emit<T = unknown>(event: string, payload?: T): void;
+    emit<T = unknown>(event: string, payload?: T): void {
         if (!event) {
             this._handleError("Event name is undefined or empty", new Error());
             return;
@@ -169,15 +169,15 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
      * @param payload The event payload.
      * @returns A promise that resolves with the results of all listeners.
      */
-    async emitAsync<K extends keyof TEvents>(event: K, payload?: TEvents[K]): Promise<any[]>;
-    async emitAsync<T = any>(event: string, payload?: T): Promise<any[]>;
-    async emitAsync<T = any>(event: string, payload?: T): Promise<any[]> {
+    async emitAsync<K extends keyof TEvents>(event: K, payload?: TEvents[K]): Promise<unknown[]>;
+    async emitAsync<T = unknown>(event: string, payload?: T): Promise<unknown[]>;
+    async emitAsync<T = unknown>(event: string, payload?: T): Promise<unknown[]> {
         if (!event) {
             this._handleError("Event name is undefined or empty", new Error());
             return [];
         }
 
-        const results: any[] = [];
+        const results: unknown[] = [];
         const list = [...(this.listeners.get(event) ?? [])];
         for (const l of list) {
             try {
@@ -242,7 +242,7 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
      * @param event The event name.
      * @returns An array of listener functions.
      */
-    getListeners(event: string): Function[] {
+    getListeners(event: string): Array<(...args: unknown[]) => unknown> {
         return event === "any"
             ? this.anyListeners.map(l => l.fn)
             : (this.listeners.get(event) ?? []).map(l => l.fn);
@@ -253,7 +253,7 @@ export class EventBus<TEvents extends Record<string, unknown> = Record<string, u
      * @param message The error message.
      * @param error The error object.
      */
-    private _handleError(message: string, error: any): void {
+    private _handleError(message: string, error: unknown): void {
         if (this.emittingError) return;
         this.emittingError = true;
 

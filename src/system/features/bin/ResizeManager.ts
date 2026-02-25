@@ -28,14 +28,14 @@ export class ResizeManager {
     console.debug(`[ResizeManager] ${message}`, data);
   }
 
-  private wrapCallback<T extends (...args: any[]) => void>(
+  private wrapCallback<T extends (...args: never[]) => void>(
     cb: T,
     options?: { debounceMs?: number; throttleMs?: number }
   ): CancellableFunction<T> {
     if (options?.debounceMs != null) {
-      return debounce(cb as (...args: any[]) => void, options.debounceMs) as CancellableFunction<T>;
+      return debounce(cb as (...args: never[]) => void, options.debounceMs) as CancellableFunction<T>;
     } else if (options?.throttleMs != null) {
-      return throttle(cb as (...args: any[]) => void, options.throttleMs) as CancellableFunction<T>;
+      return throttle(cb as (...args: never[]) => void, options.throttleMs) as CancellableFunction<T>;
     } else {
       const wrappedCb = cb as CancellableFunction<T>;
       wrappedCb.cancel = () => {};
@@ -114,7 +114,7 @@ export class ResizeManager {
       const rect = el.getBoundingClientRect();
       // this.logDebug("Getting element size", { el, rect });
       return { width: rect.width, height: rect.height };
-    } catch (error) {
+    } catch {
       // this.logDebug("Error getting element size", { el, error });
       throw new Error("ResizeManager: Failed to get element size.");
     }
@@ -125,7 +125,7 @@ export class ResizeManager {
    */
   destroy(): void {
     this.logDebug("Destroying ResizeManager");
-    for (const [cb, handler] of this.windowCallbacks.entries()) {
+    for (const [, handler] of this.windowCallbacks.entries()) {
       window.removeEventListener("resize", handler);
     }
     this.windowCallbacks.clear();
