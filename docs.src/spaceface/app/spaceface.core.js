@@ -239,7 +239,7 @@ export class SpacefaceCore {
         await this.runFeatureGraph(this.managedFeatures, 'init');
     }
     async initOnceFeatures() {
-        await this.runFeatureGraph(this.onceFeatures, 'init');
+        await this.runFeatureGraph(this.onceFeatures, 'init', { continueOnError: true });
         this.log('info', `Page features initialized for: ${this.pageType}`);
     }
     registerPjaxFeature(name, init, when) {
@@ -365,9 +365,10 @@ export class SpacefaceCore {
             },
         ];
     }
-    async runFeatureGraph(features, stage) {
+    async runFeatureGraph(features, stage, options = {}) {
         const pending = new Map(features.map(feature => [feature.name, feature]));
         const completed = new Set();
+        const failed = new Set();
         let guard = 0;
         while (pending.size) {
             guard++;
@@ -377,17 +378,36 @@ export class SpacefaceCore {
             let progressed = false;
             for (const [name, feature] of Array.from(pending.entries())) {
                 const deps = feature.dependsOn ?? [];
+                const blockedByFailedDep = deps.some(dep => failed.has(dep));
+                if (blockedByFailedDep) {
+                    failed.add(name);
+                    pending.delete(name);
+                    progressed = true;
+                    this.log('warn', `Skipping feature "${name}" due to failed dependency`, { deps });
+                    continue;
+                }
                 if (!deps.every(dep => completed.has(dep)))
                     continue;
-                if (stage === 'onRouteChange' && feature.onRouteChange) {
-                    await feature.onRouteChange(this.pageType);
+                try {
+                    if (stage === 'onRouteChange' && feature.onRouteChange) {
+                        await feature.onRouteChange(this.pageType);
+                    }
+                    else {
+                        await feature.init();
+                    }
+                    completed.add(name);
                 }
-                else {
-                    await feature.init();
+                catch (error) {
+                    failed.add(name);
+                    if (!options.continueOnError) {
+                        throw error;
+                    }
+                    this.log('error', `Feature "${name}" failed during ${stage}`, error);
                 }
-                pending.delete(name);
-                completed.add(name);
-                progressed = true;
+                finally {
+                    pending.delete(name);
+                    progressed = true;
+                }
             }
             if (!progressed) {
                 const unresolved = Array.from(pending.keys()).join(', ');

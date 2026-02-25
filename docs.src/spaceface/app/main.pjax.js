@@ -1,31 +1,12 @@
-import { SpacefaceCore } from './spaceface.core.js';
-import { initPjax } from './pjax.js';
-const features = {
-    slideplayer: { interval: 5000, includePicture: false },
-    floatingImages: {
-        selector: '.floating-images-container',
-        maxImages: 24,
-        debug: false,
-        hoverBehavior: 'slow',
-        hoverSlowMultiplier: 0.2,
-        tapToFreeze: true,
-    },
-    screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
-};
-const app = new SpacefaceCore({
-    features,
-});
-app.initBase().then(async () => {
-    await app.initDomFeatures();
-    await app.initOnceFeatures();
-    app.finishInit();
-    initPjax({ containerSelector: '[data-pjax="container"]' });
-    document.addEventListener('pjax:complete', () => {
-        void app.handlePjaxComplete();
-    });
-});
-window.addEventListener('beforeunload', () => {
-    app.destroy();
-    app.log('info', 'App destroyed on beforeunload');
+import { defaultFeatures } from './config/features.js';
+import { attachDevEventLogger } from './dev/devEventLogger.js';
+import { startup } from './startup.js';
+const isDevHost = ['localhost', '127.0.0.1'].some(host => window.location.hostname.includes(host));
+startup({
+    features: defaultFeatures,
+    debug: isDevHost,
+    usePjax: true,
+    pjaxContainerSelector: '[data-pjax="container"]',
+    enableDevEventLogging: () => attachDevEventLogger({ includeDebug: isDevHost }),
 });
 //# sourceMappingURL=main.pjax.js.map
