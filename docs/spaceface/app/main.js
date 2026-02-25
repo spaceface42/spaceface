@@ -1,53 +1,10 @@
-import { eventBus } from './symlink.js';
-import { SpacefaceCore } from './spaceface.core.js';
-const features = {
-    partialLoader: { enabled: true, debug: true, baseUrl: '/', cacheEnabled: true },
-    slideplayer: { interval: 5000, includePicture: false },
-    floatingImages: {
-        selector: '.floating-images-container',
-        maxImages: 24,
-        debug: false,
-        hoverBehavior: 'slow',
-        hoverSlowMultiplier: 0.2,
-        tapToFreeze: true,
-    },
-    screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
-};
-const app = new SpacefaceCore({
-    features,
-});
-app.initBase().then(async () => {
-    await app.initPartialLoader();
-    await app.initDomFeatures();
-    await app.initOnceFeatures();
-    app.finishInit();
-});
-const isDev = ['localhost', '127.0.0.1'].some(host => window.location.hostname.includes(host));
-if (isDev) {
-    eventBus.onAny((eventName, payload) => {
-        if (eventName === 'log:debug')
-            return;
-        if (eventName === 'log' && payload?.level === 'debug')
-            return;
-        const { level = 'log', args, ...otherDetails } = payload ?? {};
-        if (!payload)
-            return console.log(`[spaceface onAny] Event: ${eventName} – no payload!`);
-        if (typeof payload === 'string')
-            return console.log(`[spaceface onAny] Event: ${eventName} [LOG]`, payload);
-        const fullMessage = args ?? otherDetails ?? '(no details)';
-        const methodMap = {
-            debug: 'debug',
-            info: 'info',
-            warn: 'warn',
-            error: 'error',
-            log: 'log',
-        };
-        const method = methodMap[level] ?? 'log';
-        console[method](`[SPCFC *] Event: ${eventName} [${String(level).toUpperCase()}] –`, fullMessage);
-    });
-}
-window.addEventListener('beforeunload', () => {
-    app.destroy();
-    app.log('info', 'App destroyed on beforeunload');
+import { devFeatures } from './config/features.js';
+import { attachDevEventLogger } from './dev/devEventLogger.js';
+import { startup } from './startup.js';
+startup({
+    features: devFeatures,
+    debug: true,
+    usePartialLoader: true,
+    enableDevEventLogging: () => attachDevEventLogger({ includeDebug: true }),
 });
 //# sourceMappingURL=main.js.map
