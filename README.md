@@ -38,6 +38,8 @@ Production fallback entry without PJAX.
 
 ## Build Commands
 
+- Node version: use `.nvmrc` (`nvm use`) before install/build.
+
 - `npm run build:dev`
 Compile TS modules to `docs.src/spaceface` (`tsc`) and pre-render HTML to `docs` without swapping module scripts to bundle files.
 
