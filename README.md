@@ -32,10 +32,13 @@ Production fallback entry without PJAX.
 
 - JS bundle output: `docs/bin/`
 - HTML source: `docs.src/`
-- Final site output: `docs/`
+- Final site output: `docs/` (generated)
 
 `bin/build.js` builds the JS bundle.
 `bin/build-html.js` composes HTML from `docs.src` into `docs` and swaps script references to the bundle.
+
+GitHub Pages deploys via workflow artifact from generated `docs/`.
+`docs/` is treated as build output and is not tracked as source.
 
 ## Build Commands
 

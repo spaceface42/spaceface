@@ -2,20 +2,10 @@
 
 /node_modules/
 
-# Build outputs in docs: keep only production bundle
-/docs/.DS_Store
-/docs/bin/*
-!/docs/bin/bundle.min.js
-
-# Ignore intermediate transpiled app artifacts
-/docs/spaceface/app/*.js
-/docs/spaceface/app/*.js.map
-/docs/spaceface/app/*.d.ts
+# GitHub Pages output (generated in CI/local build, not source of truth)
+/docs/**
 
 # Ignore generated transpiled artifacts (keep source TS only)
-/docs/spaceface/**/*.js
-/docs/spaceface/**/*.js.map
-/docs/spaceface/**/*.d.ts
 /docs.src/spaceface/**/*.js
 /docs.src/spaceface/**/*.js.map
 /docs.src/spaceface/**/*.d.ts
