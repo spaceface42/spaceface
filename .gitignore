@@ -11,3 +11,11 @@
 /docs/spaceface/app/*.js
 /docs/spaceface/app/*.js.map
 /docs/spaceface/app/*.d.ts
+
+# Ignore generated transpiled artifacts (keep source TS only)
+/docs/spaceface/**/*.js
+/docs/spaceface/**/*.js.map
+/docs/spaceface/**/*.d.ts
+/docs.src/spaceface/**/*.js
+/docs.src/spaceface/**/*.js.map
+/docs.src/spaceface/**/*.d.ts
