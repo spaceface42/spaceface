@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Build site (prod pjax)
-        run: npm run build:prod:pjax
+        run: SITE_BASE=/spaceface npm run build:prod:pjax
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
