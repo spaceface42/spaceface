@@ -5,6 +5,7 @@ type PjaxOptions = {
     linkSelector?: string;
     scrollToTop?: boolean;
     cache?: boolean;
+    maxCacheEntries?: number;
 };
 
 type CachedEntry = {
@@ -21,6 +22,7 @@ export class Pjax {
     private linkSelector: string;
     private scrollToTop: boolean;
     private cacheEnabled: boolean;
+    private maxCacheEntries: number;
     private cache = new Map<string, CachedEntry>();
     private currentRequest?: AbortController;
 
@@ -29,6 +31,7 @@ export class Pjax {
         this.linkSelector = options.linkSelector ?? 'a[href]';
         this.scrollToTop = options.scrollToTop ?? true;
         this.cacheEnabled = options.cache ?? true;
+        this.maxCacheEntries = Math.max(1, options.maxCacheEntries ?? 30);
     }
 
     init(): void {
@@ -97,6 +100,9 @@ export class Pjax {
             let html: string;
 
             if (cached) {
+                // Refresh insertion order so frequently used pages stay cached.
+                this.cache.delete(url);
+                this.cache.set(url, cached);
                 ({ title, html } = cached);
             } else {
                 const res = await fetch(url, {
@@ -116,6 +122,11 @@ export class Pjax {
 
                 if (this.cacheEnabled) {
                     this.cache.set(url, { title, html, url });
+                    while (this.cache.size > this.maxCacheEntries) {
+                        const firstKey = this.cache.keys().next().value;
+                        if (!firstKey) break;
+                        this.cache.delete(firstKey);
+                    }
                 }
             }
 
