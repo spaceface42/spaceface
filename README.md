@@ -74,6 +74,7 @@ Run ESLint with auto-fixes where possible.
 1. `initBase()` adds `js-enabled` and resolves `pageType` from `body[data-page]` or URL.
 2. `initDomFeatures()` initializes DOM-dependent features (`SlidePlayer`, `FloatingImages`).
 3. `initOnceFeatures()` initializes singleton/lifecycle features (`InactivityWatcher`, `ScreensaverController`).
+4. `InactivityWatcher` is intentionally a singleton: one app-level inactivity source drives one screensaver lifecycle per page.
 
 - `FloatingImages`:
 1. Uses existing HTML markup (`.floating-images-container` + `.floating-image`) as source of truth.
