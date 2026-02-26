@@ -25,11 +25,18 @@ export interface FloatingImagesFeatureConfig extends FloatingImagesManagerOption
     selector?: string;
 }
 
+export interface ScrollDeckFeatureConfig {
+    selector?: string;
+    includePicture?: boolean;
+    debug?: boolean;
+}
+
 export interface SpacefaceFeaturesConfig {
     partialLoader?: PartialLoaderFeatureConfig;
     slideplayer?: SlideplayerFeatureConfig;
     screensaver?: ScreensaverFeatureConfig;
     floatingImages?: FloatingImagesFeatureConfig;
+    scrollDeck?: ScrollDeckFeatureConfig;
 }
 
 export interface AppConfigOptions {
@@ -60,6 +67,11 @@ export interface PartialLoaderInstance {
     watch?: (container: HTMLElement | Document) => MutationObserver | void;
 }
 
+export interface ScrollDeckInstance {
+    ready?: Promise<void>;
+    destroy?: () => void;
+}
+
 export interface PartialLoaderModule {
     PartialLoader: new (options?: PartialLoaderOptionsInterface) => PartialLoaderInstance;
 }
@@ -86,11 +98,19 @@ export interface FloatingImagesModule {
     ) => FloatingImagesManagerInterface;
 }
 
+export interface ScrollDeckModule {
+    ScrollDeck: new (
+        containerOrSelector: string | HTMLElement,
+        options?: { includePicture?: boolean; debug?: boolean }
+    ) => ScrollDeckInstance;
+}
+
 export interface FeatureModuleMap {
     partialLoader: PartialLoaderModule;
     slideplayer: SlidePlayerModule;
     screensaver: ScreensaverControllerModule;
     floatingImages: FloatingImagesModule;
+    scrollDeck: ScrollDeckModule;
 }
 
 export interface ManagedFeatureLifecycle {

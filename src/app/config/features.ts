@@ -10,6 +10,11 @@ export const defaultFeatures = {
         hoverSlowMultiplier: 0.2,
         tapToFreeze: true,
     },
+    scrollDeck: {
+        selector: '.scroll-deck-container',
+        includePicture: false,
+        debug: false,
+    },
     screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html' },
 } satisfies SpacefaceFeaturesConfig;
 

@@ -18,7 +18,9 @@ import type {
     SlideplayerFeatureConfig,
     ScreensaverFeatureConfig,
     FloatingImagesFeatureConfig,
+    ScrollDeckFeatureConfig,
     SlidePlayerInstance,
+    ScrollDeckInstance,
     ScreensaverControllerInstance,
     PartialLoaderInstance,
 } from './types.js';
@@ -53,6 +55,7 @@ export class SpacefaceCore {
     private inactivityWatcher: InactivityWatcher | null = null;
     private screensaverController: ScreensaverControllerInstance | null = null;
     private slideshows: SlidePlayerInstance[] = [];
+    private scrollDecks: ScrollDeckInstance[] = [];
     private floatingImagesManagers: FloatingImagesManagerInterface[] = [];
     private _partialUnsub?: () => void;
     private _partialObserver?: { disconnect?: () => void };
@@ -70,6 +73,7 @@ export class SpacefaceCore {
         this.featureModules = {
             partialLoader: () => import('../system/bin/PartialLoader.js'),
             slideplayer: () => import('../system/features/SlidePlayer/SlidePlayer.js'),
+            scrollDeck: () => import('../system/features/ScrollDeck/ScrollDeck.js'),
             screensaver: () => import('../system/features/Screensaver/ScreensaverController.js'),
             floatingImages: () => import('../system/features/FloatingImages/FloatingImagesManager.js'),
         };
@@ -232,6 +236,45 @@ export class SpacefaceCore {
         }
     }
 
+    public async initScrollDeck(): Promise<void> {
+        const start = performance.now();
+        const scrollDeck: ScrollDeckFeatureConfig | undefined = this.appConfig.config.features.scrollDeck;
+        if (!scrollDeck) {
+            this.emitFeatureTelemetry('scrollDeck', start, 'skipped');
+            return;
+        }
+
+        try {
+            const module = await this.loadFeatureModule('scrollDeck');
+            const ScrollDeck = module?.ScrollDeck;
+            if (!ScrollDeck) {
+                this.emitFeatureTelemetry('scrollDeck', start, 'skipped');
+                return;
+            }
+
+            const selector = scrollDeck.selector ?? '.scroll-deck-container';
+            const containers = Array.from(document.querySelectorAll<HTMLElement>(selector));
+            if (!containers.length) {
+                this.emitFeatureTelemetry('scrollDeck', start, 'skipped');
+                return;
+            }
+
+            this.destroyScrollDecks();
+            this.scrollDecks = containers.map(container => {
+                return new ScrollDeck(container, {
+                    includePicture: scrollDeck.includePicture ?? false,
+                    debug: scrollDeck.debug ?? this.debug,
+                });
+            });
+
+            this.log('info', `${this.scrollDecks.length} ScrollDeck instance(s) loaded`);
+            this.emitFeatureTelemetry('scrollDeck', start, 'success');
+        } catch (error) {
+            this.emitFeatureTelemetry('scrollDeck', start, 'error', error);
+            throw error;
+        }
+    }
+
     public async initPartialLoader(): Promise<PartialLoaderInstance | null> {
         const start = performance.now();
         const config: PartialLoaderFeatureConfig | undefined = this.appConfig.config.features.partialLoader;
@@ -381,6 +424,11 @@ export class SpacefaceCore {
         this.slideshows = [];
     }
 
+    private destroyScrollDecks(): void {
+        this.scrollDecks.forEach(scrollDeck => scrollDeck.destroy?.());
+        this.scrollDecks = [];
+    }
+
     private setupManagedFeatures(): void {
         this.managedFeatures = [
             {
@@ -392,6 +440,16 @@ export class SpacefaceCore {
                     await this.initSlidePlayer();
                 },
                 destroy: () => this.destroySlidePlayers(),
+            },
+            {
+                name: 'scrollDeck',
+                dependsOn: [],
+                init: () => this.initScrollDeck(),
+                onRouteChange: async () => {
+                    this.destroyScrollDecks();
+                    await this.initScrollDeck();
+                },
+                destroy: () => this.destroyScrollDecks(),
             },
             {
                 name: 'floatingImages',
@@ -484,6 +542,7 @@ export class SpacefaceCore {
         managedFeatures: string[];
         onceFeatures: string[];
         activeSlidePlayers: number;
+        activeScrollDecks: number;
         activeFloatingImagesManagers: number;
         inactivityWatcherReady: boolean;
         screensaverReady: boolean;
@@ -494,6 +553,7 @@ export class SpacefaceCore {
             managedFeatures: this.managedFeatures.map(f => f.name),
             onceFeatures: this.onceFeatures.map(f => f.name),
             activeSlidePlayers: this.slideshows.length,
+            activeScrollDecks: this.scrollDecks.length,
             activeFloatingImagesManagers: this.floatingImagesManagers.length,
             inactivityWatcherReady: !!this.inactivityWatcher,
             screensaverReady: !!this.screensaverController,
@@ -541,6 +601,16 @@ export class SpacefaceCore {
             ) {
                 this.log('warn', 'Invalid floatingImages.selector; removing override.');
                 delete normalized.floatingImages.selector;
+            }
+        }
+
+        if (normalized.scrollDeck) {
+            if (
+                normalized.scrollDeck.selector !== undefined &&
+                typeof normalized.scrollDeck.selector !== 'string'
+            ) {
+                this.log('warn', 'Invalid scrollDeck.selector; removing override.');
+                delete normalized.scrollDeck.selector;
             }
         }
 
