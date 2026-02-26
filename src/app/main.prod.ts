@@ -3,4 +3,5 @@ import { startup } from './startup.js';
 
 startup({
     features: defaultFeatures,
+    debug: false,
 });

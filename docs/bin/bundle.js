@@ -886,16 +886,14 @@ var init_EventBinder = __esm({
 // src/system/bin/PartialLoader.ts
 var PartialLoader_exports = {};
 __export(PartialLoader_exports, {
-  PartialLoader: () => PartialLoader,
-  VERSION: () => VERSION
+  PartialLoader: () => PartialLoader
 });
-var VERSION, PartialLoader;
+var PartialLoader;
 var init_PartialLoader = __esm({
   "src/system/bin/PartialLoader.ts"() {
     "use strict";
     init_timing();
     init_EventBus();
-    VERSION = "2.0.0";
     PartialLoader = class {
       cache = /* @__PURE__ */ new Map();
       loadingPromises = /* @__PURE__ */ new Map();
@@ -1463,10 +1461,9 @@ var init_AnimationPolicy = __esm({
 // src/system/features/SlidePlayer/SlidePlayer.ts
 var SlidePlayer_exports = {};
 __export(SlidePlayer_exports, {
-  SlidePlayer: () => SlidePlayer,
-  VERSION: () => VERSION2
+  SlidePlayer: () => SlidePlayer
 });
-var VERSION2, SlidePlayer;
+var SlidePlayer;
 var init_SlidePlayer = __esm({
   "src/system/features/SlidePlayer/SlidePlayer.ts"() {
     "use strict";
@@ -1476,7 +1473,6 @@ var init_SlidePlayer = __esm({
     init_AnimationLoop();
     init_AnimationPolicy();
     init_events();
-    VERSION2 = "2.0.0";
     SlidePlayer = class _SlidePlayer {
       static SWIPE_THRESHOLD = 50;
       static VERTICAL_TOLERANCE = 30;
@@ -1766,6 +1762,375 @@ var init_SlidePlayer = __esm({
   }
 });
 
+// src/system/features/bin/ResizeManager.ts
+var ResizeManager, resizeManager;
+var init_ResizeManager = __esm({
+  "src/system/features/bin/ResizeManager.ts"() {
+    "use strict";
+    init_timing();
+    ResizeManager = class {
+      windowCallbacks = /* @__PURE__ */ new Map();
+      elementObservers = /* @__PURE__ */ new Map();
+      debug = false;
+      setDebugMode(enabled) {
+        this.debug = enabled;
+      }
+      logDebug(message, data) {
+        if (!this.debug) return;
+        console.debug(`[ResizeManager] ${message}`, data);
+      }
+      wrapCallback(cb, options) {
+        if (options?.debounceMs != null) {
+          return debounce(cb, options.debounceMs);
+        } else if (options?.throttleMs != null) {
+          return throttle(cb, options.throttleMs);
+        } else {
+          const wrappedCb = cb;
+          wrappedCb.cancel = () => {
+          };
+          return wrappedCb;
+        }
+      }
+      /**
+       * Register a callback for window resize events.
+       * Optionally debounce or throttle the callback.
+       */
+      onWindow(cb, options = { debounceMs: 200 }) {
+        const wrappedCb = debounce(cb, options.debounceMs);
+        const handler = () => wrappedCb();
+        this.windowCallbacks.set(cb, handler);
+        window.addEventListener("resize", handler);
+        return () => {
+          window.removeEventListener("resize", handler);
+          wrappedCb.cancel?.();
+          this.windowCallbacks.delete(cb);
+        };
+      }
+      /**
+       * Register a callback for an element's resize events.
+       * Optionally debounce or throttle the callback.
+       */
+      onElement(el, cb, options) {
+        this.logDebug("Registering element resize callback", { el, cb, options });
+        let entry = this.elementObservers.get(el);
+        if (!entry) {
+          const callbacks = /* @__PURE__ */ new Set();
+          const observer = new ResizeObserver((entries) => {
+            try {
+              const entry2 = entries[0];
+              if (!entry2) return;
+              callbacks.forEach((fn) => fn(entry2));
+            } catch (error) {
+              this.logDebug("ResizeObserver callback error", { error });
+            }
+          });
+          entry = { observer, callbacks };
+          this.elementObservers.set(el, entry);
+          observer.observe(el);
+        }
+        const wrappedCb = this.wrapCallback(cb, options);
+        entry.callbacks.add(wrappedCb);
+        return () => {
+          this.logDebug("Removing element resize callback", { el, cb });
+          entry.callbacks.delete(wrappedCb);
+          wrappedCb.cancel?.();
+          if (entry.callbacks.size === 0) {
+            entry.observer.disconnect();
+            this.elementObservers.delete(el);
+          }
+        };
+      }
+      /**
+       * Get current size of an element.
+       */
+      getElement(el) {
+        try {
+          const rect = el.getBoundingClientRect();
+          return { width: rect.width, height: rect.height };
+        } catch {
+          throw new Error("ResizeManager: Failed to get element size.");
+        }
+      }
+      /**
+       * Cleanup all registered window and element callbacks.
+       */
+      destroy() {
+        this.logDebug("Destroying ResizeManager");
+        for (const [, handler] of this.windowCallbacks.entries()) {
+          window.removeEventListener("resize", handler);
+        }
+        this.windowCallbacks.clear();
+        for (const entry of this.elementObservers.values()) {
+          entry.observer.disconnect();
+          for (const fn of entry.callbacks) {
+            fn.cancel?.();
+          }
+        }
+        this.elementObservers.clear();
+        this.logDebug("ResizeManager destroyed");
+      }
+    };
+    resizeManager = new ResizeManager();
+  }
+});
+
+// src/system/features/ScrollDeck/ScrollDeck.ts
+var ScrollDeck_exports = {};
+__export(ScrollDeck_exports, {
+  ScrollDeck: () => ScrollDeck
+});
+var ScrollDeck;
+var init_ScrollDeck = __esm({
+  "src/system/features/ScrollDeck/ScrollDeck.ts"() {
+    "use strict";
+    init_EventBinder();
+    init_AsyncImageLoader();
+    init_ResizeManager();
+    ScrollDeck = class _ScrollDeck {
+      static DEFAULT_SLIDE_SELECTOR = ".slide";
+      static DEFAULT_TRACK_SELECTOR = "#track";
+      static DEFAULT_HUD_SELECTOR = "#hud";
+      static DEFAULT_HINT_SELECTOR = "#hint";
+      static DEFAULT_TOP_STRIP_PX = 100;
+      static DEFAULT_GATE = 0.12;
+      static DEFAULT_BACK_Z_PX = -220;
+      static DEFAULT_BACK_SCALE_END = 0.78;
+      static DEFAULT_SCROLL_PER_SEGMENT = 1.6;
+      static DEFAULT_HINT_HIDE_PROGRESS = 0.12;
+      container;
+      binder;
+      loader;
+      debug;
+      slideSelector;
+      trackSelector;
+      hudSelector;
+      hintSelector;
+      autoCreateHud;
+      topStripPx;
+      gate;
+      backZPx;
+      backScaleEnd;
+      scrollPerSegment;
+      hideHintAfter;
+      slides = [];
+      dots = [];
+      track = null;
+      hint = null;
+      hud = null;
+      unsubscribeWindowResize;
+      unsubscribeTrackResize;
+      rafPending = false;
+      isDestroyed = false;
+      initError = null;
+      ready;
+      constructor(containerOrSelector, options = {}) {
+        this.container = this.resolveContainer(containerOrSelector);
+        this.debug = !!options.debug;
+        this.binder = new EventBinder(this.debug);
+        this.loader = new AsyncImageLoader(this.container, {
+          includePicture: options.includePicture ?? false,
+          debug: this.debug
+        });
+        this.slideSelector = options.slideSelector ?? _ScrollDeck.DEFAULT_SLIDE_SELECTOR;
+        this.trackSelector = options.trackSelector ?? _ScrollDeck.DEFAULT_TRACK_SELECTOR;
+        this.hudSelector = options.hudSelector ?? _ScrollDeck.DEFAULT_HUD_SELECTOR;
+        this.hintSelector = options.hintSelector ?? _ScrollDeck.DEFAULT_HINT_SELECTOR;
+        this.autoCreateHud = options.autoCreateHud ?? true;
+        this.topStripPx = Math.max(0, options.topStripPx ?? _ScrollDeck.DEFAULT_TOP_STRIP_PX);
+        this.gate = this.clamp(options.gate ?? _ScrollDeck.DEFAULT_GATE, 0.01, 0.99);
+        this.backZPx = options.backZPx ?? _ScrollDeck.DEFAULT_BACK_Z_PX;
+        this.backScaleEnd = this.clamp(options.backScaleEnd ?? _ScrollDeck.DEFAULT_BACK_SCALE_END, 0.01, 1);
+        this.scrollPerSegment = Math.max(0.25, options.scrollPerSegment ?? _ScrollDeck.DEFAULT_SCROLL_PER_SEGMENT);
+        this.hideHintAfter = this.clamp(options.hideHintAfter ?? _ScrollDeck.DEFAULT_HINT_HIDE_PROGRESS, 0, 1);
+        this.ready = this.init().catch((err) => {
+          this.initError = err;
+          this.log("error", "ScrollDeck init failed", err);
+        }).then(() => {
+        });
+      }
+      log(level, message, data) {
+        if (!this.debug && level === "debug") return;
+        switch (level) {
+          case "debug":
+            console.debug(`[ScrollDeck] [${level.toUpperCase()}] ${message}`, data);
+            break;
+          case "info":
+            console.info(`[ScrollDeck] [${level.toUpperCase()}] ${message}`, data);
+            break;
+          case "warn":
+            console.warn(`[ScrollDeck] [${level.toUpperCase()}] ${message}`, data);
+            break;
+          case "error":
+            console.error(`[ScrollDeck] [${level.toUpperCase()}] ${message}`, data);
+            break;
+        }
+      }
+      resolveContainer(containerOrSelector) {
+        const container = typeof containerOrSelector === "string" ? document.querySelector(containerOrSelector) : containerOrSelector;
+        if (!container) throw new Error("ScrollDeck: container element not found.");
+        return container;
+      }
+      async init() {
+        await this.loader.waitForImagesToLoad();
+        this.refreshElements();
+        if (!this.slides.length) {
+          this.log("warn", `No slides found with selector "${this.slideSelector}".`);
+          return;
+        }
+        this.setupDots();
+        this.setDeckHeight();
+        this.bindEvents();
+        this.render();
+        this.log("info", "ScrollDeck initialized", { slides: this.slides.length });
+      }
+      refreshElements() {
+        this.slides = Array.from(this.container.querySelectorAll(this.slideSelector));
+        this.track = this.container.querySelector(this.trackSelector);
+        this.hud = this.container.querySelector(this.hudSelector);
+        this.hint = this.container.querySelector(this.hintSelector);
+        if (!this.track) {
+          this.track = this.container;
+          this.log("warn", `Track not found with selector "${this.trackSelector}". Falling back to container.`);
+        }
+      }
+      setupDots() {
+        if (!this.hud && this.autoCreateHud) {
+          this.hud = document.createElement("div");
+          this.hud.id = this.hudSelector.replace(/^#/, "") || "hud";
+          this.container.appendChild(this.hud);
+        }
+        if (!this.hud) return;
+        this.hud.innerHTML = "";
+        this.dots = this.slides.map(() => {
+          const dot = document.createElement("div");
+          dot.className = "hud-dot";
+          this.hud.appendChild(dot);
+          return dot;
+        });
+      }
+      bindEvents() {
+        this.binder.bindDOM(window, "scroll", () => this.requestRender(), { passive: true });
+        this.unsubscribeWindowResize = resizeManager.onWindow(() => {
+          this.setDeckHeight();
+          this.requestRender();
+        });
+        if (this.track) {
+          this.unsubscribeTrackResize = resizeManager.onElement(this.track, () => {
+            this.requestRender();
+          }, { debounceMs: 50 });
+        }
+      }
+      setDeckHeight() {
+        const vh = window.innerHeight;
+        this.container.style.height = `${(this.slides.length * this.scrollPerSegment + 1) * vh}px`;
+      }
+      requestRender() {
+        if (this.isDestroyed || this.rafPending) return;
+        this.rafPending = true;
+        requestAnimationFrame(() => {
+          this.rafPending = false;
+          this.render();
+        });
+      }
+      clamp(value, min = 0, max = 1) {
+        return Math.max(min, Math.min(max, value));
+      }
+      norm(value, start, end) {
+        return this.clamp((value - start) / (end - start));
+      }
+      easeOutQuart(t) {
+        return 1 - Math.pow(1 - t, 4);
+      }
+      easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+      hideSlide(slide) {
+        const h = this.track?.clientHeight || window.innerHeight;
+        slide.style.visibility = "hidden";
+        slide.style.zIndex = "0";
+        slide.style.transform = `translate3d(0, ${h}px, 0) scale(1)`;
+      }
+      showSlide(slide, ty, tz, scale, z) {
+        slide.style.visibility = "visible";
+        slide.style.zIndex = String(z);
+        slide.style.transform = `translate3d(0, ${ty}px, ${tz}px) scale(${scale})`;
+      }
+      getProgress() {
+        const vh = window.innerHeight;
+        const yInDeck = -this.container.getBoundingClientRect().top;
+        const n = this.slides.length;
+        return this.clamp(yInDeck / (this.scrollPerSegment * vh), 0, n);
+      }
+      renderDots(segment, local) {
+        if (!this.dots.length) return;
+        let activeDot = segment;
+        if (segment > 0 && local < this.gate) activeDot = segment - 1;
+        this.dots.forEach((dot, index) => dot.classList.toggle("active", index === activeDot));
+      }
+      renderHint(progress) {
+        if (!this.hint) return;
+        this.hint.style.opacity = progress < this.hideHintAfter ? "1" : "0";
+      }
+      render() {
+        if (this.isDestroyed || !this.slides.length) return;
+        const n = this.slides.length;
+        const progress = this.getProgress();
+        const segment = Math.min(Math.floor(progress), n - 1);
+        const local = this.clamp(progress - segment, 0, 1);
+        const cardH = this.track?.clientHeight || window.innerHeight;
+        const startY = Math.max(0, cardH - this.topStripPx);
+        this.slides.forEach((slide) => this.hideSlide(slide));
+        this.renderDots(segment, local);
+        this.renderHint(progress);
+        if (segment === 0) {
+          const t2 = this.easeOutQuart(local);
+          const ty = startY * (1 - t2);
+          this.showSlide(this.slides[0], ty, 0, 1, 10);
+          return;
+        }
+        const prev = segment - 1;
+        const curr = segment;
+        const prevSlide = this.slides[prev];
+        const currSlide = this.slides[curr];
+        if (!prevSlide || !currSlide) return;
+        if (local < this.gate) {
+          const t2 = this.easeInOutCubic(this.norm(local, 0, this.gate));
+          const tz = this.backZPx * t2;
+          const scale = 1 + (this.backScaleEnd - 1) * t2;
+          this.showSlide(prevSlide, 0, tz, scale, 5);
+          return;
+        }
+        const t = this.easeOutQuart(this.norm(local, this.gate, 1));
+        const prevScale = this.backScaleEnd - 0.04 * t;
+        const currY = startY * (1 - t);
+        this.showSlide(prevSlide, 0, this.backZPx, prevScale, 4);
+        this.showSlide(currSlide, currY, 0, 1, 10);
+      }
+      refresh() {
+        if (this.isDestroyed) return;
+        this.refreshElements();
+        this.setupDots();
+        this.setDeckHeight();
+        this.requestRender();
+      }
+      destroy() {
+        if (this.isDestroyed) return;
+        this.isDestroyed = true;
+        this.unsubscribeWindowResize?.();
+        this.unsubscribeTrackResize?.();
+        this.binder.unbindAll();
+        this.loader.destroy();
+        this.slides = [];
+        this.dots = [];
+        this.track = null;
+        this.hud = null;
+        this.hint = null;
+        this.log("info", "ScrollDeck destroyed");
+      }
+    };
+  }
+});
+
 // src/system/features/bin/math.ts
 var clamp;
 var init_math = __esm({
@@ -1967,124 +2332,12 @@ var init_PerformanceMonitor = __esm({
   }
 });
 
-// src/system/features/bin/ResizeManager.ts
-var ResizeManager, resizeManager;
-var init_ResizeManager = __esm({
-  "src/system/features/bin/ResizeManager.ts"() {
-    "use strict";
-    init_timing();
-    ResizeManager = class {
-      windowCallbacks = /* @__PURE__ */ new Map();
-      elementObservers = /* @__PURE__ */ new Map();
-      debug = false;
-      setDebugMode(enabled) {
-        this.debug = enabled;
-      }
-      logDebug(message, data) {
-        if (!this.debug) return;
-        console.debug(`[ResizeManager] ${message}`, data);
-      }
-      wrapCallback(cb, options) {
-        if (options?.debounceMs != null) {
-          return debounce(cb, options.debounceMs);
-        } else if (options?.throttleMs != null) {
-          return throttle(cb, options.throttleMs);
-        } else {
-          const wrappedCb = cb;
-          wrappedCb.cancel = () => {
-          };
-          return wrappedCb;
-        }
-      }
-      /**
-       * Register a callback for window resize events.
-       * Optionally debounce or throttle the callback.
-       */
-      onWindow(cb, options = { debounceMs: 200 }) {
-        const wrappedCb = debounce(cb, options.debounceMs);
-        const handler = () => wrappedCb();
-        this.windowCallbacks.set(cb, handler);
-        window.addEventListener("resize", handler);
-        return () => {
-          window.removeEventListener("resize", handler);
-          wrappedCb.cancel?.();
-          this.windowCallbacks.delete(cb);
-        };
-      }
-      /**
-       * Register a callback for an element's resize events.
-       * Optionally debounce or throttle the callback.
-       */
-      onElement(el, cb, options) {
-        this.logDebug("Registering element resize callback", { el, cb, options });
-        let entry = this.elementObservers.get(el);
-        if (!entry) {
-          const callbacks = /* @__PURE__ */ new Set();
-          const observer = new ResizeObserver((entries) => {
-            try {
-              const entry2 = entries[0];
-              callbacks.forEach((fn) => fn(entry2));
-            } catch (error) {
-              this.logDebug("ResizeObserver callback error", { error });
-            }
-          });
-          entry = { observer, callbacks };
-          this.elementObservers.set(el, entry);
-          observer.observe(el);
-        }
-        const wrappedCb = this.wrapCallback(cb, options);
-        entry.callbacks.add(wrappedCb);
-        return () => {
-          this.logDebug("Removing element resize callback", { el, cb });
-          entry.callbacks.delete(wrappedCb);
-          wrappedCb.cancel?.();
-          if (entry.callbacks.size === 0) {
-            entry.observer.disconnect();
-            this.elementObservers.delete(el);
-          }
-        };
-      }
-      /**
-       * Get current size of an element.
-       */
-      getElement(el) {
-        try {
-          const rect = el.getBoundingClientRect();
-          return { width: rect.width, height: rect.height };
-        } catch {
-          throw new Error("ResizeManager: Failed to get element size.");
-        }
-      }
-      /**
-       * Cleanup all registered window and element callbacks.
-       */
-      destroy() {
-        this.logDebug("Destroying ResizeManager");
-        for (const [, handler] of this.windowCallbacks.entries()) {
-          window.removeEventListener("resize", handler);
-        }
-        this.windowCallbacks.clear();
-        for (const entry of this.elementObservers.values()) {
-          entry.observer.disconnect();
-          for (const fn of entry.callbacks) {
-            fn.cancel?.();
-          }
-        }
-        this.elementObservers.clear();
-        this.logDebug("ResizeManager destroyed");
-      }
-    };
-    resizeManager = new ResizeManager();
-  }
-});
-
 // src/system/features/FloatingImages/FloatingImagesManager.ts
 var FloatingImagesManager_exports = {};
 __export(FloatingImagesManager_exports, {
-  FloatingImagesManager: () => FloatingImagesManager,
-  VERSION: () => VERSION3
+  FloatingImagesManager: () => FloatingImagesManager
 });
-var VERSION3, FloatingImagesManager;
+var FloatingImagesManager;
 var init_FloatingImagesManager = __esm({
   "src/system/features/FloatingImages/FloatingImagesManager.ts"() {
     "use strict";
@@ -2097,7 +2350,6 @@ var init_FloatingImagesManager = __esm({
     init_timing();
     init_AnimationPolicy();
     init_events();
-    VERSION3 = "2.1.0";
     FloatingImagesManager = class {
       container;
       performanceMonitor;
@@ -2373,10 +2625,9 @@ var init_FloatingImagesManager = __esm({
 // src/system/features/Screensaver/ScreensaverController.ts
 var ScreensaverController_exports = {};
 __export(ScreensaverController_exports, {
-  ScreensaverController: () => ScreensaverController,
-  VERSION: () => VERSION4
+  ScreensaverController: () => ScreensaverController
 });
-var VERSION4, ScreensaverController;
+var ScreensaverController;
 var init_ScreensaverController = __esm({
   "src/system/features/Screensaver/ScreensaverController.ts"() {
     "use strict";
@@ -2386,7 +2637,6 @@ var init_ScreensaverController = __esm({
     init_PartialFetcher();
     init_FloatingImagesManager();
     init_events();
-    VERSION4 = "2.0.0";
     ScreensaverController = class _ScreensaverController {
       static STATES = {
         IDLE: "idle",
@@ -2587,6 +2837,7 @@ var init_pjax = __esm({
       linkSelector;
       scrollToTop;
       cacheEnabled;
+      maxCacheEntries;
       cache = /* @__PURE__ */ new Map();
       currentRequest;
       constructor(options = {}) {
@@ -2594,6 +2845,7 @@ var init_pjax = __esm({
         this.linkSelector = options.linkSelector ?? "a[href]";
         this.scrollToTop = options.scrollToTop ?? true;
         this.cacheEnabled = options.cache ?? true;
+        this.maxCacheEntries = Math.max(1, options.maxCacheEntries ?? 30);
       }
       init() {
         document.addEventListener("click", this.onClick, true);
@@ -2647,6 +2899,8 @@ var init_pjax = __esm({
           let title;
           let html;
           if (cached) {
+            this.cache.delete(url);
+            this.cache.set(url, cached);
             ({ title, html } = cached);
           } else {
             const res = await fetch(url, {
@@ -2664,6 +2918,11 @@ var init_pjax = __esm({
             html = nextContainer.innerHTML;
             if (this.cacheEnabled) {
               this.cache.set(url, { title, html, url });
+              while (this.cache.size > this.maxCacheEntries) {
+                const firstKey = this.cache.keys().next().value;
+                if (!firstKey) break;
+                this.cache.delete(firstKey);
+              }
             }
           }
           if (this.currentRequest !== requestToken) return;
@@ -2699,6 +2958,11 @@ var defaultFeatures = {
     hoverBehavior: "slow",
     hoverSlowMultiplier: 0.2,
     tapToFreeze: true
+  },
+  scrollDeck: {
+    selector: ".scroll-deck-container",
+    includePicture: false,
+    debug: false
   },
   screensaver: { delay: 4500, partialUrl: "content/feature/screensaver/index.html" }
 };
@@ -2859,6 +3123,7 @@ var SpacefaceCore = class _SpacefaceCore {
   inactivityWatcher = null;
   screensaverController = null;
   slideshows = [];
+  scrollDecks = [];
   floatingImagesManagers = [];
   _partialUnsub;
   _partialObserver;
@@ -2874,6 +3139,7 @@ var SpacefaceCore = class _SpacefaceCore {
     this.featureModules = {
       partialLoader: () => Promise.resolve().then(() => (init_PartialLoader(), PartialLoader_exports)),
       slideplayer: () => Promise.resolve().then(() => (init_SlidePlayer(), SlidePlayer_exports)),
+      scrollDeck: () => Promise.resolve().then(() => (init_ScrollDeck(), ScrollDeck_exports)),
       screensaver: () => Promise.resolve().then(() => (init_ScreensaverController(), ScreensaverController_exports)),
       floatingImages: () => Promise.resolve().then(() => (init_FloatingImagesManager(), FloatingImagesManager_exports))
     };
@@ -3022,6 +3288,40 @@ var SpacefaceCore = class _SpacefaceCore {
       this.emitFeatureTelemetry("screensaver", start, "error", error);
     }
   }
+  async initScrollDeck() {
+    const start = performance.now();
+    const scrollDeck = this.appConfig.config.features.scrollDeck;
+    if (!scrollDeck) {
+      this.emitFeatureTelemetry("scrollDeck", start, "skipped");
+      return;
+    }
+    try {
+      const module = await this.loadFeatureModule("scrollDeck");
+      const ScrollDeck2 = module?.ScrollDeck;
+      if (!ScrollDeck2) {
+        this.emitFeatureTelemetry("scrollDeck", start, "skipped");
+        return;
+      }
+      const selector = scrollDeck.selector ?? ".scroll-deck-container";
+      const containers = Array.from(document.querySelectorAll(selector));
+      if (!containers.length) {
+        this.emitFeatureTelemetry("scrollDeck", start, "skipped");
+        return;
+      }
+      this.destroyScrollDecks();
+      this.scrollDecks = containers.map((container) => {
+        return new ScrollDeck2(container, {
+          includePicture: scrollDeck.includePicture ?? false,
+          debug: scrollDeck.debug ?? this.debug
+        });
+      });
+      this.log("info", `${this.scrollDecks.length} ScrollDeck instance(s) loaded`);
+      this.emitFeatureTelemetry("scrollDeck", start, "success");
+    } catch (error) {
+      this.emitFeatureTelemetry("scrollDeck", start, "error", error);
+      throw error;
+    }
+  }
   async initPartialLoader() {
     const start = performance.now();
     const config = this.appConfig.config.features.partialLoader;
@@ -3145,6 +3445,10 @@ var SpacefaceCore = class _SpacefaceCore {
     this.slideshows.forEach((slideshow) => slideshow.destroy?.());
     this.slideshows = [];
   }
+  destroyScrollDecks() {
+    this.scrollDecks.forEach((scrollDeck) => scrollDeck.destroy?.());
+    this.scrollDecks = [];
+  }
   setupManagedFeatures() {
     this.managedFeatures = [
       {
@@ -3156,6 +3460,16 @@ var SpacefaceCore = class _SpacefaceCore {
           await this.initSlidePlayer();
         },
         destroy: () => this.destroySlidePlayers()
+      },
+      {
+        name: "scrollDeck",
+        dependsOn: [],
+        init: () => this.initScrollDeck(),
+        onRouteChange: async () => {
+          this.destroyScrollDecks();
+          await this.initScrollDeck();
+        },
+        destroy: () => this.destroyScrollDecks()
       },
       {
         name: "floatingImages",
@@ -3237,6 +3551,7 @@ var SpacefaceCore = class _SpacefaceCore {
       managedFeatures: this.managedFeatures.map((f) => f.name),
       onceFeatures: this.onceFeatures.map((f) => f.name),
       activeSlidePlayers: this.slideshows.length,
+      activeScrollDecks: this.scrollDecks.length,
       activeFloatingImagesManagers: this.floatingImagesManagers.length,
       inactivityWatcherReady: !!this.inactivityWatcher,
       screensaverReady: !!this.screensaverController,
@@ -3273,6 +3588,12 @@ var SpacefaceCore = class _SpacefaceCore {
       if (normalized.floatingImages.selector !== void 0 && typeof normalized.floatingImages.selector !== "string") {
         this.log("warn", "Invalid floatingImages.selector; removing override.");
         delete normalized.floatingImages.selector;
+      }
+    }
+    if (normalized.scrollDeck) {
+      if (normalized.scrollDeck.selector !== void 0 && typeof normalized.scrollDeck.selector !== "string") {
+        this.log("warn", "Invalid scrollDeck.selector; removing override.");
+        delete normalized.scrollDeck.selector;
       }
     }
     if (normalized.partialLoader) {
