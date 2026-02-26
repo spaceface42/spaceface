@@ -6,6 +6,7 @@ const inDir = resolve(process.env.HTML_IN_DIR ?? "./docs.src");
 const outDir = resolve(process.env.HTML_OUT_DIR ?? "./docs");
 const bundleSrc = process.env.HTML_BUNDLE_SRC ?? "./bin/bundle.min.js";
 const shouldSwapBundle = process.env.HTML_SWAP_BUNDLE !== "0";
+const siteBase = normalizeSiteBase(process.env.SITE_BASE ?? "");
 const devScriptCandidates = new Set([
     "spaceface/app/main.pjax.js",
     "spaceface/app/main.js",
@@ -16,6 +17,40 @@ const skipDirs = new Set([
     resolve(inDir, "bin"),
     resolve(inDir, "content", "partials"),
 ]);
+
+function normalizeSiteBase(input) {
+    const base = String(input ?? "").trim();
+    if (!base) return "";
+    const prefixed = base.startsWith("/") ? base : `/${base}`;
+    return prefixed.replace(/\/+$/, "");
+}
+
+function withSiteBase(value) {
+    if (!siteBase) return value;
+    if (!value) return value;
+    if (
+        value.startsWith("#") ||
+        value.startsWith("mailto:") ||
+        value.startsWith("tel:") ||
+        value.startsWith("data:") ||
+        value.startsWith("javascript:") ||
+        /^[a-z]+:\/\//i.test(value)
+    ) {
+        return value;
+    }
+
+    if (value === siteBase || value.startsWith(`${siteBase}/`)) {
+        return value;
+    }
+
+    let path = value;
+    if (path.startsWith("./")) path = path.slice(2);
+    while (path.startsWith("../")) path = path.slice(3);
+    if (path.startsWith("/")) path = path.slice(1);
+    if (!path) return `${siteBase}/`;
+
+    return `${siteBase}/${path}`;
+}
 
 function isSubpath(child, parent) {
     const rel = relative(parent, child);
@@ -122,6 +157,20 @@ function swapBundleScript(html) {
     });
 }
 
+function rewriteBasePaths(html) {
+    if (!siteBase) return html;
+    return html.replace(
+        /\b(href|src)\s*=\s*("([^"]*)"|'([^']*)')/gi,
+        (match, attr, quotedValue, dqValue, sqValue) => {
+            const value = dqValue ?? sqValue ?? "";
+            const rewritten = withSiteBase(value);
+            if (rewritten === value) return match;
+            const quote = quotedValue[0];
+            return `${attr}=${quote}${rewritten}${quote}`;
+        }
+    );
+}
+
 function ensureDir(path) {
     mkdirSync(path, { recursive: true });
 }
@@ -138,7 +187,8 @@ function buildHtmlFiles() {
         ensureDir(outFolder);
         const html = readFileSync(file, "utf8");
         const inlined = inlinePartials(html, file);
-        const compiled = shouldSwapBundle ? swapBundleScript(inlined) : inlined;
+        const swapped = shouldSwapBundle ? swapBundleScript(inlined) : inlined;
+        const compiled = rewriteBasePaths(swapped);
         writeFileSync(outFile, compiled, "utf8");
     }
 

@@ -36,6 +36,7 @@ Production fallback entry without PJAX.
 
 `bin/build.js` builds the JS bundle.
 `bin/build-html.js` composes HTML from `docs.src` into `docs` and swaps script references to the bundle.
+`SITE_BASE` can be set during build (for example `/spaceface`) to prefix generated `href`/`src` paths for project-based GitHub Pages hosting.
 
 GitHub Pages deploys via workflow artifact from generated `docs/`.
 `docs/` is treated as build output and is not tracked as source.
