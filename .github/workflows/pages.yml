@@ -34,6 +34,17 @@ jobs:
       - name: Build site (prod pjax)
         run: SITE_BASE=/spaceface npm run build:prod:pjax
 
+      - name: Minify HTML (whitespace/comments)
+        run: |
+          find docs -name "*.html" -print0 | while IFS= read -r -d '' file; do
+            npx --yes html-minifier-terser \
+              --collapse-whitespace \
+              --remove-comments \
+              --minify-css true \
+              --minify-js true \
+              -o "$file" "$file"
+          done
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

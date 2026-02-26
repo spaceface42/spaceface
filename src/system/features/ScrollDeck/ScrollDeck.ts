@@ -152,7 +152,10 @@ export class ScrollDeck {
   private setupDots(): void {
     if (!this.hud && this.autoCreateHud) {
       this.hud = document.createElement('div');
-      this.hud.id = this.hudSelector.replace(/^#/, '') || 'hud';
+      const normalizedHudId = this.hudSelector.startsWith('#')
+        ? this.hudSelector.slice(1)
+        : 'hud';
+      this.hud.id = normalizedHudId || 'hud';
       this.container.appendChild(this.hud);
     }
 
