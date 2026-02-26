@@ -145,28 +145,6 @@ export class PartialLoader {
         }
     }
 
-    private async fetchPartial(url: string, attempt = 1): Promise<string> {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.options.timeout);
-
-        try {
-            const res = await fetch(url, { signal: controller.signal, headers: { Accept: "text/html" } });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const html = (await res.text()).trim();
-            if (!html) throw new Error("Empty response");
-            return html;
-        } catch (err) {
-            if (attempt < this.options.retryAttempts) {
-                this.logDebug("Retrying fetch", { url, attempt });
-                await this.delay(Math.min(2 ** attempt * 100, 5000));
-                return this.fetchPartial(url, attempt + 1);
-            }
-            throw err;
-        } finally {
-            clearTimeout(timeoutId);
-        }
-    }
-
     private insertHTML(container: ParentNode | Element, html: string) {
         const template = document.createElement("template");
         template.innerHTML = html;
@@ -261,7 +239,7 @@ export class PartialLoader {
             this.logDebug("Fetching from cache", { url });
             return this.cache.get(url)!;
         }
-        const html = await this.fetchPartial(url);
+        const html = await this.fetchWithRetry(url);
         if (this.options.cacheEnabled) this.cache.set(url, html);
         this.logDebug("Fetched and cached partial", { url });
         return html;

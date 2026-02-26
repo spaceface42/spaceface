@@ -57,8 +57,8 @@ export interface AnyListenerInterface {
 export interface EventBusInterface<TEvents extends Record<string, unknown> = Record<string, unknown>> {
   on<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => unknown, priority?: number): UnsubscribeFn;
   on<T = unknown>(event: string, fn: (payload: T) => unknown, priority?: number): UnsubscribeFn;
-  once<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => unknown, priority?: number): void;
-  once<T = unknown>(event: string, fn: (payload: T) => unknown, priority?: number): void;
+  once<K extends keyof TEvents>(event: K, fn: (payload: TEvents[K]) => unknown, priority?: number): UnsubscribeFn;
+  once<T = unknown>(event: string, fn: (payload: T) => unknown, priority?: number): UnsubscribeFn;
   onAny(fn: (event: keyof TEvents & string, payload: TEvents[keyof TEvents]) => unknown, priority?: number): UnsubscribeFn;
   off(event: string, fn: (...args: unknown[]) => unknown): void;
   offAny(fn: (...args: unknown[]) => unknown): void;
