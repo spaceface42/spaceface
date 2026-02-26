@@ -5,12 +5,7 @@ import { EventWatcher } from './EventWatcher.js';
 import { eventBus } from './EventBus.js';
 import { throttle } from '../features/bin/timing.js';
 import { EVENTS } from '../types/events.js';
-
-export interface InactivityWatcherOptionsInterface {
-    inactivityDelay: number;
-    debug?: boolean;
-    target?: EventTarget;
-}
+import type { InactivityWatcherOptionsInterface } from '../types/bin.js';
 
 export class InactivityWatcher extends EventWatcher {
     private static _instance: InactivityWatcher | null = null;
