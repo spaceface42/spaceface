@@ -80,6 +80,7 @@ export class ResizeManager {
       const observer = new ResizeObserver((entries) => {
         try {
           const entry = entries[0];
+          if (!entry) return;
           callbacks.forEach(fn => fn(entry));
         } catch (error) {
           this.logDebug("ResizeObserver callback error", { error });
