@@ -1,7 +1,9 @@
 // src/spaceface/features/MotionImages/MotionImageEngine.ts
 
 
-import { MotionImage } from './MotionImage.js';
+import { DriftImage } from './DriftImage.js';
+import { RainImage } from './RainImage.js';
+import { WarpImage } from './WarpImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
 import { resizeManager } from '../bin/ResizeManager.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
@@ -13,6 +15,7 @@ import type { LogPayload } from '../../types/bin.js';
 import { EVENTS } from '../../types/events.js';
 
 import type {
+    MotionImageInterface,
     MotionImageEngineOptionsInterface,
     ContainerDimensionsInterface,
     ImageMotionMode
@@ -22,7 +25,7 @@ import type { MotionImageEngineInterface } from '../../types/features.js';
 export abstract class BaseImageEngine implements MotionImageEngineInterface {
     readonly container: HTMLElement;
     performanceMonitor: PerformanceMonitor;
-    images: MotionImage[] = [];
+    images: MotionImageInterface[] = [];
     speedMultiplier: number = 1;
     isInViewport: boolean = true;
     private _destroyed: boolean = false;
@@ -175,7 +178,7 @@ export abstract class BaseImageEngine implements MotionImageEngineInterface {
 
     private addExistingImage(el: HTMLElement, dims: ContainerDimensionsInterface) {
         if (this.images.length >= this.maxImages) return;
-        const floatingImage = new MotionImage(el, dims, { debug: this.debug, motionMode: this.motionMode });
+        const floatingImage = this.createImage(el, dims);
         this.images.push(floatingImage);
         this.bindImageInteraction(el);
     }
@@ -242,7 +245,7 @@ export abstract class BaseImageEngine implements MotionImageEngineInterface {
                 .slice(0, this.maxImages);
 
             imgElements.forEach(el => {
-                const floatingImage = new MotionImage(el, dims, { debug: this.debug, motionMode: this.motionMode });
+                const floatingImage = this.createImage(el, dims);
                 this.images.push(floatingImage);
                 this.bindImageInteraction(el);
             });
@@ -337,13 +340,18 @@ export abstract class BaseImageEngine implements MotionImageEngineInterface {
         this.imageSpeedOverrides = new WeakMap<HTMLElement, number>();
     }
 
-    protected abstract handleImageResize(img: MotionImage, dims: ContainerDimensionsInterface): void;
+    protected abstract createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface;
+    protected abstract handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void;
 }
 
 export class DriftImageEngine extends BaseImageEngine {
     protected readonly motionMode: ImageMotionMode = 'drift';
 
-    protected handleImageResize(img: MotionImage, dims: ContainerDimensionsInterface): void {
+    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
+        return new DriftImage(el, dims, { debug: this.debug });
+    }
+
+    protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {
         img.updateSize();
         img.clampPosition(dims);
         img.updatePosition();
@@ -353,7 +361,24 @@ export class DriftImageEngine extends BaseImageEngine {
 export class RainImageEngine extends BaseImageEngine {
     protected readonly motionMode: ImageMotionMode = 'rain';
 
-    protected handleImageResize(img: MotionImage, _dims: ContainerDimensionsInterface): void {
+    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
+        return new RainImage(el, dims);
+    }
+
+    protected handleImageResize(img: MotionImageInterface, _dims: ContainerDimensionsInterface): void {
+        img.updateSize();
+        img.updatePosition();
+    }
+}
+
+export class WarpImageEngine extends BaseImageEngine {
+    protected readonly motionMode: ImageMotionMode = 'warp';
+
+    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
+        return new WarpImage(el, dims);
+    }
+
+    protected handleImageResize(img: MotionImageInterface, _dims: ContainerDimensionsInterface): void {
         img.updateSize();
         img.updatePosition();
     }

@@ -15,6 +15,9 @@ export const defaultFeatures = {
         includePicture: false,
         debug: false,
     },
+    /**
+     * screensaver can be rain drift warp
+     */
     screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html', motionMode: 'drift' },
 } satisfies SpacefaceFeaturesConfig;
 

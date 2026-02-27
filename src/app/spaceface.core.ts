@@ -388,7 +388,9 @@ export class SpacefaceCore {
             const EngineClass =
                 (floatingImages.motionMode ?? 'drift') === 'rain'
                     ? module?.RainImageEngine
-                    : module?.DriftImageEngine;
+                    : (floatingImages.motionMode ?? 'drift') === 'warp'
+                        ? module?.WarpImageEngine
+                        : module?.DriftImageEngine;
             if (!EngineClass) {
                 this.emitFeatureTelemetry('floatingImages', start, 'skipped');
                 return;
@@ -594,7 +596,8 @@ export class SpacefaceCore {
                 normalized.screensaver &&
                 normalized.screensaver.motionMode !== undefined &&
                 normalized.screensaver.motionMode !== 'drift' &&
-                normalized.screensaver.motionMode !== 'rain'
+                normalized.screensaver.motionMode !== 'rain' &&
+                normalized.screensaver.motionMode !== 'warp'
             ) {
                 this.log('warn', 'Invalid screensaver.motionMode; removing override.');
                 delete normalized.screensaver.motionMode;
@@ -623,7 +626,8 @@ export class SpacefaceCore {
             if (
                 normalized.floatingImages.motionMode !== undefined &&
                 normalized.floatingImages.motionMode !== 'drift' &&
-                normalized.floatingImages.motionMode !== 'rain'
+                normalized.floatingImages.motionMode !== 'rain' &&
+                normalized.floatingImages.motionMode !== 'warp'
             ) {
                 this.log('warn', 'Invalid floatingImages.motionMode; removing override.');
                 delete normalized.floatingImages.motionMode;
