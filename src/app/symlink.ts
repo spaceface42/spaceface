@@ -9,4 +9,4 @@ export { PartialFetcher } from "../system/bin/PartialFetcher.js";
 export { PartialLoader } from "../system/bin/PartialLoader.js";
 export { generateId } from "../system/bin/generateId.js";
 
-export type { FloatingImagesManagerInterface } from '../system/types/features.js';
+export type { MotionImageEngineInterface } from '../system/types/features.js';

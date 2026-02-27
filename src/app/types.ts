@@ -1,5 +1,5 @@
-import type { FloatingImagesManagerOptionsInterface } from '../system/features/FloatingImages/types.js';
-import type { FloatingImagesManagerInterface, ScreensaverControllerOptionsInterface } from '../system/types/features.js';
+import type { ImageMotionMode, MotionImageEngineOptionsInterface } from '../system/features/MotionImages/types.js';
+import type { MotionImageEngineInterface, ScreensaverControllerOptionsInterface } from '../system/types/features.js';
 import type { PartialLoadResultInterface, PartialLoaderOptionsInterface } from '../system/types/bin.js';
 
 export interface PartialLoaderFeatureConfig {
@@ -19,10 +19,12 @@ export interface SlideplayerFeatureConfig {
 export interface ScreensaverFeatureConfig {
     delay?: number;
     partialUrl: string;
+    motionMode?: ImageMotionMode;
 }
 
-export interface FloatingImagesFeatureConfig extends FloatingImagesManagerOptionsInterface {
+export interface FloatingImagesFeatureConfig extends MotionImageEngineOptionsInterface {
     selector?: string;
+    motionMode?: ImageMotionMode;
 }
 
 export interface ScrollDeckFeatureConfig {
@@ -92,10 +94,14 @@ export interface ScreensaverControllerModule {
 }
 
 export interface FloatingImagesModule {
-    FloatingImagesManager: new (
+    DriftImageEngine: new (
         container: HTMLElement,
-        options?: FloatingImagesManagerOptionsInterface
-    ) => FloatingImagesManagerInterface;
+        options?: MotionImageEngineOptionsInterface
+    ) => MotionImageEngineInterface;
+    RainImageEngine: new (
+        container: HTMLElement,
+        options?: MotionImageEngineOptionsInterface
+    ) => MotionImageEngineInterface;
 }
 
 export interface ScrollDeckModule {

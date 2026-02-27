@@ -1,7 +1,7 @@
-// src/spaceface/features/FloatingImages/FloatingImagesManager.ts
+// src/spaceface/features/MotionImages/MotionImageEngine.ts
 
 
-import { FloatingImage } from './FloatingImage.js';
+import { MotionImage } from './MotionImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
 import { resizeManager } from '../bin/ResizeManager.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
@@ -13,15 +13,16 @@ import type { LogPayload } from '../../types/bin.js';
 import { EVENTS } from '../../types/events.js';
 
 import type {
-    FloatingImagesManagerOptionsInterface,
-    ContainerDimensionsInterface
+    MotionImageEngineOptionsInterface,
+    ContainerDimensionsInterface,
+    ImageMotionMode
 } from './types.js';
-import type { FloatingImagesManagerInterface } from '../../types/features.js';
+import type { MotionImageEngineInterface } from '../../types/features.js';
 
-export class FloatingImagesManager implements FloatingImagesManagerInterface {
+export abstract class BaseImageEngine implements MotionImageEngineInterface {
     readonly container: HTMLElement;
     performanceMonitor: PerformanceMonitor;
-    images: FloatingImage[] = [];
+    images: MotionImage[] = [];
     speedMultiplier: number = 1;
     isInViewport: boolean = true;
     private _destroyed: boolean = false;
@@ -38,6 +39,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     hoverSlowMultiplier: number;
     tapToFreeze: boolean;
     pauseOnScreensaver: boolean;
+    protected abstract readonly motionMode: ImageMotionMode;
     private interactionCleanups: Array<() => void> = [];
     private frozenElements = new WeakSet<HTMLElement>();
     private imageSpeedOverrides = new WeakMap<HTMLElement, number>();
@@ -48,7 +50,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private speedBeforeScreensaver = 1;
     private animationPolicy = new AnimationPolicy();
 
-    constructor(container: HTMLElement, options: FloatingImagesManagerOptionsInterface = {}) {
+    constructor(container: HTMLElement, options: MotionImageEngineOptionsInterface = {}) {
         this.container = container;
         this.debug = options.debug ?? false;
         this.hoverBehavior = options.hoverBehavior ?? 'none';
@@ -80,7 +82,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         }
 
         this.initializeImages();
-        this.log('info', 'FloatingImagesManager initialized', {
+        this.log('info', `${this.constructor.name} initialized`, {
             container: this.container,
             maxImages: this.maxImages
         });
@@ -89,23 +91,24 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
     private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: unknown) {
         if (!this.debug && level === 'debug') return;
 
-        const payload: LogPayload = { scope: 'FloatingImagesManager', level, message, data, time: Date.now() };
-        eventBus.emit(EVENTS.FLOATING_IMAGES_LOG, { level, message, data });
+        const scope = this.constructor.name || 'BaseImageEngine';
+        const payload: LogPayload = { scope, level, message, data, time: Date.now() };
+        eventBus.emit(EVENTS.MOTION_IMAGES_LOG, { level, message, data });
         eventBus.emit(EVENTS.LOG, payload);
 
         if (this.debug) {
             switch (level) {
                 case 'debug':
-                    console.debug(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    console.debug(`[${scope}] [${level.toUpperCase()}]`, message, data);
                     break;
                 case 'info':
-                    console.info(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    console.info(`[${scope}] [${level.toUpperCase()}]`, message, data);
                     break;
                 case 'warn':
-                    console.warn(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    console.warn(`[${scope}] [${level.toUpperCase()}]`, message, data);
                     break;
                 case 'error':
-                    console.error(`[FloatingImagesManager] [${level.toUpperCase()}]`, message, data);
+                    console.error(`[${scope}] [${level.toUpperCase()}]`, message, data);
                     break;
             }
         }
@@ -172,7 +175,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
 
     private addExistingImage(el: HTMLElement, dims: ContainerDimensionsInterface) {
         if (this.images.length >= this.maxImages) return;
-        const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
+        const floatingImage = new MotionImage(el, dims, { debug: this.debug, motionMode: this.motionMode });
         this.images.push(floatingImage);
         this.bindImageInteraction(el);
     }
@@ -187,9 +190,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
             this.updateContainerDimensions();
             const dims = { width: this.containerWidth, height: this.containerHeight };
             this.images.forEach(img => {
-                img.updateSize();
-                img.clampPosition(dims);
-                img.updatePosition();
+                this.handleImageResize(img, dims);
             });
             this.log('debug', 'Container resized', dims);
         } catch (error) {
@@ -241,7 +242,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
                 .slice(0, this.maxImages);
 
             imgElements.forEach(el => {
-                const floatingImage = new FloatingImage(el, dims, { debug: this.debug });
+                const floatingImage = new MotionImage(el, dims, { debug: this.debug, motionMode: this.motionMode });
                 this.images.push(floatingImage);
                 this.bindImageInteraction(el);
             });
@@ -283,7 +284,7 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.containerWidth = 0;
         this.containerHeight = 0;
 
-        this.log('info', 'FloatingImagesManager destroyed');
+        this.log('info', `${this.constructor.name} destroyed`);
     }
 
     private bindImageInteraction(el: HTMLElement): void {
@@ -334,5 +335,26 @@ export class FloatingImagesManager implements FloatingImagesManagerInterface {
         this.interactionCleanups = [];
         this.frozenElements = new WeakSet<HTMLElement>();
         this.imageSpeedOverrides = new WeakMap<HTMLElement, number>();
+    }
+
+    protected abstract handleImageResize(img: MotionImage, dims: ContainerDimensionsInterface): void;
+}
+
+export class DriftImageEngine extends BaseImageEngine {
+    protected readonly motionMode: ImageMotionMode = 'drift';
+
+    protected handleImageResize(img: MotionImage, dims: ContainerDimensionsInterface): void {
+        img.updateSize();
+        img.clampPosition(dims);
+        img.updatePosition();
+    }
+}
+
+export class RainImageEngine extends BaseImageEngine {
+    protected readonly motionMode: ImageMotionMode = 'rain';
+
+    protected handleImageResize(img: MotionImage, _dims: ContainerDimensionsInterface): void {
+        img.updateSize();
+        img.updatePosition();
     }
 }

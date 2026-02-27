@@ -13,7 +13,7 @@ export const EVENTS = {
   SCREENSAVER_ERROR: 'screensaver:error',
   SCREENSAVER_LOG: 'screensaver:log',
   SLIDEPLAYER_LOG: 'slideplayer:log',
-  FLOATING_IMAGES_LOG: 'floatingImages:log',
+  MOTION_IMAGES_LOG: 'motionImages:log',
   PARTIAL_LOADED: 'partial:loaded',
   PARTIAL_ERROR: 'partial:error',
   PARTIAL_LOAD_COMPLETE: 'partial:load:complete',
@@ -59,7 +59,7 @@ export interface SpacefaceEventMap {
   'screensaver:error': ScreensaverErrorPayload;
   'screensaver:log': { level: 'debug' | 'info' | 'warn' | 'error'; message: string; data?: unknown };
   'slideplayer:log': { level: 'debug' | 'info' | 'warn' | 'error'; message: string; data?: unknown };
-  'floatingImages:log': { level: 'debug' | 'info' | 'warn' | 'error'; message: string; data?: unknown };
+  'motionImages:log': { level: 'debug' | 'info' | 'warn' | 'error'; message: string; data?: unknown };
   'partial:loaded': PartialEventPayload;
   'partial:error': PartialEventPayload;
   'partial:load:complete': PartialEventPayload;
