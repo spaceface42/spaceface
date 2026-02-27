@@ -1,7 +1,9 @@
 // src/spaceface/features/MotionImages/MotionImageEngine.ts
 
 
+import { BrownianImage } from './BrownianImage.js';
 import { DriftImage } from './DriftImage.js';
+import { ParallaxDriftImage } from './ParallaxDriftImage.js';
 import { RainImage } from './RainImage.js';
 import { WarpImage } from './WarpImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
@@ -358,6 +360,20 @@ export class DriftImageEngine extends BaseImageEngine {
     }
 }
 
+export class ParallaxDriftImageEngine extends BaseImageEngine {
+    protected readonly motionMode: ImageMotionMode = 'parallax-drift';
+
+    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
+        return new ParallaxDriftImage(el, dims, { debug: this.debug });
+    }
+
+    protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {
+        img.updateSize();
+        img.clampPosition(dims);
+        img.updatePosition();
+    }
+}
+
 export class RainImageEngine extends BaseImageEngine {
     protected readonly motionMode: ImageMotionMode = 'rain';
 
@@ -367,6 +383,20 @@ export class RainImageEngine extends BaseImageEngine {
 
     protected handleImageResize(img: MotionImageInterface, _dims: ContainerDimensionsInterface): void {
         img.updateSize();
+        img.updatePosition();
+    }
+}
+
+export class BrownianImageEngine extends BaseImageEngine {
+    protected readonly motionMode: ImageMotionMode = 'brownian';
+
+    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
+        return new BrownianImage(el, dims);
+    }
+
+    protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {
+        img.updateSize();
+        img.clampPosition(dims);
         img.updatePosition();
     }
 }
