@@ -18,7 +18,7 @@ export const defaultFeatures = {
     /**
      * screensaver can be rain drift warp brownian parallax-drift glitch-jump
      */
-    screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html', motionMode: 'drift' },
+    screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html', motionMode: 'glitch-jump' },
 } satisfies SpacefaceFeaturesConfig;
 
 export const devFeatures = {
