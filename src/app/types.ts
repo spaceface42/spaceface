@@ -102,6 +102,10 @@ export interface FloatingImagesModule {
         container: HTMLElement,
         options?: MotionImageEngineOptionsInterface
     ) => MotionImageEngineInterface;
+    WarpImageEngine: new (
+        container: HTMLElement,
+        options?: MotionImageEngineOptionsInterface
+    ) => MotionImageEngineInterface;
 }
 
 export interface ScrollDeckModule {
