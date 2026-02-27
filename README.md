@@ -4,7 +4,7 @@ Spaceface is a TypeScript runtime for display-focused web pages.
 It provides small, framework-free modules for:
 
 - Event orchestration (`EventBus`, `EventBinder`, `EventWatcher`)
-- Feature controllers (`SlidePlayer`, `ScreensaverController`, `BaseImageEngine`, `DriftImageEngine`, `ParallaxDriftImageEngine`, `RainImageEngine`, `BrownianImageEngine`, `WarpImageEngine`)
+- Feature controllers (`SlidePlayer`, `ScreensaverController`, `BaseImageEngine`, `DriftImageEngine`, `ParallaxDriftImageEngine`, `RainImageEngine`, `BrownianImageEngine`, `GlitchJumpImageEngine`, `WarpImageEngine`)
 - Runtime utilities (`PartialLoader`, `AsyncImageLoader`, `AnimationLoop`, `ResizeManager`, `InactivityWatcher`)
 
 ## Architecture
@@ -83,12 +83,13 @@ Run ESLint with auto-fixes where possible.
 - `Motion Images` (`floatingImages` config key):
 1. Uses existing HTML markup (`.floating-images-container` + `.floating-image`) as source of truth.
 2. Supports interaction options: `hoverBehavior`, `hoverSlowMultiplier`, `tapToFreeze`.
-3. Animation modes: `drift`, `parallax-drift`, `rain`, `brownian`, `warp`.
+3. Animation modes: `drift`, `parallax-drift`, `rain`, `brownian`, `glitch-jump`, `warp`.
 4. Engine + image classes are fully separated by mode:
    - `DriftImageEngine` -> `DriftImage`
    - `ParallaxDriftImageEngine` -> `ParallaxDriftImage`
    - `RainImageEngine` -> `RainImage`
    - `BrownianImageEngine` -> `BrownianImage`
+   - `GlitchJumpImageEngine` -> `GlitchJumpImage`
    - `WarpImageEngine` -> `WarpImage`
 5. `pauseOnScreensaver` can be set explicitly per page.
 6. If omitted, default is page-aware: `true` on `floatingimages`/`motionimages` page, `false` elsewhere.
@@ -97,7 +98,7 @@ Run ESLint with auto-fixes where possible.
 1. Starts on inactivity via `InactivityWatcher`.
 2. Emits lifecycle events: `screensaver:shown` and `screensaver:hidden`.
 3. Requires feature config with at least `screensaver.partialUrl`.
-4. `screensaver.motionMode` selects `drift`, `parallax-drift`, `rain`, `brownian`, or `warp`.
+4. `screensaver.motionMode` selects `drift`, `parallax-drift`, `rain`, `brownian`, `glitch-jump`, or `warp`.
 5. Motion image engines can listen to screensaver events and pause/resume when configured.
 
 ### Screensaver config example
@@ -106,6 +107,6 @@ Run ESLint with auto-fixes where possible.
 screensaver: {
   delay: 4500,
   partialUrl: 'content/feature/screensaver/index.html',
-  motionMode: 'rain', // 'drift' | 'parallax-drift' | 'rain' | 'brownian' | 'warp'
+  motionMode: 'rain', // 'drift' | 'parallax-drift' | 'rain' | 'brownian' | 'glitch-jump' | 'warp'
 }
 ```

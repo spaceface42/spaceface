@@ -3,6 +3,7 @@
 
 import { BrownianImage } from './BrownianImage.js';
 import { DriftImage } from './DriftImage.js';
+import { GlitchJumpImage } from './GlitchJumpImage.js';
 import { ParallaxDriftImage } from './ParallaxDriftImage.js';
 import { RainImage } from './RainImage.js';
 import { WarpImage } from './WarpImage.js';
@@ -392,6 +393,20 @@ export class BrownianImageEngine extends BaseImageEngine {
 
     protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
         return new BrownianImage(el, dims);
+    }
+
+    protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {
+        img.updateSize();
+        img.clampPosition(dims);
+        img.updatePosition();
+    }
+}
+
+export class GlitchJumpImageEngine extends BaseImageEngine {
+    protected readonly motionMode: ImageMotionMode = 'glitch-jump';
+
+    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
+        return new GlitchJumpImage(el, dims);
     }
 
     protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {

@@ -391,6 +391,8 @@ export class SpacefaceCore {
                     ? module?.RainImageEngine
                     : mode === 'brownian'
                         ? module?.BrownianImageEngine
+                    : mode === 'glitch-jump'
+                        ? module?.GlitchJumpImageEngine
                     : mode === 'warp'
                         ? module?.WarpImageEngine
                         : mode === 'parallax-drift'
@@ -604,7 +606,8 @@ export class SpacefaceCore {
                 normalized.screensaver.motionMode !== 'rain' &&
                 normalized.screensaver.motionMode !== 'warp' &&
                 normalized.screensaver.motionMode !== 'parallax-drift' &&
-                normalized.screensaver.motionMode !== 'brownian'
+                normalized.screensaver.motionMode !== 'brownian' &&
+                normalized.screensaver.motionMode !== 'glitch-jump'
             ) {
                 this.log('warn', 'Invalid screensaver.motionMode; removing override.');
                 delete normalized.screensaver.motionMode;
@@ -636,7 +639,8 @@ export class SpacefaceCore {
                 normalized.floatingImages.motionMode !== 'rain' &&
                 normalized.floatingImages.motionMode !== 'warp' &&
                 normalized.floatingImages.motionMode !== 'parallax-drift' &&
-                normalized.floatingImages.motionMode !== 'brownian'
+                normalized.floatingImages.motionMode !== 'brownian' &&
+                normalized.floatingImages.motionMode !== 'glitch-jump'
             ) {
                 this.log('warn', 'Invalid floatingImages.motionMode; removing override.');
                 delete normalized.floatingImages.motionMode;
