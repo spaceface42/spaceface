@@ -9,7 +9,6 @@ export interface MotionImageEngineOptionsInterface {
     hoverSlowMultiplier?: number;
     tapToFreeze?: boolean;
     pauseOnScreensaver?: boolean;
-    motionMode?: ImageMotionMode;
 }
 
 export interface MotionImageOptionsInterface {

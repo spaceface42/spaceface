@@ -19,7 +19,7 @@ import type {
 } from './types.js';
 import type { MotionImageEngineInterface } from '../../types/features.js';
 
-export class MotionImageEngine implements MotionImageEngineInterface {
+export abstract class BaseImageEngine implements MotionImageEngineInterface {
     readonly container: HTMLElement;
     performanceMonitor: PerformanceMonitor;
     images: MotionImage[] = [];
@@ -39,7 +39,7 @@ export class MotionImageEngine implements MotionImageEngineInterface {
     hoverSlowMultiplier: number;
     tapToFreeze: boolean;
     pauseOnScreensaver: boolean;
-    motionMode: ImageMotionMode;
+    protected abstract readonly motionMode: ImageMotionMode;
     private interactionCleanups: Array<() => void> = [];
     private frozenElements = new WeakSet<HTMLElement>();
     private imageSpeedOverrides = new WeakMap<HTMLElement, number>();
@@ -57,7 +57,6 @@ export class MotionImageEngine implements MotionImageEngineInterface {
         this.hoverSlowMultiplier = options.hoverSlowMultiplier ?? 0.2;
         this.tapToFreeze = options.tapToFreeze ?? true;
         this.pauseOnScreensaver = options.pauseOnScreensaver ?? false;
-        this.motionMode = options.motionMode ?? 'drift';
 
         this.performanceMonitor = new PerformanceMonitor();
         const perfSettings = this.performanceMonitor.getRecommendedSettings();
@@ -83,7 +82,7 @@ export class MotionImageEngine implements MotionImageEngineInterface {
         }
 
         this.initializeImages();
-        this.log('info', 'MotionImageEngine initialized', {
+        this.log('info', `${this.constructor.name} initialized`, {
             container: this.container,
             maxImages: this.maxImages
         });
@@ -92,23 +91,24 @@ export class MotionImageEngine implements MotionImageEngineInterface {
     private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: unknown) {
         if (!this.debug && level === 'debug') return;
 
-        const payload: LogPayload = { scope: 'MotionImageEngine', level, message, data, time: Date.now() };
+        const scope = this.constructor.name || 'BaseImageEngine';
+        const payload: LogPayload = { scope, level, message, data, time: Date.now() };
         eventBus.emit(EVENTS.MOTION_IMAGES_LOG, { level, message, data });
         eventBus.emit(EVENTS.LOG, payload);
 
         if (this.debug) {
             switch (level) {
                 case 'debug':
-                    console.debug(`[MotionImageEngine] [${level.toUpperCase()}]`, message, data);
+                    console.debug(`[${scope}] [${level.toUpperCase()}]`, message, data);
                     break;
                 case 'info':
-                    console.info(`[MotionImageEngine] [${level.toUpperCase()}]`, message, data);
+                    console.info(`[${scope}] [${level.toUpperCase()}]`, message, data);
                     break;
                 case 'warn':
-                    console.warn(`[MotionImageEngine] [${level.toUpperCase()}]`, message, data);
+                    console.warn(`[${scope}] [${level.toUpperCase()}]`, message, data);
                     break;
                 case 'error':
-                    console.error(`[MotionImageEngine] [${level.toUpperCase()}]`, message, data);
+                    console.error(`[${scope}] [${level.toUpperCase()}]`, message, data);
                     break;
             }
         }
@@ -190,9 +190,7 @@ export class MotionImageEngine implements MotionImageEngineInterface {
             this.updateContainerDimensions();
             const dims = { width: this.containerWidth, height: this.containerHeight };
             this.images.forEach(img => {
-                img.updateSize();
-                img.clampPosition(dims);
-                img.updatePosition();
+                this.handleImageResize(img, dims);
             });
             this.log('debug', 'Container resized', dims);
         } catch (error) {
@@ -286,7 +284,7 @@ export class MotionImageEngine implements MotionImageEngineInterface {
         this.containerWidth = 0;
         this.containerHeight = 0;
 
-        this.log('info', 'MotionImageEngine destroyed');
+        this.log('info', `${this.constructor.name} destroyed`);
     }
 
     private bindImageInteraction(el: HTMLElement): void {
@@ -337,5 +335,26 @@ export class MotionImageEngine implements MotionImageEngineInterface {
         this.interactionCleanups = [];
         this.frozenElements = new WeakSet<HTMLElement>();
         this.imageSpeedOverrides = new WeakMap<HTMLElement, number>();
+    }
+
+    protected abstract handleImageResize(img: MotionImage, dims: ContainerDimensionsInterface): void;
+}
+
+export class DriftImageEngine extends BaseImageEngine {
+    protected readonly motionMode: ImageMotionMode = 'drift';
+
+    protected handleImageResize(img: MotionImage, dims: ContainerDimensionsInterface): void {
+        img.updateSize();
+        img.clampPosition(dims);
+        img.updatePosition();
+    }
+}
+
+export class RainImageEngine extends BaseImageEngine {
+    protected readonly motionMode: ImageMotionMode = 'rain';
+
+    protected handleImageResize(img: MotionImage, _dims: ContainerDimensionsInterface): void {
+        img.updateSize();
+        img.updatePosition();
     }
 }

@@ -24,6 +24,7 @@ export interface ScreensaverFeatureConfig {
 
 export interface FloatingImagesFeatureConfig extends MotionImageEngineOptionsInterface {
     selector?: string;
+    motionMode?: ImageMotionMode;
 }
 
 export interface ScrollDeckFeatureConfig {
@@ -93,7 +94,11 @@ export interface ScreensaverControllerModule {
 }
 
 export interface FloatingImagesModule {
-    MotionImageEngine: new (
+    DriftImageEngine: new (
+        container: HTMLElement,
+        options?: MotionImageEngineOptionsInterface
+    ) => MotionImageEngineInterface;
+    RainImageEngine: new (
         container: HTMLElement,
         options?: MotionImageEngineOptionsInterface
     ) => MotionImageEngineInterface;

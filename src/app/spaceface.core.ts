@@ -119,6 +119,11 @@ export class SpacefaceCore {
             || 'default';
     }
 
+    private getPageTypeLabel(pageType: string): string {
+        if (pageType === 'floatingimages') return 'motionimages';
+        return pageType;
+    }
+
     private async loadFeatureModule<K extends keyof FeatureModuleMap>(name: K): Promise<FeatureModuleMap[K] | null> {
         if (this.featureCache.has(name)) return this.featureCache.get(name) as FeatureModuleMap[K] | null;
         try {
@@ -136,7 +141,7 @@ export class SpacefaceCore {
     }
 
     public async initBase(): Promise<void> {
-        this.log('info', `App initialization started (Page: ${this.pageType})`);
+        this.log('info', `App initialization started (Page: ${this.getPageTypeLabel(this.pageType)})`);
         document.documentElement.classList.add('js-enabled', `page-${this.pageType}`);
         await DomReadyPromise.ready();
         this.log('info', 'DOM ready');
@@ -319,7 +324,7 @@ export class SpacefaceCore {
 
     public async initOnceFeatures(): Promise<void> {
         await this.runFeatureGraph(this.onceFeatures, 'init', { continueOnError: true });
-        this.log('info', `Page features initialized for: ${this.pageType}`);
+        this.log('info', `Page features initialized for: ${this.getPageTypeLabel(this.pageType)}`);
     }
 
     public registerPjaxFeature(
@@ -380,8 +385,11 @@ export class SpacefaceCore {
 
         try {
             const module = await this.loadFeatureModule('floatingImages');
-            const MotionImageEngine = module?.MotionImageEngine;
-            if (!MotionImageEngine) {
+            const EngineClass =
+                (floatingImages.motionMode ?? 'drift') === 'rain'
+                    ? module?.RainImageEngine
+                    : module?.DriftImageEngine;
+            if (!EngineClass) {
                 this.emitFeatureTelemetry('floatingImages', start, 'skipped');
                 return;
             }
@@ -395,9 +403,9 @@ export class SpacefaceCore {
 
             this.destroyMotionImageEngines();
             const shouldPauseOnScreensaver =
-                floatingImages.pauseOnScreensaver ?? (this.pageType === 'floatingimages');
+                floatingImages.pauseOnScreensaver ?? (this.pageType === 'floatingimages' || this.pageType === 'motionimages');
             this.floatingImagesManagers = containers.map(container => {
-                return new MotionImageEngine(container, {
+                return new EngineClass(container, {
                     maxImages: floatingImages.maxImages,
                     debug: floatingImages.debug ?? this.debug,
                     hoverBehavior: floatingImages.hoverBehavior ?? 'none',
@@ -407,7 +415,7 @@ export class SpacefaceCore {
                 });
             });
 
-            this.log('info', `${this.floatingImagesManagers.length} MotionImageEngine instance(s) loaded`);
+            this.log('info', `${this.floatingImagesManagers.length} ${EngineClass.name} instance(s) loaded`);
             this.emitFeatureTelemetry('floatingImages', start, 'success');
         } catch (error) {
             this.emitFeatureTelemetry('floatingImages', start, 'error', error);
@@ -611,6 +619,14 @@ export class SpacefaceCore {
             ) {
                 this.log('warn', 'Invalid floatingImages.selector; removing override.');
                 delete normalized.floatingImages.selector;
+            }
+            if (
+                normalized.floatingImages.motionMode !== undefined &&
+                normalized.floatingImages.motionMode !== 'drift' &&
+                normalized.floatingImages.motionMode !== 'rain'
+            ) {
+                this.log('warn', 'Invalid floatingImages.motionMode; removing override.');
+                delete normalized.floatingImages.motionMode;
             }
         }
 

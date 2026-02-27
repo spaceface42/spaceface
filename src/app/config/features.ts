@@ -15,7 +15,7 @@ export const defaultFeatures = {
         includePicture: false,
         debug: false,
     },
-    screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html', motionMode: 'rain' },
+    screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html', motionMode: 'drift' },
 } satisfies SpacefaceFeaturesConfig;
 
 export const devFeatures = {
