@@ -5,14 +5,15 @@ import { eventBus } from "../../bin/EventBus.js";
 import { EventBinder } from "../../bin/EventBinder.js";
 import { InactivityWatcher } from "../../bin/InactivityWatcher.js";
 import { PartialFetcher } from "../../bin/PartialFetcher.js";
-import { FloatingImagesManager } from "../FloatingImages/FloatingImagesManager.js";
+import { MotionImageEngine } from "../MotionImages/MotionImageEngine.js";
 import type { LogPayload } from "../../types/bin.js";
 import { EVENTS } from "../../types/events.js";
 
 import type {
   ScreensaverControllerOptionsInterface,
-  FloatingImagesManagerInterface
+  MotionImageEngineInterface
 } from "../../types/features.js";
+import type { ImageMotionMode } from "../MotionImages/types.js";
 
 export class ScreensaverController {
   private static readonly STATES = {
@@ -26,10 +27,11 @@ export class ScreensaverController {
   private readonly partialUrl: string;
   private readonly targetSelector: string;
   private readonly inactivityDelay: number;
+  private readonly motionMode: ImageMotionMode;
   private readonly debug: boolean;
   private readonly onError?: (message: string, error: unknown) => void;
 
-  private screensaverManager: FloatingImagesManagerInterface | null = null;
+  private screensaverManager: MotionImageEngineInterface | null = null;
   private watcher: InactivityWatcher | null = null;
   private _destroyed = false;
   private eventBinder: EventBinder;
@@ -54,6 +56,7 @@ export class ScreensaverController {
     this.partialUrl = options.partialUrl;
     this.targetSelector = options.targetSelector;
     this.inactivityDelay = options.inactivityDelay ?? 12000;
+    this.motionMode = options.motionMode ?? 'drift';
     this.debug = !!options.debug;
 
     this.watcher = options.watcher ?? null;
@@ -67,7 +70,8 @@ export class ScreensaverController {
     this.log('info', 'ScreensaverController initialized', {
       partialUrl: this.partialUrl,
       targetSelector: this.targetSelector,
-      inactivityDelay: this.inactivityDelay
+      inactivityDelay: this.inactivityDelay,
+      motionMode: this.motionMode
     });
   }
 
@@ -152,10 +156,16 @@ export class ScreensaverController {
       container.style.opacity = '1';
 
       if (!this.screensaverManager) {
-        this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
+        this.screensaverManager = new MotionImageEngine(container, {
+          debug: this.debug,
+          motionMode: this.motionMode,
+        });
       } else {
         this.screensaverManager.destroy();
-        this.screensaverManager = new FloatingImagesManager(container, { debug: this.debug });
+        this.screensaverManager = new MotionImageEngine(container, {
+          debug: this.debug,
+          motionMode: this.motionMode,
+        });
       }
 
       this.state = ScreensaverController.STATES.VISIBLE;

@@ -5,7 +5,7 @@ import {
     eventBus,
     DomReadyPromise,
     InactivityWatcher,
-    FloatingImagesManagerInterface
+    MotionImageEngineInterface
 } from './symlink.js';
 import type { LogPayload } from '../system/types/bin.js';
 import { EVENTS } from '../system/types/events.js';
@@ -56,7 +56,7 @@ export class SpacefaceCore {
     private screensaverController: ScreensaverControllerInstance | null = null;
     private slideshows: SlidePlayerInstance[] = [];
     private scrollDecks: ScrollDeckInstance[] = [];
-    private floatingImagesManagers: FloatingImagesManagerInterface[] = [];
+    private floatingImagesManagers: MotionImageEngineInterface[] = [];
     private _partialUnsub?: () => void;
     private _partialObserver?: { disconnect?: () => void };
     private pjaxFeatures = new Map<string, { init: () => Promise<void> | void; when?: (pageType: string) => boolean }>();
@@ -75,7 +75,7 @@ export class SpacefaceCore {
             slideplayer: () => import('../system/features/SlidePlayer/SlidePlayer.js'),
             scrollDeck: () => import('../system/features/ScrollDeck/ScrollDeck.js'),
             screensaver: () => import('../system/features/Screensaver/ScreensaverController.js'),
-            floatingImages: () => import('../system/features/FloatingImages/FloatingImagesManager.js'),
+            floatingImages: () => import('../system/features/MotionImages/MotionImageEngine.js'),
         };
 
         if (!this.appConfig.config.features) {
@@ -225,6 +225,7 @@ export class SpacefaceCore {
                 partialUrl: screensaver.partialUrl,
                 targetSelector: `#${id}`,
                 ...(screensaver.delay !== undefined && { inactivityDelay: screensaver.delay }),
+                ...(screensaver.motionMode !== undefined && { motionMode: screensaver.motionMode }),
             });
             await this.screensaverController?.init?.();
             eventBus.emit(EVENTS.SCREENSAVER_INITIALIZED, id);
@@ -379,8 +380,8 @@ export class SpacefaceCore {
 
         try {
             const module = await this.loadFeatureModule('floatingImages');
-            const FloatingImagesManager = module?.FloatingImagesManager;
-            if (!FloatingImagesManager) {
+            const MotionImageEngine = module?.MotionImageEngine;
+            if (!MotionImageEngine) {
                 this.emitFeatureTelemetry('floatingImages', start, 'skipped');
                 return;
             }
@@ -392,11 +393,11 @@ export class SpacefaceCore {
                 return;
             }
 
-            this.destroyFloatingImagesManagers();
+            this.destroyMotionImageEngines();
             const shouldPauseOnScreensaver =
                 floatingImages.pauseOnScreensaver ?? (this.pageType === 'floatingimages');
             this.floatingImagesManagers = containers.map(container => {
-                return new FloatingImagesManager(container, {
+                return new MotionImageEngine(container, {
                     maxImages: floatingImages.maxImages,
                     debug: floatingImages.debug ?? this.debug,
                     hoverBehavior: floatingImages.hoverBehavior ?? 'none',
@@ -406,7 +407,7 @@ export class SpacefaceCore {
                 });
             });
 
-            this.log('info', `${this.floatingImagesManagers.length} FloatingImages instance(s) loaded`);
+            this.log('info', `${this.floatingImagesManagers.length} MotionImageEngine instance(s) loaded`);
             this.emitFeatureTelemetry('floatingImages', start, 'success');
         } catch (error) {
             this.emitFeatureTelemetry('floatingImages', start, 'error', error);
@@ -414,7 +415,7 @@ export class SpacefaceCore {
         }
     }
 
-    private destroyFloatingImagesManagers(): void {
+    private destroyMotionImageEngines(): void {
         this.floatingImagesManagers.forEach(manager => manager.destroy?.());
         this.floatingImagesManagers = [];
     }
@@ -456,10 +457,10 @@ export class SpacefaceCore {
                 dependsOn: [],
                 init: () => this.initFloatingImages(),
                 onRouteChange: async () => {
-                    this.destroyFloatingImagesManagers();
+                    this.destroyMotionImageEngines();
                     await this.initFloatingImages();
                 },
-                destroy: () => this.destroyFloatingImagesManagers(),
+                destroy: () => this.destroyMotionImageEngines(),
             },
         ];
     }
@@ -543,7 +544,7 @@ export class SpacefaceCore {
         onceFeatures: string[];
         activeSlidePlayers: number;
         activeScrollDecks: number;
-        activeFloatingImagesManagers: number;
+        activeMotionImageEngines: number;
         inactivityWatcherReady: boolean;
         screensaverReady: boolean;
         partialLoaderWatching: boolean;
@@ -554,7 +555,7 @@ export class SpacefaceCore {
             onceFeatures: this.onceFeatures.map(f => f.name),
             activeSlidePlayers: this.slideshows.length,
             activeScrollDecks: this.scrollDecks.length,
-            activeFloatingImagesManagers: this.floatingImagesManagers.length,
+            activeMotionImageEngines: this.floatingImagesManagers.length,
             inactivityWatcherReady: !!this.inactivityWatcher,
             screensaverReady: !!this.screensaverController,
             partialLoaderWatching: !!(this._partialUnsub || this._partialObserver),
@@ -580,6 +581,15 @@ export class SpacefaceCore {
             } else if (normalized.screensaver.delay !== undefined && !isPositiveNumber(normalized.screensaver.delay)) {
                 this.log('warn', 'Invalid screensaver.delay; removing delay override.');
                 delete normalized.screensaver.delay;
+            }
+            if (
+                normalized.screensaver &&
+                normalized.screensaver.motionMode !== undefined &&
+                normalized.screensaver.motionMode !== 'drift' &&
+                normalized.screensaver.motionMode !== 'rain'
+            ) {
+                this.log('warn', 'Invalid screensaver.motionMode; removing override.');
+                delete normalized.screensaver.motionMode;
             }
         }
 

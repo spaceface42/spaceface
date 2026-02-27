@@ -1,7 +1,9 @@
 // src/system/types/features.ts
 
-// FloatingImages shared runtime contract
-export interface FloatingImagesManagerInterface {
+import type { ImageMotionMode } from '../features/MotionImages/types.js';
+
+// Motion image runtime contract
+export interface MotionImageEngineInterface {
     resetAllImagePositions(): void;
     destroy(): void;
     reinitializeImages(): void;
@@ -21,4 +23,7 @@ export interface ScreensaverControllerOptionsInterface {
 
     /** Optional callback for errors during screensaver operations */
     onError?: (message: string, error: unknown) => void;
+
+    /** Motion behavior for screensaver images */
+    motionMode?: ImageMotionMode;
 }
