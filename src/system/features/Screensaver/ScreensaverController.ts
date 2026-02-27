@@ -5,7 +5,7 @@ import { eventBus } from "../../bin/EventBus.js";
 import { EventBinder } from "../../bin/EventBinder.js";
 import { InactivityWatcher } from "../../bin/InactivityWatcher.js";
 import { PartialFetcher } from "../../bin/PartialFetcher.js";
-import { DriftImageEngine, RainImageEngine, WarpImageEngine } from "../MotionImages/MotionImageEngine.js";
+import { BrownianImageEngine, DriftImageEngine, ParallaxDriftImageEngine, RainImageEngine, WarpImageEngine } from "../MotionImages/MotionImageEngine.js";
 import type { LogPayload } from "../../types/bin.js";
 import { EVENTS } from "../../types/events.js";
 
@@ -47,6 +47,8 @@ export class ScreensaverController {
   private _onActivity: () => void;
 
   private getEngineClass() {
+    if (this.motionMode === 'brownian') return BrownianImageEngine;
+    if (this.motionMode === 'parallax-drift') return ParallaxDriftImageEngine;
     if (this.motionMode === 'warp') return WarpImageEngine;
     return this.motionMode === 'rain' ? RainImageEngine : DriftImageEngine;
   }

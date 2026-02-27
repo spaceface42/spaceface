@@ -385,12 +385,17 @@ export class SpacefaceCore {
 
         try {
             const module = await this.loadFeatureModule('floatingImages');
+            const mode = floatingImages.motionMode ?? 'drift';
             const EngineClass =
-                (floatingImages.motionMode ?? 'drift') === 'rain'
+                mode === 'rain'
                     ? module?.RainImageEngine
-                    : (floatingImages.motionMode ?? 'drift') === 'warp'
+                    : mode === 'brownian'
+                        ? module?.BrownianImageEngine
+                    : mode === 'warp'
                         ? module?.WarpImageEngine
-                        : module?.DriftImageEngine;
+                        : mode === 'parallax-drift'
+                            ? module?.ParallaxDriftImageEngine
+                            : module?.DriftImageEngine;
             if (!EngineClass) {
                 this.emitFeatureTelemetry('floatingImages', start, 'skipped');
                 return;
@@ -597,7 +602,9 @@ export class SpacefaceCore {
                 normalized.screensaver.motionMode !== undefined &&
                 normalized.screensaver.motionMode !== 'drift' &&
                 normalized.screensaver.motionMode !== 'rain' &&
-                normalized.screensaver.motionMode !== 'warp'
+                normalized.screensaver.motionMode !== 'warp' &&
+                normalized.screensaver.motionMode !== 'parallax-drift' &&
+                normalized.screensaver.motionMode !== 'brownian'
             ) {
                 this.log('warn', 'Invalid screensaver.motionMode; removing override.');
                 delete normalized.screensaver.motionMode;
@@ -627,7 +634,9 @@ export class SpacefaceCore {
                 normalized.floatingImages.motionMode !== undefined &&
                 normalized.floatingImages.motionMode !== 'drift' &&
                 normalized.floatingImages.motionMode !== 'rain' &&
-                normalized.floatingImages.motionMode !== 'warp'
+                normalized.floatingImages.motionMode !== 'warp' &&
+                normalized.floatingImages.motionMode !== 'parallax-drift' &&
+                normalized.floatingImages.motionMode !== 'brownian'
             ) {
                 this.log('warn', 'Invalid floatingImages.motionMode; removing override.');
                 delete normalized.floatingImages.motionMode;

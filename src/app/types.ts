@@ -98,7 +98,15 @@ export interface FloatingImagesModule {
         container: HTMLElement,
         options?: MotionImageEngineOptionsInterface
     ) => MotionImageEngineInterface;
+    ParallaxDriftImageEngine: new (
+        container: HTMLElement,
+        options?: MotionImageEngineOptionsInterface
+    ) => MotionImageEngineInterface;
     RainImageEngine: new (
+        container: HTMLElement,
+        options?: MotionImageEngineOptionsInterface
+    ) => MotionImageEngineInterface;
+    BrownianImageEngine: new (
         container: HTMLElement,
         options?: MotionImageEngineOptionsInterface
     ) => MotionImageEngineInterface;
