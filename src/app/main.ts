@@ -1,10 +1,8 @@
-import { devFeatures } from './config/features.js';
+import { devStartupOptions } from './config/startup.js';
 import { attachDevEventLogger } from './dev/devEventLogger.js';
 import { startup } from './startup.js';
 
 startup({
-    features: devFeatures,
-    debug: true,
-    usePartialLoader: true,
+    ...devStartupOptions,
     enableDevEventLogging: () => attachDevEventLogger({ includeDebug: true }),
 });

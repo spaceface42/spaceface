@@ -1,4 +1,5 @@
 // Minimal PJAX implementation (no dependencies)
+import { DEFAULT_PJAX_CONTAINER_SELECTOR } from './config/runtime.js';
 
 type PjaxOptions = {
     containerSelector?: string;
@@ -27,7 +28,7 @@ export class Pjax {
     private currentRequest?: AbortController;
 
     constructor(options: PjaxOptions = {}) {
-        this.containerSelector = options.containerSelector ?? '[data-pjax="container"]';
+        this.containerSelector = options.containerSelector ?? DEFAULT_PJAX_CONTAINER_SELECTOR;
         this.linkSelector = options.linkSelector ?? 'a[href]';
         this.scrollToTop = options.scrollToTop ?? true;
         this.cacheEnabled = options.cache ?? true;

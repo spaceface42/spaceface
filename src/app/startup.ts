@@ -1,4 +1,5 @@
 import { SpacefaceCore } from './spaceface.core.js';
+import { DEFAULT_PJAX_CONTAINER_SELECTOR } from './config/runtime.js';
 import type { SpacefaceFeaturesConfig } from './types.js';
 
 export interface StartupOptions {
@@ -31,7 +32,7 @@ export function startup(options: StartupOptions): SpacefaceCore {
 
         if (options.usePjax) {
             const { initPjax } = await import('./pjax.js');
-            initPjax({ containerSelector: options.pjaxContainerSelector ?? '[data-pjax="container"]' });
+            initPjax({ containerSelector: options.pjaxContainerSelector ?? DEFAULT_PJAX_CONTAINER_SELECTOR });
             document.addEventListener('pjax:complete', () => {
                 void app.handlePjaxComplete();
             });

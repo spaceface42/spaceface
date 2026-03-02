@@ -1,12 +1,6 @@
 // src/spaceface/features/MotionImages/MotionImageEngine.ts
 
 
-import { BrownianImage } from './BrownianImage.js';
-import { DriftImage } from './DriftImage.js';
-import { GlitchJumpImage } from './GlitchJumpImage.js';
-import { ParallaxDriftImage } from './ParallaxDriftImage.js';
-import { RainImage } from './RainImage.js';
-import { WarpImage } from './WarpImage.js';
 import { PerformanceMonitor } from '../bin/PerformanceMonitor.js';
 import { resizeManager } from '../bin/ResizeManager.js';
 import { AsyncImageLoader } from '../bin/AsyncImageLoader.js';
@@ -345,86 +339,4 @@ export abstract class BaseImageEngine implements MotionImageEngineInterface {
 
     protected abstract createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface;
     protected abstract handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void;
-}
-
-export class DriftImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'drift';
-
-    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
-        return new DriftImage(el, dims, { debug: this.debug });
-    }
-
-    protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {
-        img.updateSize();
-        img.clampPosition(dims);
-        img.updatePosition();
-    }
-}
-
-export class ParallaxDriftImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'parallax-drift';
-
-    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
-        return new ParallaxDriftImage(el, dims, { debug: this.debug });
-    }
-
-    protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {
-        img.updateSize();
-        img.clampPosition(dims);
-        img.updatePosition();
-    }
-}
-
-export class RainImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'rain';
-
-    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
-        return new RainImage(el, dims);
-    }
-
-    protected handleImageResize(img: MotionImageInterface, _dims: ContainerDimensionsInterface): void {
-        img.updateSize();
-        img.updatePosition();
-    }
-}
-
-export class BrownianImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'brownian';
-
-    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
-        return new BrownianImage(el, dims);
-    }
-
-    protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {
-        img.updateSize();
-        img.clampPosition(dims);
-        img.updatePosition();
-    }
-}
-
-export class GlitchJumpImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'glitch-jump';
-
-    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
-        return new GlitchJumpImage(el, dims);
-    }
-
-    protected handleImageResize(img: MotionImageInterface, dims: ContainerDimensionsInterface): void {
-        img.updateSize();
-        img.clampPosition(dims);
-        img.updatePosition();
-    }
-}
-
-export class WarpImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'warp';
-
-    protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
-        return new WarpImage(el, dims);
-    }
-
-    protected handleImageResize(img: MotionImageInterface, _dims: ContainerDimensionsInterface): void {
-        img.updateSize();
-        img.updatePosition();
-    }
 }
