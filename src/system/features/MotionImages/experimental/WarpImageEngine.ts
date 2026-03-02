@@ -1,10 +1,10 @@
-import { BaseImageEngine } from './MotionImageEngine.js';
+import { BaseImageEngine } from '../MotionImageEngine.js';
 import { WarpImage } from './WarpImage.js';
 
-import type { ContainerDimensionsInterface, ImageMotionMode, MotionImageInterface } from './types.js';
+import type { ContainerDimensionsInterface, MotionImageInterface } from '../types.js';
 
 export class WarpImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'warp';
+    protected readonly motionMode = 'warp';
 
     protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
         return new WarpImage(el, dims);

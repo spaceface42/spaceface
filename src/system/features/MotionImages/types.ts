@@ -3,11 +3,6 @@
 export type ImageMotionMode =
     | 'drift'
     | 'rain'
-    | 'warp'
-    | 'parallax-drift'
-    | 'brownian'
-    | 'glitch-jump'
-    | 'pulse-grid'
     | 'perlin-noise';
 
 export interface MotionImageEngineOptionsInterface {

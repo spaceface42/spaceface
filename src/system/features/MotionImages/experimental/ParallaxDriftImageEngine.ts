@@ -1,10 +1,10 @@
-import { BaseImageEngine } from './MotionImageEngine.js';
+import { BaseImageEngine } from '../MotionImageEngine.js';
 import { ParallaxDriftImage } from './ParallaxDriftImage.js';
 
-import type { ContainerDimensionsInterface, ImageMotionMode, MotionImageInterface } from './types.js';
+import type { ContainerDimensionsInterface, MotionImageInterface } from '../types.js';
 
 export class ParallaxDriftImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'parallax-drift';
+    protected readonly motionMode = 'parallax-drift';
 
     protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
         return new ParallaxDriftImage(el, dims, { debug: this.debug });

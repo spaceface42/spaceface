@@ -1,10 +1,10 @@
-import { BaseImageEngine } from './MotionImageEngine.js';
+import { BaseImageEngine } from '../MotionImageEngine.js';
 import { BrownianImage } from './BrownianImage.js';
 
-import type { ContainerDimensionsInterface, ImageMotionMode, MotionImageInterface } from './types.js';
+import type { ContainerDimensionsInterface, MotionImageInterface } from '../types.js';
 
 export class BrownianImageEngine extends BaseImageEngine {
-    protected readonly motionMode: ImageMotionMode = 'brownian';
+    protected readonly motionMode = 'brownian';
 
     protected createImage(el: HTMLElement, dims: ContainerDimensionsInterface): MotionImageInterface {
         return new BrownianImage(el, dims);

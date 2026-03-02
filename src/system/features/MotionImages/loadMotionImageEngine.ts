@@ -18,21 +18,6 @@ export async function loadMotionImageEngineClass(mode: ImageMotionMode): Promise
         case 'rain':
             EngineClass = (await import('./RainImageEngine.js')).RainImageEngine;
             break;
-        case 'warp':
-            EngineClass = (await import('./WarpImageEngine.js')).WarpImageEngine;
-            break;
-        case 'parallax-drift':
-            EngineClass = (await import('./ParallaxDriftImageEngine.js')).ParallaxDriftImageEngine;
-            break;
-        case 'brownian':
-            EngineClass = (await import('./BrownianImageEngine.js')).BrownianImageEngine;
-            break;
-        case 'glitch-jump':
-            EngineClass = (await import('./GlitchJumpImageEngine.js')).GlitchJumpImageEngine;
-            break;
-        case 'pulse-grid':
-            EngineClass = (await import('./PulseGridImageEngine.js')).PulseGridImageEngine;
-            break;
         case 'perlin-noise':
             EngineClass = (await import('./PerlinNoiseImageEngine.js')).PerlinNoiseImageEngine;
             break;

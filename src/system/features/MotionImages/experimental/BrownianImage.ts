@@ -1,6 +1,6 @@
-import { clamp } from '../bin/math.js';
+import { clamp } from '../../bin/math.js';
 
-import type { ContainerDimensionsInterface, MotionImageInterface } from './types.js';
+import type { ContainerDimensionsInterface, MotionImageInterface } from '../types.js';
 
 const BASE_DAMPING = 0.965;
 const BASE_JITTER = 0.09;

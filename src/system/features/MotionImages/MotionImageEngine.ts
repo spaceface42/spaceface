@@ -14,8 +14,7 @@ import { EVENTS } from '../../types/events.js';
 import type {
     MotionImageInterface,
     MotionImageEngineOptionsInterface,
-    ContainerDimensionsInterface,
-    ImageMotionMode
+    ContainerDimensionsInterface
 } from './types.js';
 import type { MotionImageEngineInterface } from '../../types/features.js';
 
@@ -39,7 +38,7 @@ export abstract class BaseImageEngine implements MotionImageEngineInterface {
     hoverSlowMultiplier: number;
     tapToFreeze: boolean;
     pauseOnScreensaver: boolean;
-    protected abstract readonly motionMode: ImageMotionMode;
+    protected abstract readonly motionMode: string;
     private interactionCleanups: Array<() => void> = [];
     private frozenElements = new WeakSet<HTMLElement>();
     private imageSpeedOverrides = new WeakMap<HTMLElement, number>();

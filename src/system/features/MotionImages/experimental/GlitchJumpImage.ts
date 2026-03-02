@@ -1,6 +1,6 @@
-import { clamp } from '../bin/math.js';
+import { clamp } from '../../bin/math.js';
 
-import type { ContainerDimensionsInterface, MotionImageInterface } from './types.js';
+import type { ContainerDimensionsInterface, MotionImageInterface } from '../types.js';
 
 const MIN_JUMP_FRAMES = 18;
 const MAX_JUMP_FRAMES = 80;

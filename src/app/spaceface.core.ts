@@ -593,11 +593,6 @@ export class SpacefaceCore {
                 normalized.screensaver.motionMode !== undefined &&
                 normalized.screensaver.motionMode !== 'drift' &&
                 normalized.screensaver.motionMode !== 'rain' &&
-                normalized.screensaver.motionMode !== 'warp' &&
-                normalized.screensaver.motionMode !== 'parallax-drift' &&
-                normalized.screensaver.motionMode !== 'brownian' &&
-                normalized.screensaver.motionMode !== 'glitch-jump' &&
-                normalized.screensaver.motionMode !== 'pulse-grid' &&
                 normalized.screensaver.motionMode !== 'perlin-noise'
             ) {
                 this.log('warn', 'Invalid screensaver.motionMode; removing override.');
@@ -628,11 +623,6 @@ export class SpacefaceCore {
                 normalized.floatingImages.motionMode !== undefined &&
                 normalized.floatingImages.motionMode !== 'drift' &&
                 normalized.floatingImages.motionMode !== 'rain' &&
-                normalized.floatingImages.motionMode !== 'warp' &&
-                normalized.floatingImages.motionMode !== 'parallax-drift' &&
-                normalized.floatingImages.motionMode !== 'brownian' &&
-                normalized.floatingImages.motionMode !== 'glitch-jump' &&
-                normalized.floatingImages.motionMode !== 'pulse-grid' &&
                 normalized.floatingImages.motionMode !== 'perlin-noise'
             ) {
                 this.log('warn', 'Invalid floatingImages.motionMode; removing override.');
