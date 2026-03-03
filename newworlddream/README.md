@@ -65,13 +65,14 @@ Current status:
 3. Demo features are wired (`slideshow`, `screensaver`) and runnable.
 4. Route coordinator is wired (token/abort guarded swaps + post-swap feature reconciliation).
 5. One production-style feature port is done (`floating-images`) with lifecycle-safe init/destroy.
+6. Partials policy is defined in config (`partialMode`) and defaults to `none` (runtime partials deferred).
 
 Next steps to reach feature parity with the existing system:
 
-1. Define partial loading policy (runtime partials vs no-partials production mode).
-2. Port remaining production features (`ScrollDeck`) to the new lifecycle contract.
-3. Add production logging policy (verbose in dev, gated/minimal in prod).
-4. Integrate build/deploy into GitHub Pages workflow.
+1. Port remaining production features (`ScrollDeck`) to the new lifecycle contract.
+2. Add production logging policy (verbose in dev, gated/minimal in prod).
+3. Integrate build/deploy into GitHub Pages workflow.
+4. Revisit runtime partials later only as an optional dev adapter.
 
 ## Route Swap Demo
 
@@ -95,3 +96,13 @@ Runtime control:
 1. Default: console sink attaches in `dev`, not in `prod`.
 2. Force console sink: set `<html data-log-sink=\"console\">`.
 3. Disable console sink: set `<html data-log-sink=\"none\">`.
+
+## Router Hardening Checklist
+
+Use this checklist after route-related changes:
+
+1. Rapidly click internal links and confirm stale responses do not overwrite latest navigation.
+2. Use browser back/forward and confirm content + feature activation remain correct.
+3. Click a cross-origin link and confirm full browser navigation occurs.
+4. Add `data-router=\"off\"` on an internal link and confirm no route interception happens.
+5. Click the same URL repeatedly and confirm no-op behavior (no redundant swap work).
