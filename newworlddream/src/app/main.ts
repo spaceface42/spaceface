@@ -6,6 +6,7 @@ import { createLogger } from "../core/logger.js";
 import { RouteCoordinator } from "../core/router.js";
 import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
+import { FloatingImagesFeature } from "../features/floating-images/FloatingImagesFeature.js";
 
 async function main(): Promise<void> {
   const config = resolveConfig({
@@ -18,6 +19,11 @@ async function main(): Promise<void> {
 
   registry.register(new SlideshowFeature(), {
     requiredSelector: "[data-slideshow]",
+    mode: "any",
+  });
+
+  registry.register(new FloatingImagesFeature(), {
+    requiredSelector: "[data-floating-images]",
     mode: "any",
   });
 

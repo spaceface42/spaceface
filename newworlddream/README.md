@@ -64,11 +64,12 @@ Current status:
 2. Core architecture is in place (startup pipeline, typed events, lifecycle, registry).
 3. Demo features are wired (`slideshow`, `screensaver`) and runnable.
 4. Route coordinator is wired (token/abort guarded swaps + post-swap feature reconciliation).
+5. One production-style feature port is done (`floating-images`) with lifecycle-safe init/destroy.
 
 Next steps to reach feature parity with the existing system:
 
 1. Define partial loading policy (runtime partials vs no-partials production mode).
-2. Port production features (`FloatingImages`, `ScrollDeck`) to the new lifecycle contract.
+2. Port remaining production features (`ScrollDeck`) to the new lifecycle contract.
 3. Add production logging policy (verbose in dev, gated/minimal in prod).
 4. Integrate build/deploy into GitHub Pages workflow.
 

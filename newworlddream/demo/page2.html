@@ -42,6 +42,25 @@
         color: #fff;
         font-size: 24px;
       }
+      #screensaver [data-screensaver-floating] {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      #screensaver [data-screensaver-floating-item] {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.38);
+        background: rgba(15, 23, 42, 0.45);
+      }
+      #screensaver .screensaver-label {
+        position: relative;
+        z-index: 1;
+      }
       #screensaver[hidden] { display: none; }
     </style>
   </head>
@@ -49,13 +68,13 @@
     <main data-route-container>
       <section class="card">
         <h1>Page 2</h1>
-        <p>This page has no slideshow container. Registry should deactivate slideshow here.</p>
+        <p>This page has no slideshow or floating-images container. Registry should deactivate both features here.</p>
         <p><a href="./index.html">Back to page 1</a></p>
       </section>
     </main>
 
     <div id="screensaver" hidden>
-      <div>SCREENSAVER ACTIVE</div>
+      <div class="screensaver-label">SCREENSAVER ACTIVE</div>
     </div>
 
     <script type="module" src="../dist/main.js"></script>
