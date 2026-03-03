@@ -3,7 +3,7 @@ import { FloatingImagesFeature } from "../floating-images/FloatingImagesFeature.
 import { loadPartialHtml } from "../../core/partials.js";
 
 export interface ScreensaverFeatureOptions {
-  targetSelector: string;
+  targetSelector?: string;
   idleMs: number;
   partialUrl?: string;
 }
@@ -11,6 +11,8 @@ export interface ScreensaverFeatureOptions {
 export class ScreensaverFeature implements Feature {
   readonly name = "screensaver";
   private static readonly FADE_OUT_CLEANUP_MS = 360;
+  private static readonly DEFAULT_TARGET_ID = "spcfc-screensaver";
+  private static readonly DEFAULT_TARGET_SELECTOR = `#${ScreensaverFeature.DEFAULT_TARGET_ID}`;
 
   private readonly options: ScreensaverFeatureOptions;
   private timer: number | null = null;
@@ -22,6 +24,7 @@ export class ScreensaverFeature implements Feature {
   private partialLoadPromise?: Promise<void>;
   private partialLoaded = false;
   private hideCleanupTimer: number | null = null;
+  private autoCreatedTarget = false;
 
   constructor(options: ScreensaverFeatureOptions) {
     this.options = options;
@@ -31,9 +34,9 @@ export class ScreensaverFeature implements Feature {
   init(ctx: StartupContext): void {
     this.ctx = ctx;
     this.events = ctx.events;
-    this.target = document.querySelector<HTMLElement>(this.options.targetSelector);
+    this.target = this.resolveOrCreateTarget();
     if (!this.target) {
-      ctx.logger.debug("screensaver skipped: target not found", { selector: this.options.targetSelector });
+      ctx.logger.debug("screensaver skipped: target not found");
       return;
     }
     this.target.hidden = false;
@@ -62,7 +65,11 @@ export class ScreensaverFeature implements Feature {
     if (this.target) {
       this.target.classList.remove("is-active");
       this.target.setAttribute("aria-hidden", "true");
-      this.target.hidden = true;
+      if (this.autoCreatedTarget) {
+        this.target.remove();
+      } else {
+        this.target.hidden = true;
+      }
       this.target = null;
     }
     this.stopScreensaverFloating();
@@ -77,7 +84,7 @@ export class ScreensaverFeature implements Feature {
     this.target.setAttribute("aria-hidden", "true");
     this.scheduleFloatingStopAfterFade();
     if (wasVisible) {
-      this.events?.emit("screensaver:hidden", { target: this.options.targetSelector });
+      this.events?.emit("screensaver:hidden", { target: this.options.targetSelector ?? ScreensaverFeature.DEFAULT_TARGET_SELECTOR });
     }
     this.events?.emit("user:active", { at: Date.now() });
     this.armTimer();
@@ -102,7 +109,7 @@ export class ScreensaverFeature implements Feature {
       this.target.setAttribute("aria-hidden", "false");
       this.startScreensaverFloating();
       events?.emit("user:inactive", { at: Date.now(), idleMs: this.options.idleMs });
-      events?.emit("screensaver:shown", { target: this.options.targetSelector });
+      events?.emit("screensaver:shown", { target: this.options.targetSelector ?? ScreensaverFeature.DEFAULT_TARGET_SELECTOR });
     }, this.options.idleMs);
   }
 
@@ -149,8 +156,8 @@ export class ScreensaverFeature implements Feature {
     }
 
     this.screensaverFloating = new FloatingImagesFeature({
-      containerSelector: `${this.options.targetSelector} [data-screensaver-floating]`,
-      itemSelector: `${this.options.targetSelector} [data-screensaver-floating-item]`,
+      containerSelector: `#${this.target.id} [data-screensaver-floating]`,
+      itemSelector: `#${this.target.id} [data-screensaver-floating-item]`,
       baseSpeed: 30,
       pauseOnScreensaver: false,
       hoverBehavior: "none",
@@ -213,5 +220,22 @@ export class ScreensaverFeature implements Feature {
     nodes.forEach((node) => {
       node.setAttribute("data-screensaver-floating-item", "true");
     });
+  }
+
+  private resolveOrCreateTarget(): HTMLElement | null {
+    const selector = this.options.targetSelector ?? ScreensaverFeature.DEFAULT_TARGET_SELECTOR;
+    const existing = document.querySelector<HTMLElement>(selector);
+    if (existing) {
+      this.autoCreatedTarget = false;
+      return existing;
+    }
+
+    const el = document.createElement("div");
+    el.id = ScreensaverFeature.DEFAULT_TARGET_ID;
+    el.hidden = true;
+    el.setAttribute("aria-hidden", "true");
+    document.body.appendChild(el);
+    this.autoCreatedTarget = true;
+    return el;
   }
 }
