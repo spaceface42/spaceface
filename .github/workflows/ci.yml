@@ -32,8 +32,20 @@ jobs:
       - name: Build (prod pjax)
         run: npm run build:prod:pjax
 
-      - name: Typecheck (newworlddream)
-        run: npm run typecheck:newworlddream
+  newworlddream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Build (newworlddream)
-        run: npm run build:newworlddream
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify (newworlddream)
+        run: npm run verify:newworlddream

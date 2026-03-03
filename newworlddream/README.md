@@ -39,6 +39,18 @@ A clean, minimal TypeScript architecture scaffold for a feature-driven frontend 
 tsc -p newworlddream/tsconfig.json --noEmit
 ```
 
+## Verify (Automated)
+
+```bash
+npm run verify:newworlddream
+```
+
+This runs:
+
+1. `typecheck:newworlddream`
+2. `build:newworlddream`
+3. `smoke:newworlddream` (fixture and bundle integrity checks)
+
 ## Run demo
 
 ```bash
