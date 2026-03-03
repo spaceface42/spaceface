@@ -66,6 +66,7 @@ Current status:
 4. Route coordinator is wired (token/abort guarded swaps + post-swap feature reconciliation).
 5. One production-style feature port is done (`floating-images`) with lifecycle-safe init/destroy.
 6. Partials policy is defined in config (`partialMode`) and defaults to `none` (runtime partials deferred).
+7. Animation system uses a shared RAF scheduler with visibility/reduced-motion gating and overload backpressure.
 
 Next steps to reach feature parity with the existing system:
 
@@ -94,7 +95,7 @@ Both pages share a `data-route-container` region. Navigation swaps only that con
 Runtime control:
 
 1. Default: console sink attaches in `dev`, not in `prod`.
-2. Force console sink: set `<html data-log-sink=\"console\">`.
+2. In `prod`, console sink is disabled by default and only `data-log-sink=\"force\"` enables it (`warn/error` only).
 3. Disable console sink: set `<html data-log-sink=\"none\">`.
 
 ## Router Hardening Checklist
@@ -106,3 +107,16 @@ Use this checklist after route-related changes:
 3. Click a cross-origin link and confirm full browser navigation occurs.
 4. Add `data-router=\"off\"` on an internal link and confirm no route interception happens.
 5. Click the same URL repeatedly and confirm no-op behavior (no redundant swap work).
+
+## Animation Optimization
+
+`newworlddream` animation now runs through a shared scheduler:
+
+1. Single RAF loop (`AnimationScheduler`) for animated features.
+2. Auto-pause when the tab is hidden.
+3. Auto-pause when `prefers-reduced-motion: reduce` is active.
+4. Overload backpressure: animated callbacks can skip alternate frames under high frame delta.
+
+Dev diagnostics:
+
+1. Set `<html data-animation-metrics=\"on\">` to print scheduler stats every 2 seconds.
