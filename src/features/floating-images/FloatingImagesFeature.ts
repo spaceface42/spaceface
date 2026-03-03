@@ -2,6 +2,7 @@ import type { Feature, StartupContext } from "../../core/lifecycle.js";
 import type { UnsubscribeFn } from "../../core/events.js";
 import { animationScheduler } from "../../core/animation.js";
 import type { AnimationFrameContext } from "../../core/animation.js";
+import { waitForImagesReady } from "../../core/images.js";
 
 interface MotionItem {
   el: HTMLElement;
@@ -28,6 +29,7 @@ export class FloatingImagesFeature implements Feature {
   private items: MotionItem[] = [];
   private running = false;
   private pausedByScreensaver = false;
+  private initRunId = 0;
   private unsubAnimation?: UnsubscribeFn;
   private unsubScreensaverShown?: UnsubscribeFn;
   private unsubScreensaverHidden?: UnsubscribeFn;
@@ -35,13 +37,14 @@ export class FloatingImagesFeature implements Feature {
   constructor(options: FloatingImagesFeatureOptions = {}) {
     this.options = {
       containerSelector: options.containerSelector ?? "[data-floating-images]",
-      itemSelector: options.itemSelector ?? "[data-floating-item]",
+      itemSelector: options.itemSelector ?? "[data-floating-item], .floating-image",
       baseSpeed: options.baseSpeed ?? 46,
       pauseOnScreensaver: options.pauseOnScreensaver ?? true,
     };
   }
 
-  init(ctx: StartupContext): void {
+  async init(ctx: StartupContext): Promise<void> {
+    const runId = ++this.initRunId;
     this.container = document.querySelector<HTMLElement>(this.options.containerSelector);
     if (!this.container) {
       ctx.logger.debug("floating-images skipped: container missing", {
@@ -49,6 +52,12 @@ export class FloatingImagesFeature implements Feature {
       });
       return;
     }
+
+    await waitForImagesReady(this.container, {
+      selector: this.options.itemSelector,
+      timeoutMs: 5000,
+    });
+    if (runId !== this.initRunId) return;
 
     this.items = this.collectItems(this.container);
     if (this.items.length === 0) {
@@ -80,6 +89,7 @@ export class FloatingImagesFeature implements Feature {
   }
 
   destroy(): void {
+    this.initRunId += 1;
     this.running = false;
     this.unsubAnimation?.();
     this.unsubAnimation = undefined;
@@ -105,7 +115,7 @@ export class FloatingImagesFeature implements Feature {
   onRouteChange(_nextRoute: string, ctx: StartupContext): void {
     const hasContainer = Boolean(document.querySelector(this.options.containerSelector));
     if (hasContainer && this.items.length === 0) {
-      this.init(ctx);
+      void this.init(ctx);
       return;
     }
     if (!hasContainer && this.items.length > 0) {
@@ -120,6 +130,8 @@ export class FloatingImagesFeature implements Feature {
     }
 
     const nodes = Array.from(container.querySelectorAll<HTMLElement>(this.options.itemSelector));
+    const placedCenters: Array<{ x: number; y: number }> = [];
+
     return nodes.map((el, index) => {
       const rect = el.getBoundingClientRect();
       const width = Math.max(28, Math.round(rect.width || 48));
@@ -128,8 +140,28 @@ export class FloatingImagesFeature implements Feature {
       const centerX = containerRect.width * 0.5 - width * 0.5;
       const centerY = containerRect.height * 0.5 - height * 0.5;
       const spread = Math.max(24, Math.min(containerRect.width, containerRect.height) * 0.18);
-      const x = clamp(centerX + gaussianRandom() * spread, 0, Math.max(0, containerRect.width - width));
-      const y = clamp(centerY + gaussianRandom() * spread, 0, Math.max(0, containerRect.height - height));
+      const maxX = Math.max(0, containerRect.width - width);
+      const maxY = Math.max(0, containerRect.height - height);
+      const minDistance = Math.max(18, Math.min(width, height) * 0.7);
+
+      let x = clamp(centerX + gaussianRandom() * spread, 0, maxX);
+      let y = clamp(centerY + gaussianRandom() * spread, 0, maxY);
+
+      // Try a few candidates and pick one that avoids excessive initial overlap.
+      for (let i = 0; i < 18; i += 1) {
+        const candidateX = clamp(centerX + gaussianRandom() * spread, 0, maxX);
+        const candidateY = clamp(centerY + gaussianRandom() * spread, 0, maxY);
+        const candidateCenterX = candidateX + width * 0.5;
+        const candidateCenterY = candidateY + height * 0.5;
+        const tooClose = placedCenters.some((p) => distance(p.x, p.y, candidateCenterX, candidateCenterY) < minDistance);
+        if (!tooClose) {
+          x = candidateX;
+          y = candidateY;
+          break;
+        }
+      }
+
+      placedCenters.push({ x: x + width * 0.5, y: y + height * 0.5 });
 
       const direction = index % 2 === 0 ? 1 : -1;
       const jitter = (index % 3) * 0.08;
@@ -225,6 +257,12 @@ export class FloatingImagesFeature implements Feature {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function distance(ax: number, ay: number, bx: number, by: number): number {
+  const dx = ax - bx;
+  const dy = ay - by;
+  return Math.hypot(dx, dy);
 }
 
 function gaussianRandom(): number {

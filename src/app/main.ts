@@ -34,6 +34,7 @@ async function main(): Promise<void> {
     new ScreensaverFeature({
       targetSelector: "#screensaver",
       idleMs: config.screensaverIdleMs,
+      partialUrl: "./screensaver/index.html",
     }),
     {
       requiredSelector: "#screensaver",
