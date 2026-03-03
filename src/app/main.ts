@@ -20,12 +20,12 @@ async function main(): Promise<void> {
   const detachConsoleSink = maybeAttachConsoleSink(config.mode, config.logLevel);
   const detachAnimationMetrics = maybeAttachAnimationMetrics(config.mode);
 
-  registry.register(new SlideshowFeature(), {
+  registry.register(new SlideshowFeature({ autoplayMs: 5000, pauseOnScreensaver: true }), {
     requiredSelector: "[data-slideshow]",
     mode: "any",
   });
 
-  registry.register(new FloatingImagesFeature(), {
+  registry.register(new FloatingImagesFeature({ hoverBehavior: "pause", hoverSlowMultiplier: 0.2 }), {
     requiredSelector: "[data-floating-images]",
     mode: "any",
   });
@@ -34,6 +34,7 @@ async function main(): Promise<void> {
     new ScreensaverFeature({
       targetSelector: "#screensaver",
       idleMs: config.screensaverIdleMs,
+      partialUrl: "./screensaver/index.html",
     }),
     {
       requiredSelector: "#screensaver",
@@ -77,6 +78,7 @@ function readModeFromDom(): "dev" | "prod" {
 
 function bindGlobalSlideControls(): void {
   document.addEventListener("keydown", (event) => {
+    if (isEditableTarget(event.target)) return;
     if (event.key === "ArrowRight") {
       eventBus.emit("slideshow:next", { source: "keyboard" });
     }
@@ -98,6 +100,15 @@ function bindGlobalSlideControls(): void {
       eventBus.emit("slideshow:prev", { source: "click" });
     }
   });
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  if (el instanceof HTMLInputElement) return true;
+  if (el instanceof HTMLTextAreaElement) return true;
+  if (el instanceof HTMLSelectElement) return true;
+  return Boolean(el.closest("[contenteditable='true']"));
 }
 
 function bindLifecycleHooks(

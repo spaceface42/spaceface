@@ -1,157 +1,54 @@
 <!doctype html>
 <html lang="en" data-mode="dev">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>newworlddream demo</title>
-    <style>
-      :root {
-        color-scheme: light;
-        --bg: #f4f5f7;
-        --surface: #ffffff;
-        --ink: #111827;
-        --muted: #4b5563;
-        --line: #d1d5db;
-        --brand: #0f766e;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        color: var(--ink);
-        background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
-      }
-      main {
-        max-width: 900px;
-        margin: 24px auto;
-        padding: 16px;
-      }
-      .card {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
-      }
-      .row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      button {
-        border: 1px solid var(--line);
-        background: #fff;
-        color: var(--ink);
-        border-radius: 8px;
-        padding: 8px 12px;
-        cursor: pointer;
-      }
-      button:hover { border-color: var(--brand); }
-      [data-slide] {
-        border: 1px dashed var(--line);
-        border-radius: 8px;
-        padding: 14px;
-        min-height: 80px;
-      }
-      [data-floating-images] {
-        position: relative;
-        height: 260px;
-        overflow: hidden;
-        border: 1px dashed var(--line);
-        border-radius: 10px;
-        background:
-          radial-gradient(circle at 10% 10%, #e8fffb, transparent 45%),
-          radial-gradient(circle at 90% 85%, #dbeafe, transparent 45%),
-          #ffffff;
-      }
-      [data-floating-item] {
-        width: 76px;
-        height: 76px;
-        border-radius: 14px;
-        display: grid;
-        place-items: center;
-        font-size: 28px;
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid rgba(15, 118, 110, 0.35);
-        box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
-        user-select: none;
-        pointer-events: none;
-      }
-      #screensaver {
-        position: fixed;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        background: rgba(17, 24, 39, 0.82);
-        color: #fff;
-        font-size: 24px;
-        letter-spacing: 0.04em;
-      }
-      #screensaver [data-screensaver-floating] {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-      }
-      #screensaver [data-screensaver-floating-item] {
-        width: 52px;
-        height: 52px;
-        border-radius: 12px;
-        display: grid;
-        place-items: center;
-        font-size: 22px;
-        border: 1px solid rgba(255, 255, 255, 0.38);
-        background: rgba(15, 23, 42, 0.45);
-      }
-      #screensaver .screensaver-label {
-        position: relative;
-        z-index: 1;
-      }
-      #screensaver[hidden] { display: none; }
-      .muted {
-        color: var(--muted);
-        font-size: 14px;
-      }
-    </style>
-  </head>
-  <body>
-    <main data-route-container>
-      <section class="card">
-        <h1>newworlddream demo</h1>
-        <p class="muted">
-          Slideshow supports keyboard arrows and button controls. Screensaver appears after inactivity.
-        </p>
-        <p class="muted">
-          <a href="./page2.html">Go to page 2 (route swap)</a>
-        </p>
-      </section>
 
-      <section class="card" data-slideshow>
-        <div class="row" style="margin-bottom: 12px">
-          <button type="button" data-slide-prev>Prev</button>
-          <button type="button" data-slide-next>Next</button>
-        </div>
-        <article data-slide>Slide 1: Core startup pipeline + feature registry</article>
-        <article data-slide hidden>Slide 2: Typed event bus with feature contracts</article>
-        <article data-slide hidden>Slide 3: Isolated feature lifecycle and teardown</article>
-      </section>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>newworlddream demo</title>
+        <link rel="stylesheet" href="./styles.css" />
+    </head>
 
-      <section class="card">
-        <h2>Floating Images (ported feature)</h2>
-        <p class="muted">Lifecycle-managed animation that deactivates when route swap removes this container.</p>
-        <div data-floating-images>
-          <div data-floating-item>1</div>
-          <div data-floating-item>2</div>
-          <div data-floating-item>3</div>
-          <div data-floating-item>4</div>
-          <div data-floating-item>5</div>
-        </div>
-      </section>
-    </main>
+    <body data-page="index">
+        <main data-route-container>
+            <section class="card">
+                <h1>newworlddream demo</h1>
+                <p class="muted">
+                    Slideshow supports keyboard arrows and button controls. Screensaver appears after inactivity.
+                </p>
+                <p class="muted">
+                    <a href="./page2.html">Go to page 2 (route swap)</a>
+                </p>
+            </section>
 
-    <div id="screensaver" hidden>
-      <div class="screensaver-label">SCREENSAVER ACTIVE</div>
-    </div>
+            <section class="card" data-slideshow>
+                <div class="row controls">
+                    <button type="button" data-slide-prev>Prev</button>
+                    <button type="button" data-slide-next>Next</button>
+                </div>
+                <article data-slide>Slide 1: Core startup pipeline + feature registry</article>
+                <article data-slide hidden>Slide 2: Typed event bus with feature contracts</article>
+                <article data-slide hidden>Slide 3: Isolated feature lifecycle and teardown</article>
+            </section>
 
-    <script type="module" src="../dist/main.js"></script>
-  </body>
+            <section class="card">
+                <h2>Floating Images (ported feature)</h2>
+                <p class="muted">Lifecycle-managed animation that deactivates when route swap removes this container.
+                </p>
+                <div data-floating-images class="floating-images-container">
+                    <img data-floating-item src="./floatingimages/a.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/b.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/c.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/d.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/e.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/a.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/c.svg" class="floating-image" alt="floatingimage-1" />
+                </div>
+            </section>
+        </main>
+
+        <div id="screensaver" hidden></div>
+
+        <script type="module" src="../dist/main.js"></script>
+    </body>
+
 </html>

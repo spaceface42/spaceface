@@ -21,6 +21,8 @@ if (failures.length === 0) {
   const page2Html = readFileSync(files.page2, 'utf8');
   const bundle = readFileSync(files.bundle, 'utf8');
   const bundleSize = statSync(files.bundle).size;
+  const indexMainHtml = extractMainBlock(indexHtml);
+  const page2MainHtml = extractMainBlock(page2Html);
 
   // Core route-swap fixture checks
   assertContains(indexHtml, 'data-route-container', 'index must define route container');
@@ -29,10 +31,10 @@ if (failures.length === 0) {
   assertContains(page2Html, 'href="./index.html"', 'page2 must link back to index');
 
   // Feature activation/deactivation fixture checks
-  assertContains(indexHtml, 'data-slideshow', 'index should include slideshow fixture');
-  assertContains(indexHtml, 'data-floating-images', 'index should include floating-images fixture');
-  assertNotContains(page2Html, 'data-slideshow', 'page2 should not include slideshow fixture');
-  assertNotContains(page2Html, 'data-floating-images', 'page2 should not include floating-images fixture');
+  assertContains(indexMainHtml, 'data-slideshow', 'index should include slideshow fixture');
+  assertContains(indexMainHtml, 'data-floating-images', 'index should include floating-images fixture');
+  assertNotContains(page2MainHtml, 'data-slideshow', 'page2 should not include slideshow fixture');
+  assertNotContains(page2MainHtml, 'data-floating-images', 'page2 should not include floating-images fixture');
 
   // Runtime behavior anchor checks in built bundle
   assertContains(bundle, 'screensaver:shown', 'bundle should contain screensaver shown event wiring');
@@ -65,4 +67,9 @@ function assertNotContains(content, needle, message) {
   if (content.includes(needle)) {
     failures.push(message);
   }
+}
+
+function extractMainBlock(html) {
+  const match = html.match(/<main\b[^>]*>[\s\S]*?<\/main>/i);
+  return match ? match[0] : html;
 }

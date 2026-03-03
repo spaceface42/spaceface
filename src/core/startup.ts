@@ -29,26 +29,38 @@ export class StartupPipeline {
     const initialized: string[] = [];
     const failed: Array<{ feature: string; error: unknown }> = [];
 
-    for (const feature of features) {
-      const start = performance.now();
-      try {
-        await feature.init(this.ctx);
-        this.featureInstances.push(feature);
-        initialized.push(feature.name);
-        eventBus.emit("startup:feature:init", {
-          feature: feature.name,
-          durationMs: Math.round(performance.now() - start),
-          ok: true,
-        });
-      } catch (error) {
-        failed.push({ feature: feature.name, error });
-        eventBus.emit("startup:feature:init", {
-          feature: feature.name,
-          durationMs: Math.round(performance.now() - start),
-          ok: false,
-          error,
-        });
-        this.logger.error(`Feature init failed: ${feature.name}`, error);
+    const results = await Promise.all(
+      features.map(async (feature) => {
+        const start = performance.now();
+        try {
+          await feature.init(this.ctx);
+          const durationMs = Math.round(performance.now() - start);
+          eventBus.emit("startup:feature:init", {
+            feature: feature.name,
+            durationMs,
+            ok: true,
+          });
+          return { feature, ok: true as const, durationMs };
+        } catch (error) {
+          const durationMs = Math.round(performance.now() - start);
+          eventBus.emit("startup:feature:init", {
+            feature: feature.name,
+            durationMs,
+            ok: false,
+            error,
+          });
+          this.logger.error(`Feature init failed: ${feature.name}`, error);
+          return { feature, ok: false as const, durationMs, error };
+        }
+      })
+    );
+
+    for (const result of results) {
+      if (result.ok) {
+        this.featureInstances.push(result.feature);
+        initialized.push(result.feature.name);
+      } else {
+        failed.push({ feature: result.feature.name, error: result.error });
       }
     }
 
@@ -104,26 +116,40 @@ export class StartupPipeline {
       }
     }
 
+    const featuresToInit: Feature[] = [];
     for (const [name, feature] of nextByName.entries()) {
       const currentFeature = currentByName.get(name);
       if (currentFeature && currentFeature === feature) continue;
-      const start = performance.now();
-      try {
-        await feature.init(this.ctx);
-        nextActive.push(feature);
-        eventBus.emit("startup:feature:init", {
-          feature: feature.name,
-          durationMs: Math.round(performance.now() - start),
-          ok: true,
-        });
-      } catch (error) {
-        eventBus.emit("startup:feature:init", {
-          feature: feature.name,
-          durationMs: Math.round(performance.now() - start),
-          ok: false,
-          error,
-        });
-        this.logger.error(`Feature init during route reconcile failed: ${name}`, error);
+      featuresToInit.push(feature);
+    }
+
+    const initResults = await Promise.all(
+      featuresToInit.map(async (feature) => {
+        const start = performance.now();
+        try {
+          await feature.init(this.ctx);
+          eventBus.emit("startup:feature:init", {
+            feature: feature.name,
+            durationMs: Math.round(performance.now() - start),
+            ok: true,
+          });
+          return { feature, ok: true as const };
+        } catch (error) {
+          eventBus.emit("startup:feature:init", {
+            feature: feature.name,
+            durationMs: Math.round(performance.now() - start),
+            ok: false,
+            error,
+          });
+          this.logger.error(`Feature init during route reconcile failed: ${feature.name}`, error);
+          return { feature, ok: false as const };
+        }
+      })
+    );
+
+    for (const result of initResults) {
+      if (result.ok) {
+        nextActive.push(result.feature);
       }
     }
 
