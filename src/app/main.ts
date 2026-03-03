@@ -6,6 +6,7 @@ import { attachConsoleLogSink, createLogger } from "../core/logger.js";
 import { RouteCoordinator } from "../core/router.js";
 import { animationScheduler } from "../core/animation.js";
 import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
+import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.js";
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
 import { FloatingImagesFeature } from "../features/floating-images/FloatingImagesFeature.js";
 
@@ -24,6 +25,11 @@ async function main(): Promise<void> {
 
   registry.register(new SlideshowFeature({ autoplayMs: 5000, pauseOnScreensaver: true }), {
     requiredSelector: "[data-slideshow]",
+    mode: "any",
+  });
+
+  registry.register(new SlidePlayerFeature({ autoplayMs: 5000, pauseOnScreensaver: true }), {
+    requiredSelector: "[data-slideplayer]",
     mode: "any",
   });
 

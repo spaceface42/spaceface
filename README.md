@@ -27,6 +27,10 @@ Current active runtime lives in `src/` and ships static output to `docs/` from `
 - `SlideshowFeature`
   - Active when `[data-slideshow]` exists.
   - Global controls via `slideshow:next` / `slideshow:prev` events.
+- `SlidePlayerFeature`
+  - Active when `[data-slideplayer]` exists.
+  - Displays image slides from `[data-slideplayer-image]` with optional local prev/next controls.
+  - Autoplay pauses/resumes with screensaver lifecycle.
 - `FloatingImagesFeature`
   - Active when `[data-floating-images]` exists.
   - Uses markup as source of truth (`[data-floating-item]` / `.floating-image`).
