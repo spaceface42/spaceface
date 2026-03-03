@@ -63,11 +63,20 @@ Current status:
 1. First-step scaffold is complete.
 2. Core architecture is in place (startup pipeline, typed events, lifecycle, registry).
 3. Demo features are wired (`slideshow`, `screensaver`) and runnable.
+4. Route coordinator is wired (token/abort guarded swaps + post-swap feature reconciliation).
 
 Next steps to reach feature parity with the existing system:
 
-1. Add route-change coordinator with PJAX-ready hooks and safe reactivation.
-2. Define partial loading policy (runtime partials vs no-partials production mode).
-3. Port production features (`FloatingImages`, `ScrollDeck`) to the new lifecycle contract.
-4. Add production logging policy (verbose in dev, gated/minimal in prod).
-5. Integrate build/deploy into GitHub Pages workflow.
+1. Define partial loading policy (runtime partials vs no-partials production mode).
+2. Port production features (`FloatingImages`, `ScrollDeck`) to the new lifecycle contract.
+3. Add production logging policy (verbose in dev, gated/minimal in prod).
+4. Integrate build/deploy into GitHub Pages workflow.
+
+## Route Swap Demo
+
+Use links between:
+
+1. `/demo/index.html`
+2. `/demo/page2.html`
+
+Both pages share a `data-route-container` region. Navigation swaps only that container and then re-evaluates feature activation through the registry.

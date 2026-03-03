@@ -3,6 +3,7 @@ import { eventBus } from "../core/events.js";
 import { FeatureRegistry } from "../core/registry.js";
 import { StartupPipeline } from "../core/startup.js";
 import { createLogger } from "../core/logger.js";
+import { RouteCoordinator } from "../core/router.js";
 import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
 
@@ -42,7 +43,22 @@ async function main(): Promise<void> {
   await startup.init(activeFeatures);
 
   bindGlobalSlideControls();
-  bindRouteHooks(startup);
+  const routeCoordinator = new RouteCoordinator({
+    containerSelector: "[data-route-container]",
+    logger: createLogger("router", config.logLevel),
+    hooks: {
+      onAfterSwap: async ({ url }) => {
+        const nextCtx = {
+          ...ctxForResolve,
+          route: url.pathname,
+        };
+        const nextFeatures = registry.resolve(nextCtx);
+        await startup.reconcileFeatures(nextFeatures, url.pathname);
+      },
+    },
+  });
+  routeCoordinator.start();
+  bindLifecycleHooks(startup, routeCoordinator);
 }
 
 function readModeFromDom(): "dev" | "prod" {
@@ -75,12 +91,9 @@ function bindGlobalSlideControls(): void {
   });
 }
 
-function bindRouteHooks(startup: StartupPipeline): void {
-  window.addEventListener("popstate", () => {
-    void startup.onRouteChange(window.location.pathname);
-  });
-
+function bindLifecycleHooks(startup: StartupPipeline, routeCoordinator: RouteCoordinator): void {
   window.addEventListener("beforeunload", () => {
+    routeCoordinator.destroy();
     void startup.destroy("beforeunload");
   });
 }
