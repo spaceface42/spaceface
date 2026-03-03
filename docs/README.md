@@ -38,7 +38,7 @@ A clean, minimal TypeScript architecture scaffold for a feature-driven frontend 
 ## Typecheck this scaffold
 
 ```bash
-tsc -p docs/tsconfig.json --noEmit
+tsc -p tsconfig.json --noEmit
 ```
 
 ## Verify (Automated)
