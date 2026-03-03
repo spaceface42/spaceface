@@ -2,7 +2,6 @@
 
 Spaceface is a small TypeScript runtime for interactive static pages.
 Current active runtime lives in `src/` and ships static output to `docs/` from `public.src/`.
-Legacy code is preserved in `oldworld/`.
 
 ## Project Layout
 
@@ -14,7 +13,6 @@ Legacy code is preserved in `oldworld/`.
 - `docs/dist/`: generated JS bundle output (build artifact)
 - `bin/build-public-html.mjs`: build-time partial renderer (`public.src` -> `docs`)
 - `bin/smoke-check.mjs`: post-build smoke validation
-- `oldworld/`: previous architecture kept for reference/migration
 
 ## Runtime Model
 
@@ -88,7 +86,7 @@ npm run verify:docs
 
 Build pipeline summary:
 
-1. `npm run build:html` renders `public.src` into fully static `public` (partials are replaced).
+1. `npm run build:html` renders `public.src` into fully static `docs` (partials are replaced).
 2. `npm run build:js:dev` or `npm run build:js:prod` writes bundle to `docs/dist/main.js`.
 3. Local server serves `docs/` root.
 
