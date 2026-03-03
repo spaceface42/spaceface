@@ -1,7 +1,7 @@
 # Spaceface
 
 Spaceface is a small TypeScript runtime for interactive static pages.
-Current active runtime lives in `src/` and ships a demo from `docs/demo/`.
+Current active runtime lives in `src/` and ships static output to `docs/` from `public.src/`.
 Legacy code is preserved in `oldworld/`.
 
 ## Project Layout
@@ -9,9 +9,11 @@ Legacy code is preserved in `oldworld/`.
 - `src/core/`: framework primitives (event bus, logger, startup pipeline, router, animation scheduler)
 - `src/features/`: feature modules (`slideshow`, `floating-images`, `screensaver`)
 - `src/app/main.ts`: composition root (register features, startup, lifecycle hooks)
-- `docs/demo/`: demo HTML pages (`index.html`, `page2.html`)
+- `public.src/`: source HTML/CSS/assets and build-time partials
+- `docs/`: generated static site output
 - `docs/dist/`: generated JS bundle output (build artifact)
-- `docs/scripts/smoke-check.mjs`: post-build smoke validation
+- `bin/build-public-html.mjs`: build-time partial renderer (`public.src` -> `docs`)
+- `bin/smoke-check.mjs`: post-build smoke validation
 - `oldworld/`: previous architecture kept for reference/migration
 
 ## Runtime Model
@@ -34,7 +36,7 @@ Legacy code is preserved in `oldworld/`.
   - Uses RAF via shared `AnimationScheduler`.
   - Pauses/resumes on screensaver lifecycle events.
 - `ScreensaverFeature`
-  - Active when `#screensaver` exists.
+  - Auto-creates host `#spcfc-screensaver` when missing.
   - Emits `screensaver:shown` / `screensaver:hidden`.
   - Supports runtime partial content via `partialUrl` (cached fetch); falls back to generated markup if partial fails.
   - Starts/stops its own floating-images instance while visible.
@@ -89,11 +91,12 @@ npm run verify:docs
 - `.github/workflows/ci.yml`
   - Typecheck, lint, build, and docs smoke checks on `main` and `codex/**` branches + pull requests.
 - `.github/workflows/pages.yml`
-  - On push to `main`, builds production bundle, assembles Pages artifact from `docs/demo` + `docs/dist`, minifies HTML, and deploys.
+  - On push to `main`, builds production static site (`public.src` -> `docs` + JS bundle), assembles Pages artifact from `docs/`, minifies HTML, and deploys.
 
 ## Notes
 
 - `docs/dist/` is generated and ignored in git.
+- HTML/CSS source of truth is `public.src/`; production artifact is generated in `docs/`.
 - Route swaps update HTML and title only; scripts in swapped markup are not auto-executed.
 - Set `data-mode="prod"` on `<html>` to silence dev logging defaults.
 - For screensaver partials, image URLs in partial HTML resolve relative to the current page URL.

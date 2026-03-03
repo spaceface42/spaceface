@@ -22,7 +22,7 @@ foreach (array_slice($argv, 1) as $arg) {
     }
 
     fwrite(STDERR, "Unknown option: {$arg}\n");
-    fwrite(STDERR, "Usage: php bin/start-newworlddream.php [--host=HOST] [--port=PORT]\n");
+    fwrite(STDERR, "Usage: php bin/start-server.php [--host=HOST] [--port=PORT]\n");
     exit(1);
 }
 
@@ -41,7 +41,7 @@ if (!preg_match('/^\d+$/', $port) || (int) $port < 1 || (int) $port > 65535) {
 $host = $options['host'];
 $url = "http://{$host}:{$port}";
 
-fwrite(STDOUT, "Starting docs demo at {$url}/demo/index.html (root: {$rootPath})\n");
+fwrite(STDOUT, "Starting docs site at {$url}/index.html (root: {$rootPath})\n");
 
 $cmd = sprintf(
     '%s -S %s -t %s',

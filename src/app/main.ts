@@ -9,6 +9,8 @@ import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
 import { FloatingImagesFeature } from "../features/floating-images/FloatingImagesFeature.js";
 
+console.log("MU/TH/UR");
+
 async function main(): Promise<void> {
   const config = resolveConfig({
     mode: readModeFromDom(),
@@ -32,12 +34,10 @@ async function main(): Promise<void> {
 
   registry.register(
     new ScreensaverFeature({
-      targetSelector: "#screensaver",
       idleMs: config.screensaverIdleMs,
       partialUrl: "./screensaver/index.html",
     }),
     {
-      requiredSelector: "#screensaver",
       mode: "any",
     }
   );

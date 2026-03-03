@@ -3,8 +3,8 @@ import { resolve } from 'node:path';
 
 const root = process.cwd();
 const files = {
-  index: resolve(root, 'docs/demo/index.html'),
-  page2: resolve(root, 'docs/demo/page2.html'),
+  index: resolve(root, 'docs/index.html'),
+  page2: resolve(root, 'docs/page2.html'),
   bundle: resolve(root, 'docs/dist/main.js'),
 };
 

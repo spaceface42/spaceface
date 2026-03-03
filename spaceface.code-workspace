@@ -4,6 +4,10 @@
             "path": ".",
         },
         {
+            "name": "public.source",
+            "path": "public.src",
+        },
+        {
             "name": "src",
             "path": "src",
         },

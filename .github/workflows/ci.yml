@@ -29,8 +29,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Build (prod pjax)
-        run: npm run build:prod:pjax
+      - name: Build (prod)
+        run: npm run build:prod
 
   docs-app:
     runs-on: ubuntu-latest

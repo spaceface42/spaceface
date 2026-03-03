@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-mode="dev">
+
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>newworlddream demo</title>
+        <link rel="stylesheet" href="./styles.css" />
+    </head>
+
+    <body data-page="index">
+        <main data-route-container>
+            <section class="card"><p class="muted">Rendered from <code>public.src</code> at build time.</p></section>
+
+            <section class="card">
+                <h1>newworlddream demo</h1>
+                <p class="muted">
+                    Slideshow supports keyboard arrows and button controls. Screensaver appears after inactivity.
+                </p>
+                <p class="muted">
+                    <a href="./page2.html">Go to page 2 (route swap)</a>
+                </p>
+            </section>
+
+            <section class="card" data-slideshow>
+                <div class="row controls">
+                    <button type="button" data-slide-prev>Prev</button>
+                    <button type="button" data-slide-next>Next</button>
+                </div>
+                <article data-slide>Slide 1: Core startup pipeline + feature registry</article>
+                <article data-slide hidden>Slide 2: Typed event bus with feature contracts</article>
+                <article data-slide hidden>Slide 3: Isolated feature lifecycle and teardown</article>
+            </section>
+
+            <section class="card">
+                <h2>Floating Images (ported feature)</h2>
+                <p class="muted">Lifecycle-managed animation that deactivates when route swap removes this container.
+                </p>
+                <div data-floating-images class="floating-images-container">
+                    <img data-floating-item src="./floatingimages/a.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/b.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/c.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/d.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/e.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/a.svg" class="floating-image" alt="floatingimage-1" />
+                    <img data-floating-item src="./floatingimages/c.svg" class="floating-image" alt="floatingimage-1" />
+                </div>
+            </section>
+        </main>
+
+        <script type="module" src="./dist/main.js"></script>
+    </body>
+
+</html>
