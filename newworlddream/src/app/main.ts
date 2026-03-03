@@ -2,7 +2,7 @@ import { resolveConfig } from "../core/config.js";
 import { eventBus } from "../core/events.js";
 import { FeatureRegistry } from "../core/registry.js";
 import { StartupPipeline } from "../core/startup.js";
-import { createLogger } from "../core/logger.js";
+import { attachConsoleLogSink, createLogger } from "../core/logger.js";
 import { RouteCoordinator } from "../core/router.js";
 import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
@@ -16,6 +16,7 @@ async function main(): Promise<void> {
 
   const startup = new StartupPipeline(config);
   const registry = new FeatureRegistry();
+  const detachConsoleSink = maybeAttachConsoleSink(config.mode, config.logLevel);
 
   registry.register(new SlideshowFeature(), {
     requiredSelector: "[data-slideshow]",
@@ -64,7 +65,7 @@ async function main(): Promise<void> {
     },
   });
   routeCoordinator.start();
-  bindLifecycleHooks(startup, routeCoordinator);
+  bindLifecycleHooks(startup, routeCoordinator, detachConsoleSink);
 }
 
 function readModeFromDom(): "dev" | "prod" {
@@ -97,11 +98,31 @@ function bindGlobalSlideControls(): void {
   });
 }
 
-function bindLifecycleHooks(startup: StartupPipeline, routeCoordinator: RouteCoordinator): void {
+function bindLifecycleHooks(
+  startup: StartupPipeline,
+  routeCoordinator: RouteCoordinator,
+  detachConsoleSink: (() => void) | undefined
+): void {
   window.addEventListener("beforeunload", () => {
     routeCoordinator.destroy();
+    detachConsoleSink?.();
     void startup.destroy("beforeunload");
   });
+}
+
+function maybeAttachConsoleSink(mode: "dev" | "prod", logLevel: "debug" | "info" | "warn" | "error"): (() => void) | undefined {
+  const sinkAttr = document.documentElement.getAttribute("data-log-sink");
+  if (sinkAttr === "none") return undefined;
+
+  if (sinkAttr === "console") {
+    return attachConsoleLogSink(logLevel);
+  }
+
+  if (mode === "dev") {
+    return attachConsoleLogSink(logLevel);
+  }
+
+  return undefined;
 }
 
 void main();

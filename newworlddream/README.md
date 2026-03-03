@@ -81,3 +81,17 @@ Use links between:
 2. `/demo/page2.html`
 
 Both pages share a `data-route-container` region. Navigation swaps only that container and then re-evaluates feature activation through the registry.
+
+## Logging Architecture
+
+`newworlddream` now uses:
+
+1. `logger -> event bus -> sinks`
+2. Logger emits typed `log:entry` events.
+3. Console output is handled by a sink subscriber (`attachConsoleLogSink`), not by feature code directly.
+
+Runtime control:
+
+1. Default: console sink attaches in `dev`, not in `prod`.
+2. Force console sink: set `<html data-log-sink=\"console\">`.
+3. Disable console sink: set `<html data-log-sink=\"none\">`.

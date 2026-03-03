@@ -108,16 +108,13 @@ function createLogger(scope, level) {
   const canLog = (candidate) => LEVEL_ORDER[candidate] >= LEVEL_ORDER[level];
   const write = (candidate, message, data) => {
     if (!canLog(candidate)) return;
-    const prefix = `[${scope}] [${candidate.toUpperCase()}]`;
-    if (candidate === "error") {
-      console.error(prefix, message, data);
-      return;
-    }
-    if (candidate === "warn") {
-      console.warn(prefix, message, data);
-      return;
-    }
-    console.log(prefix, message, data);
+    eventBus.emit("log:entry", {
+      scope,
+      level: candidate,
+      message,
+      data,
+      time: Date.now()
+    });
   };
   return {
     debug: (message, data) => write("debug", message, data),
@@ -125,6 +122,22 @@ function createLogger(scope, level) {
     warn: (message, data) => write("warn", message, data),
     error: (message, data) => write("error", message, data)
   };
+}
+function attachConsoleLogSink(minLevel = "debug") {
+  const canLog = (candidate) => LEVEL_ORDER[candidate] >= LEVEL_ORDER[minLevel];
+  return eventBus.on("log:entry", (entry) => {
+    if (!canLog(entry.level)) return;
+    const prefix = `[${entry.scope}] [${entry.level.toUpperCase()}]`;
+    if (entry.level === "error") {
+      console.error(prefix, entry.message, entry.data);
+      return;
+    }
+    if (entry.level === "warn") {
+      console.warn(prefix, entry.message, entry.data);
+      return;
+    }
+    console.log(prefix, entry.message, entry.data);
+  });
 }
 
 // newworlddream/src/core/startup.ts
@@ -146,6 +159,7 @@ var StartupPipeline = class {
   async init(features) {
     this.ctx.route = currentRoute();
     eventBus.emit("startup:begin", { mode: this.config.mode });
+    this.featureInstances.length = 0;
     const initialized = [];
     const failed = [];
     for (const feature of features) {
@@ -193,18 +207,20 @@ var StartupPipeline = class {
     eventBus.emit("route:changed", { path });
     const nextByName = new Map(features.map((feature) => [feature.name, feature]));
     const currentByName = new Map(this.featureInstances.map((feature) => [feature.name, feature]));
+    const nextActive = [];
     for (const [name, feature] of currentByName.entries()) {
-      if (nextByName.has(name)) continue;
+      const nextFeature = nextByName.get(name);
+      if (nextFeature && nextFeature === feature) continue;
       try {
         await feature.destroy?.();
       } catch (error) {
         this.logger.warn(`Feature destroy during route reconcile failed: ${name}`, error);
       }
     }
-    const retainedNames = /* @__PURE__ */ new Set();
     for (const [name, feature] of currentByName.entries()) {
-      if (!nextByName.has(name)) continue;
-      retainedNames.add(name);
+      const nextFeature = nextByName.get(name);
+      if (!nextFeature || nextFeature !== feature) continue;
+      nextActive.push(feature);
       if (!feature.onRouteChange) continue;
       try {
         await feature.onRouteChange(path, this.ctx);
@@ -213,10 +229,12 @@ var StartupPipeline = class {
       }
     }
     for (const [name, feature] of nextByName.entries()) {
-      if (retainedNames.has(name)) continue;
+      const currentFeature = currentByName.get(name);
+      if (currentFeature && currentFeature === feature) continue;
       const start = performance.now();
       try {
         await feature.init(this.ctx);
+        nextActive.push(feature);
         eventBus.emit("startup:feature:init", {
           feature: feature.name,
           durationMs: Math.round(performance.now() - start),
@@ -233,7 +251,7 @@ var StartupPipeline = class {
       }
     }
     this.featureInstances.length = 0;
-    for (const feature of features) {
+    for (const feature of nextActive) {
       this.featureInstances.push(feature);
     }
   }
@@ -283,8 +301,12 @@ var RouteCoordinator = class {
   }
   async navigate(input, options = {}) {
     const url = new URL(input.toString(), window.location.href);
+    const current = new URL(window.location.href);
     if (url.origin !== window.location.origin) {
       window.location.href = url.toString();
+      return;
+    }
+    if (url.pathname === current.pathname && url.search === current.search && url.hash === current.hash && !options.fromPopState) {
       return;
     }
     const token = ++this.navToken;
@@ -345,6 +367,7 @@ var RouteCoordinator = class {
     const href = anchor.getAttribute("href");
     if (!href) return;
     if (anchor.target && anchor.target !== "_self") return;
+    if (anchor.dataset.router === "off") return;
     if (anchor.hasAttribute("download")) return;
     if (href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
     const url = new URL(href, window.location.href);
@@ -726,6 +749,7 @@ async function main() {
   });
   const startup = new StartupPipeline(config);
   const registry = new FeatureRegistry();
+  const detachConsoleSink = maybeAttachConsoleSink(config.mode, config.logLevel);
   registry.register(new SlideshowFeature(), {
     requiredSelector: "[data-slideshow]",
     mode: "any"
@@ -768,7 +792,7 @@ async function main() {
     }
   });
   routeCoordinator.start();
-  bindLifecycleHooks(startup, routeCoordinator);
+  bindLifecycleHooks(startup, routeCoordinator, detachConsoleSink);
 }
 function readModeFromDom() {
   const value = document.documentElement.getAttribute("data-mode");
@@ -797,11 +821,23 @@ function bindGlobalSlideControls() {
     }
   });
 }
-function bindLifecycleHooks(startup, routeCoordinator) {
+function bindLifecycleHooks(startup, routeCoordinator, detachConsoleSink) {
   window.addEventListener("beforeunload", () => {
     routeCoordinator.destroy();
+    detachConsoleSink?.();
     void startup.destroy("beforeunload");
   });
+}
+function maybeAttachConsoleSink(mode, logLevel) {
+  const sinkAttr = document.documentElement.getAttribute("data-log-sink");
+  if (sinkAttr === "none") return void 0;
+  if (sinkAttr === "console") {
+    return attachConsoleLogSink(logLevel);
+  }
+  if (mode === "dev") {
+    return attachConsoleLogSink(logLevel);
+  }
+  return void 0;
 }
 void main();
 //# sourceMappingURL=main.js.map

@@ -1,3 +1,6 @@
+import { eventBus } from "./events.js";
+import type { UnsubscribeFn } from "./events.js";
+
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export interface Logger {
@@ -19,16 +22,13 @@ export function createLogger(scope: string, level: LogLevel): Logger {
 
   const write = (candidate: LogLevel, message: string, data?: unknown) => {
     if (!canLog(candidate)) return;
-    const prefix = `[${scope}] [${candidate.toUpperCase()}]`;
-    if (candidate === "error") {
-      console.error(prefix, message, data);
-      return;
-    }
-    if (candidate === "warn") {
-      console.warn(prefix, message, data);
-      return;
-    }
-    console.log(prefix, message, data);
+    eventBus.emit("log:entry", {
+      scope,
+      level: candidate,
+      message,
+      data,
+      time: Date.now(),
+    });
   };
 
   return {
@@ -37,4 +37,22 @@ export function createLogger(scope: string, level: LogLevel): Logger {
     warn: (message, data) => write("warn", message, data),
     error: (message, data) => write("error", message, data),
   };
+}
+
+export function attachConsoleLogSink(minLevel: LogLevel = "debug"): UnsubscribeFn {
+  const canLog = (candidate: LogLevel) => LEVEL_ORDER[candidate] >= LEVEL_ORDER[minLevel];
+
+  return eventBus.on("log:entry", (entry) => {
+    if (!canLog(entry.level)) return;
+    const prefix = `[${entry.scope}] [${entry.level.toUpperCase()}]`;
+    if (entry.level === "error") {
+      console.error(prefix, entry.message, entry.data);
+      return;
+    }
+    if (entry.level === "warn") {
+      console.warn(prefix, entry.message, entry.data);
+      return;
+    }
+    console.log(prefix, entry.message, entry.data);
+  });
 }

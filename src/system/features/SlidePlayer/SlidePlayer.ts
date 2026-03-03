@@ -275,7 +275,7 @@ export class SlidePlayer {
       this.activePointerId = ev.pointerId;
       this.pointerStartX = ev.clientX; this.pointerStartY = ev.clientY;
       this.pointerEndX = ev.clientX; this.pointerEndY = ev.clientY;
-      try { this.container.setPointerCapture(ev.pointerId); } catch {}
+      try { this.container.setPointerCapture(ev.pointerId); } catch { /* pointer capture may fail on some targets */ }
     });
     this.binder.bindDOM(this.container, 'pointermove', (e) => {
       if (!this.isPointerDown) return;

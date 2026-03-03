@@ -51,9 +51,18 @@ export class RouteCoordinator {
 
   async navigate(input: string | URL, options: { replace?: boolean; fromPopState?: boolean } = {}): Promise<void> {
     const url = new URL(input.toString(), window.location.href);
+    const current = new URL(window.location.href);
 
     if (url.origin !== window.location.origin) {
       window.location.href = url.toString();
+      return;
+    }
+    if (
+      url.pathname === current.pathname &&
+      url.search === current.search &&
+      url.hash === current.hash &&
+      !options.fromPopState
+    ) {
       return;
     }
 
@@ -128,6 +137,7 @@ export class RouteCoordinator {
     if (!href) return;
 
     if (anchor.target && anchor.target !== "_self") return;
+    if (anchor.dataset.router === "off") return;
     if (anchor.hasAttribute("download")) return;
     if (href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
 

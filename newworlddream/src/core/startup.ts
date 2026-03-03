@@ -24,6 +24,7 @@ export class StartupPipeline {
   async init(features: Feature[]): Promise<StartupResult> {
     this.ctx.route = currentRoute();
     eventBus.emit("startup:begin", { mode: this.config.mode });
+    this.featureInstances.length = 0;
 
     const initialized: string[] = [];
     const failed: Array<{ feature: string; error: unknown }> = [];
@@ -79,9 +80,11 @@ export class StartupPipeline {
 
     const nextByName = new Map(features.map((feature) => [feature.name, feature] as const));
     const currentByName = new Map(this.featureInstances.map((feature) => [feature.name, feature] as const));
+    const nextActive: Feature[] = [];
 
     for (const [name, feature] of currentByName.entries()) {
-      if (nextByName.has(name)) continue;
+      const nextFeature = nextByName.get(name);
+      if (nextFeature && nextFeature === feature) continue;
       try {
         await feature.destroy?.();
       } catch (error) {
@@ -89,10 +92,10 @@ export class StartupPipeline {
       }
     }
 
-    const retainedNames = new Set<string>();
     for (const [name, feature] of currentByName.entries()) {
-      if (!nextByName.has(name)) continue;
-      retainedNames.add(name);
+      const nextFeature = nextByName.get(name);
+      if (!nextFeature || nextFeature !== feature) continue;
+      nextActive.push(feature);
       if (!feature.onRouteChange) continue;
       try {
         await feature.onRouteChange(path, this.ctx);
@@ -102,10 +105,12 @@ export class StartupPipeline {
     }
 
     for (const [name, feature] of nextByName.entries()) {
-      if (retainedNames.has(name)) continue;
+      const currentFeature = currentByName.get(name);
+      if (currentFeature && currentFeature === feature) continue;
       const start = performance.now();
       try {
         await feature.init(this.ctx);
+        nextActive.push(feature);
         eventBus.emit("startup:feature:init", {
           feature: feature.name,
           durationMs: Math.round(performance.now() - start),
@@ -123,7 +128,7 @@ export class StartupPipeline {
     }
 
     this.featureInstances.length = 0;
-    for (const feature of features) {
+    for (const feature of nextActive) {
       this.featureInstances.push(feature);
     }
   }

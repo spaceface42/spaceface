@@ -1,6 +1,13 @@
 export type UnsubscribeFn = () => void;
 
 export interface AppEventMap {
+  "log:entry": {
+    scope: string;
+    level: "debug" | "info" | "warn" | "error";
+    message: string;
+    data?: unknown;
+    time: number;
+  };
   "startup:begin": { mode: string };
   "startup:feature:init": { feature: string; durationMs: number; ok: boolean; error?: unknown };
   "startup:ready": { initialized: string[]; failed: string[] };
