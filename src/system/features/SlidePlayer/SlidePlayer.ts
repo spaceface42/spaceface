@@ -43,6 +43,7 @@ export class SlidePlayer {
   private isDestroyed = false;
 
   private isPointerDown = false;
+  private activePointerId: number | null = null;
   private pointerStartX = 0;
   private pointerStartY = 0;
   private pointerEndX = 0;
@@ -262,25 +263,76 @@ export class SlidePlayer {
   }
 
   private bindPointerEvents(): void {
+    // Preserve vertical page scroll, but allow horizontal swipe tracking.
+    if (!this.container.style.touchAction) {
+      this.container.style.touchAction = 'pan-y';
+    }
+
     this.binder.bindDOM(this.container, 'pointerdown', (e) => {
       const ev = e as PointerEvent;
+      if (!ev.isPrimary) return;
       this.isPointerDown = true;
+      this.activePointerId = ev.pointerId;
       this.pointerStartX = ev.clientX; this.pointerStartY = ev.clientY;
       this.pointerEndX = ev.clientX; this.pointerEndY = ev.clientY;
+      try { this.container.setPointerCapture(ev.pointerId); } catch { /* pointer capture may fail on some targets */ }
     });
     this.binder.bindDOM(this.container, 'pointermove', (e) => {
       if (!this.isPointerDown) return;
       const ev = e as PointerEvent;
+      if (this.activePointerId !== null && ev.pointerId !== this.activePointerId) return;
       this.pointerEndX = ev.clientX; this.pointerEndY = ev.clientY;
     });
     // listen for pointerup/pointercancel on window so release outside container is handled
-    this.binder.bindDOM(window, 'pointerup', () => {
-      if (this.isPointerDown) { this.handleSwipe(); this.isPointerDown = false; }
-    });
-    this.binder.bindDOM(window, 'pointercancel', () => {
+    this.binder.bindDOM(window, 'pointerup', (e) => {
+      if (!this.isPointerDown) return;
+      const ev = e as PointerEvent;
+      if (this.activePointerId !== null && ev.pointerId !== this.activePointerId) return;
+      this.pointerEndX = ev.clientX; this.pointerEndY = ev.clientY;
+      this.handleSwipe();
       this.isPointerDown = false;
+      this.activePointerId = null;
     });
-    this.binder.bindDOM(this.container, 'pointerleave', () => this.isPointerDown = false);
+    this.binder.bindDOM(window, 'pointercancel', (e) => {
+      const ev = e as PointerEvent;
+      if (this.activePointerId !== null && ev.pointerId !== this.activePointerId) return;
+      this.isPointerDown = false;
+      this.activePointerId = null;
+    });
+
+    // Fallback for environments with limited pointer event behavior.
+    this.binder.bindDOM(this.container, 'touchstart', (e) => {
+      const ev = e as TouchEvent;
+      const touch = ev.changedTouches[0];
+      if (!touch) return;
+      this.isPointerDown = true;
+      this.pointerStartX = touch.clientX; this.pointerStartY = touch.clientY;
+      this.pointerEndX = touch.clientX; this.pointerEndY = touch.clientY;
+    }, { passive: true });
+    this.binder.bindDOM(this.container, 'touchmove', (e) => {
+      if (!this.isPointerDown) return;
+      const ev = e as TouchEvent;
+      const touch = ev.changedTouches[0];
+      if (!touch) return;
+      this.pointerEndX = touch.clientX; this.pointerEndY = touch.clientY;
+    }, { passive: true });
+    this.binder.bindDOM(this.container, 'touchend', (e) => {
+      if (!this.isPointerDown) return;
+      const ev = e as TouchEvent;
+      const touch = ev.changedTouches[0];
+      if (touch) {
+        this.pointerEndX = touch.clientX;
+        this.pointerEndY = touch.clientY;
+      }
+      this.handleSwipe();
+      this.isPointerDown = false;
+      this.activePointerId = null;
+    }, { passive: true });
+    this.binder.bindDOM(this.container, 'touchcancel', () => {
+      this.isPointerDown = false;
+      this.activePointerId = null;
+    }, { passive: true });
+
     this.binder.bindDOM(this.container, 'mouseenter', () => this.togglePause('hover', true));
     this.binder.bindDOM(this.container, 'mouseleave', () => this.togglePause('hover', false));
   }

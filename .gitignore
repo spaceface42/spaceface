@@ -9,3 +9,6 @@
 /docs.src/spaceface/**/*.js
 /docs.src/spaceface/**/*.js.map
 /docs.src/spaceface/**/*.d.ts
+
+# newworlddream build output (generated)
+/newworlddream/dist/**

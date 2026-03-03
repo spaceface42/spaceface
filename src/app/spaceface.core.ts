@@ -9,6 +9,8 @@ import {
 } from './symlink.js';
 import type { LogPayload } from '../system/types/bin.js';
 import { EVENTS } from '../system/types/events.js';
+import type { ImageMotionMode } from '../system/features/MotionImages/types.js';
+import { loadMotionImageEngineClass } from '../system/features/MotionImages/loadMotionImageEngine.js';
 import type {
     AppConfigOptions,
     AppRuntimeConfig,
@@ -24,6 +26,7 @@ import type {
     ScreensaverControllerInstance,
     PartialLoaderInstance,
 } from './types.js';
+import { isDevHost } from './config/runtime.js';
 
 export class AppConfig {
     public config: AppRuntimeConfig;
@@ -32,8 +35,7 @@ export class AppConfig {
         this.config = {
             hostname: options.hostname ?? window.location.hostname,
             production: options.production ?? (
-                window.location.hostname !== 'localhost' &&
-                !window.location.hostname.includes('127.0.0.1')
+                !isDevHost(window.location.hostname)
             ),
             features: options.features ?? {},
             ...options,
@@ -75,7 +77,6 @@ export class SpacefaceCore {
             slideplayer: () => import('../system/features/SlidePlayer/SlidePlayer.js'),
             scrollDeck: () => import('../system/features/ScrollDeck/ScrollDeck.js'),
             screensaver: () => import('../system/features/Screensaver/ScreensaverController.js'),
-            floatingImages: () => import('../system/features/MotionImages/MotionImageEngine.js'),
         };
 
         if (!this.appConfig.config.features) {
@@ -138,6 +139,10 @@ export class SpacefaceCore {
             this.featureCache.set(name, null);
             return null;
         }
+    }
+
+    private async getMotionEngineClass(mode: ImageMotionMode) {
+        return loadMotionImageEngineClass(mode);
     }
 
     public async initBase(): Promise<void> {
@@ -384,24 +389,8 @@ export class SpacefaceCore {
         }
 
         try {
-            const module = await this.loadFeatureModule('floatingImages');
             const mode = floatingImages.motionMode ?? 'drift';
-            const EngineClass =
-                mode === 'rain'
-                    ? module?.RainImageEngine
-                    : mode === 'brownian'
-                        ? module?.BrownianImageEngine
-                    : mode === 'glitch-jump'
-                        ? module?.GlitchJumpImageEngine
-                    : mode === 'warp'
-                        ? module?.WarpImageEngine
-                        : mode === 'parallax-drift'
-                            ? module?.ParallaxDriftImageEngine
-                            : module?.DriftImageEngine;
-            if (!EngineClass) {
-                this.emitFeatureTelemetry('floatingImages', start, 'skipped');
-                return;
-            }
+            const EngineClass = await this.getMotionEngineClass(mode);
 
             const selector = floatingImages.selector ?? '.floating-images-container';
             const containers = Array.from(document.querySelectorAll<HTMLElement>(selector));
@@ -604,10 +593,7 @@ export class SpacefaceCore {
                 normalized.screensaver.motionMode !== undefined &&
                 normalized.screensaver.motionMode !== 'drift' &&
                 normalized.screensaver.motionMode !== 'rain' &&
-                normalized.screensaver.motionMode !== 'warp' &&
-                normalized.screensaver.motionMode !== 'parallax-drift' &&
-                normalized.screensaver.motionMode !== 'brownian' &&
-                normalized.screensaver.motionMode !== 'glitch-jump'
+                normalized.screensaver.motionMode !== 'perlin-noise'
             ) {
                 this.log('warn', 'Invalid screensaver.motionMode; removing override.');
                 delete normalized.screensaver.motionMode;
@@ -637,10 +623,7 @@ export class SpacefaceCore {
                 normalized.floatingImages.motionMode !== undefined &&
                 normalized.floatingImages.motionMode !== 'drift' &&
                 normalized.floatingImages.motionMode !== 'rain' &&
-                normalized.floatingImages.motionMode !== 'warp' &&
-                normalized.floatingImages.motionMode !== 'parallax-drift' &&
-                normalized.floatingImages.motionMode !== 'brownian' &&
-                normalized.floatingImages.motionMode !== 'glitch-jump'
+                normalized.floatingImages.motionMode !== 'perlin-noise'
             ) {
                 this.log('warn', 'Invalid floatingImages.motionMode; removing override.');
                 delete normalized.floatingImages.motionMode;

@@ -13,37 +13,30 @@ mkdirSync(outDir, { recursive: true });
 const baseOutFile = resolve(outDir, "bundle.js");
 const minOutFile = resolve(outDir, "bundle.min.js");
 
+async function runBuild(name, minify, env) {
+    await build({
+        entryPoints: { [name]: entryFile },
+        outdir: outDir,
+        bundle: true,
+        splitting: true,
+        chunkNames: "chunks/[name]-[hash]",
+        platform: "browser",
+        format: "esm",
+        target: ["es2022"],
+        sourcemap: true,
+        minify,
+        define: {
+            "process.env.NODE_ENV": JSON.stringify(env),
+        },
+        loader: { ".ts": "ts", ".js": "js" },
+    });
+}
+
 // 1️⃣ Regular (unminified) build
-await build({
-    entryPoints: [entryFile],
-    bundle: true,
-    platform: "browser",
-    format: "esm",
-    target: ["es2022"],
-    outfile: baseOutFile,
-    sourcemap: true,
-    minify: false,
-    define: {
-        "process.env.NODE_ENV": '"development"',
-    },
-    loader: { ".ts": "ts", ".js": "js" },
-});
+await runBuild("bundle", false, "development");
 
 // 2️⃣ Minified build
-await build({
-    entryPoints: [entryFile],
-    bundle: true,
-    platform: "browser",
-    format: "esm",
-    target: ["es2022"],
-    outfile: minOutFile,
-    sourcemap: true,
-    minify: true,
-    define: {
-        "process.env.NODE_ENV": '"production"',
-    },
-    loader: { ".ts": "ts", ".js": "js" },
-});
+await runBuild("bundle.min", true, "production");
 
 console.log("Build finished!");
 console.log("Unminified ->", baseOutFile);

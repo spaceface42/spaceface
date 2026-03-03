@@ -1,4 +1,5 @@
 import { eventBus } from '../symlink.js';
+import { isDevHost } from '../config/runtime.js';
 
 export interface DevEventLoggerOptions {
     includeDebug?: boolean;
@@ -12,10 +13,7 @@ type EventPayloadObject = {
 };
 
 export function attachDevEventLogger(options: DevEventLoggerOptions = {}): void {
-    const isDevHost = ['localhost', '127.0.0.1'].some(host =>
-        window.location.hostname.includes(host),
-    );
-    if (!isDevHost) return;
+    if (!isDevHost(window.location.hostname)) return;
 
     eventBus.onAny((eventName: string, payload: unknown) => {
         if (!options.includeDebug) {

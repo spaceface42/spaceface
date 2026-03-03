@@ -11,6 +11,10 @@
             "name": "src",
             "path": "src",
         },
+        {
+            "name": "newworlddream",
+            "path": "newworlddream",
+        },
     ],
     "settings": {
         "emmet.syntaxProfiles": {

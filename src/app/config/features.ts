@@ -16,7 +16,10 @@ export const defaultFeatures = {
         debug: false,
     },
     /**
-     * screensaver can be rain drift warp brownian parallax-drift glitch-jump
+     * screensaver can be
+     * drift
+     * rain
+     * perlin-noise
      */
     screensaver: { delay: 4500, partialUrl: 'content/feature/screensaver/index.html', motionMode: 'glitch-jump' },
 } satisfies SpacefaceFeaturesConfig;

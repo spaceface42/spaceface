@@ -1,5 +1,5 @@
 import type { ImageMotionMode, MotionImageEngineOptionsInterface } from '../system/features/MotionImages/types.js';
-import type { MotionImageEngineInterface, ScreensaverControllerOptionsInterface } from '../system/types/features.js';
+import type { ScreensaverControllerOptionsInterface } from '../system/types/features.js';
 import type { PartialLoadResultInterface, PartialLoaderOptionsInterface } from '../system/types/bin.js';
 
 export interface PartialLoaderFeatureConfig {
@@ -93,33 +93,6 @@ export interface ScreensaverControllerModule {
     ) => ScreensaverControllerInstance;
 }
 
-export interface FloatingImagesModule {
-    DriftImageEngine: new (
-        container: HTMLElement,
-        options?: MotionImageEngineOptionsInterface
-    ) => MotionImageEngineInterface;
-    ParallaxDriftImageEngine: new (
-        container: HTMLElement,
-        options?: MotionImageEngineOptionsInterface
-    ) => MotionImageEngineInterface;
-    RainImageEngine: new (
-        container: HTMLElement,
-        options?: MotionImageEngineOptionsInterface
-    ) => MotionImageEngineInterface;
-    BrownianImageEngine: new (
-        container: HTMLElement,
-        options?: MotionImageEngineOptionsInterface
-    ) => MotionImageEngineInterface;
-    GlitchJumpImageEngine: new (
-        container: HTMLElement,
-        options?: MotionImageEngineOptionsInterface
-    ) => MotionImageEngineInterface;
-    WarpImageEngine: new (
-        container: HTMLElement,
-        options?: MotionImageEngineOptionsInterface
-    ) => MotionImageEngineInterface;
-}
-
 export interface ScrollDeckModule {
     ScrollDeck: new (
         containerOrSelector: string | HTMLElement,
@@ -131,7 +104,6 @@ export interface FeatureModuleMap {
     partialLoader: PartialLoaderModule;
     slideplayer: SlidePlayerModule;
     screensaver: ScreensaverControllerModule;
-    floatingImages: FloatingImagesModule;
     scrollDeck: ScrollDeckModule;
 }
 

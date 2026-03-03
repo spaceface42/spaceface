@@ -1,6 +1,9 @@
 // src/system/features/MotionImages/types.ts
 
-export type ImageMotionMode = 'drift' | 'rain' | 'warp' | 'parallax-drift' | 'brownian' | 'glitch-jump';
+export type ImageMotionMode =
+    | 'drift'
+    | 'rain'
+    | 'perlin-noise';
 
 export interface MotionImageEngineOptionsInterface {
     maxImages?: number;

@@ -1,6 +1,6 @@
-import { clamp } from '../bin/math.js';
+import { clamp } from '../../bin/math.js';
 
-import type { ContainerDimensionsInterface, MotionImageInterface } from './types.js';
+import type { ContainerDimensionsInterface, MotionImageInterface } from '../types.js';
 
 export class ParallaxDriftImage implements MotionImageInterface {
     private element: HTMLElement | null;

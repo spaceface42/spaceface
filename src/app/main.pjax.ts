@@ -1,15 +1,11 @@
-import { defaultFeatures } from './config/features.js';
+import { createPjaxStartupOptions } from './config/startup.js';
+import { isDevHost } from './config/runtime.js';
 import { attachDevEventLogger } from './dev/devEventLogger.js';
 import { startup } from './startup.js';
 
-const isDevHost = ['localhost', '127.0.0.1'].some(host =>
-    window.location.hostname.includes(host),
-);
+const devHost = isDevHost(window.location.hostname);
 
 startup({
-    features: defaultFeatures,
-    debug: isDevHost,
-    usePjax: true,
-    pjaxContainerSelector: '[data-pjax="container"]',
-    enableDevEventLogging: () => attachDevEventLogger({ includeDebug: isDevHost }),
+    ...createPjaxStartupOptions(window.location.hostname),
+    enableDevEventLogging: () => attachDevEventLogger({ includeDebug: devHost }),
 });

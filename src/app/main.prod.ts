@@ -1,7 +1,4 @@
-import { defaultFeatures } from './config/features.js';
+import { prodStartupOptions } from './config/startup.js';
 import { startup } from './startup.js';
 
-startup({
-    features: defaultFeatures,
-    debug: false,
-});
+startup(prodStartupOptions);

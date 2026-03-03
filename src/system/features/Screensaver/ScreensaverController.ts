@@ -5,7 +5,7 @@ import { eventBus } from "../../bin/EventBus.js";
 import { EventBinder } from "../../bin/EventBinder.js";
 import { InactivityWatcher } from "../../bin/InactivityWatcher.js";
 import { PartialFetcher } from "../../bin/PartialFetcher.js";
-import { BrownianImageEngine, DriftImageEngine, GlitchJumpImageEngine, ParallaxDriftImageEngine, RainImageEngine, WarpImageEngine } from "../MotionImages/MotionImageEngine.js";
+import { loadMotionImageEngineClass } from "../MotionImages/loadMotionImageEngine.js";
 import type { LogPayload } from "../../types/bin.js";
 import { EVENTS } from "../../types/events.js";
 
@@ -45,14 +45,6 @@ export class ScreensaverController {
 
   private _onInactivity: () => void;
   private _onActivity: () => void;
-
-  private getEngineClass() {
-    if (this.motionMode === 'glitch-jump') return GlitchJumpImageEngine;
-    if (this.motionMode === 'brownian') return BrownianImageEngine;
-    if (this.motionMode === 'parallax-drift') return ParallaxDriftImageEngine;
-    if (this.motionMode === 'warp') return WarpImageEngine;
-    return this.motionMode === 'rain' ? RainImageEngine : DriftImageEngine;
-  }
 
   constructor(
     options: ScreensaverControllerOptionsInterface & {
@@ -163,7 +155,7 @@ export class ScreensaverController {
       container.style.transition = 'opacity 0.5s ease';
       container.style.opacity = '1';
 
-      const EngineClass = this.getEngineClass();
+      const EngineClass = await loadMotionImageEngineClass(this.motionMode);
       if (!this.screensaverManager) {
         this.screensaverManager = new EngineClass(container, {
           debug: this.debug,

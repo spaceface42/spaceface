@@ -83,22 +83,20 @@ Run ESLint with auto-fixes where possible.
 - `Motion Images` (`floatingImages` config key):
 1. Uses existing HTML markup (`.floating-images-container` + `.floating-image`) as source of truth.
 2. Supports interaction options: `hoverBehavior`, `hoverSlowMultiplier`, `tapToFreeze`.
-3. Animation modes: `drift`, `parallax-drift`, `rain`, `brownian`, `glitch-jump`, `warp`.
-4. Engine + image classes are fully separated by mode:
+3. Active animation modes: `drift`, `rain`, `perlin-noise`.
+4. Engine + image classes are fully separated by active mode:
    - `DriftImageEngine` -> `DriftImage`
-   - `ParallaxDriftImageEngine` -> `ParallaxDriftImage`
    - `RainImageEngine` -> `RainImage`
-   - `BrownianImageEngine` -> `BrownianImage`
-   - `GlitchJumpImageEngine` -> `GlitchJumpImage`
-   - `WarpImageEngine` -> `WarpImage`
+   - `PerlinNoiseImageEngine` -> `PerlinNoiseImage`
 5. `pauseOnScreensaver` can be set explicitly per page.
 6. If omitted, default is page-aware: `true` on `floatingimages`/`motionimages` page, `false` elsewhere.
+7. Additional motion experiments are kept under `src/system/features/MotionImages/experimental` and are not wired into runtime config.
 
 - `ScreensaverController`:
 1. Starts on inactivity via `InactivityWatcher`.
 2. Emits lifecycle events: `screensaver:shown` and `screensaver:hidden`.
 3. Requires feature config with at least `screensaver.partialUrl`.
-4. `screensaver.motionMode` selects `drift`, `parallax-drift`, `rain`, `brownian`, `glitch-jump`, or `warp`.
+4. `screensaver.motionMode` selects `drift`, `rain`, or `perlin-noise`.
 5. Motion image engines can listen to screensaver events and pause/resume when configured.
 
 ### Screensaver config example
@@ -107,6 +105,6 @@ Run ESLint with auto-fixes where possible.
 screensaver: {
   delay: 4500,
   partialUrl: 'content/feature/screensaver/index.html',
-  motionMode: 'rain', // 'drift' | 'parallax-drift' | 'rain' | 'brownian' | 'glitch-jump' | 'warp'
+  motionMode: 'rain', // 'drift' | 'rain' | 'perlin-noise'
 }
 ```
