@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en" data-mode="dev">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>newworlddream demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f5f7;
+        --surface: #ffffff;
+        --ink: #111827;
+        --muted: #4b5563;
+        --line: #d1d5db;
+        --brand: #0f766e;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        color: var(--ink);
+        background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+      }
+      main {
+        max-width: 900px;
+        margin: 24px auto;
+        padding: 16px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      button {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      button:hover { border-color: var(--brand); }
+      [data-slide] {
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        min-height: 80px;
+      }
+      #screensaver {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(17, 24, 39, 0.82);
+        color: #fff;
+        font-size: 24px;
+        letter-spacing: 0.04em;
+      }
+      #screensaver[hidden] { display: none; }
+      .muted {
+        color: var(--muted);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="card">
+        <h1>newworlddream demo</h1>
+        <p class="muted">
+          Slideshow supports keyboard arrows and button controls. Screensaver appears after inactivity.
+        </p>
+      </section>
+
+      <section class="card" data-slideshow>
+        <div class="row" style="margin-bottom: 12px">
+          <button type="button" data-slide-prev>Prev</button>
+          <button type="button" data-slide-next>Next</button>
+        </div>
+        <article data-slide>Slide 1: Core startup pipeline + feature registry</article>
+        <article data-slide hidden>Slide 2: Typed event bus with feature contracts</article>
+        <article data-slide hidden>Slide 3: Isolated feature lifecycle and teardown</article>
+      </section>
+    </main>
+
+    <div id="screensaver" hidden>
+      <div>SCREENSAVER ACTIVE</div>
+    </div>
+
+    <script type="module" src="../dist/main.js"></script>
+  </body>
+</html>
