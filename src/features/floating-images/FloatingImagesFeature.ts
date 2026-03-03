@@ -1,5 +1,7 @@
 import type { Feature, StartupContext } from "../../core/lifecycle.js";
 import type { UnsubscribeFn } from "../../core/events.js";
+import { animationScheduler } from "../../core/animation.js";
+import type { AnimationFrameContext } from "../../core/animation.js";
 
 interface MotionItem {
   el: HTMLElement;
@@ -24,11 +26,9 @@ export class FloatingImagesFeature implements Feature {
   private readonly options: Required<FloatingImagesFeatureOptions>;
   private container: HTMLElement | null = null;
   private items: MotionItem[] = [];
-  private frame: number | null = null;
   private running = false;
-  private lastTs = 0;
-  private pausedByVisibility = false;
   private pausedByScreensaver = false;
+  private unsubAnimation?: UnsubscribeFn;
   private unsubScreensaverShown?: UnsubscribeFn;
   private unsubScreensaverHidden?: UnsubscribeFn;
 
@@ -59,10 +59,7 @@ export class FloatingImagesFeature implements Feature {
     }
 
     this.running = true;
-    this.lastTs = performance.now();
-    this.pausedByVisibility = document.visibilityState === "hidden";
     this.pausedByScreensaver = false;
-    document.addEventListener("visibilitychange", this.onVisibilityChange);
     window.addEventListener("resize", this.onResize, { passive: true });
     if (this.options.pauseOnScreensaver) {
       this.unsubScreensaverShown = ctx.events.on("screensaver:shown", () => {
@@ -71,7 +68,6 @@ export class FloatingImagesFeature implements Feature {
       });
       this.unsubScreensaverHidden = ctx.events.on("screensaver:hidden", () => {
         this.pausedByScreensaver = false;
-        this.lastTs = performance.now();
         this.updateAnimationState();
       });
     }
@@ -85,12 +81,8 @@ export class FloatingImagesFeature implements Feature {
 
   destroy(): void {
     this.running = false;
-    if (this.frame !== null) {
-      window.cancelAnimationFrame(this.frame);
-      this.frame = null;
-    }
-
-    document.removeEventListener("visibilitychange", this.onVisibilityChange);
+    this.unsubAnimation?.();
+    this.unsubAnimation = undefined;
     window.removeEventListener("resize", this.onResize);
     this.unsubScreensaverShown?.();
     this.unsubScreensaverHidden?.();
@@ -107,7 +99,6 @@ export class FloatingImagesFeature implements Feature {
 
     this.items = [];
     this.container = null;
-    this.pausedByVisibility = false;
     this.pausedByScreensaver = false;
   }
 
@@ -160,18 +151,6 @@ export class FloatingImagesFeature implements Feature {
     });
   }
 
-  private readonly onVisibilityChange = (): void => {
-    if (!this.running) return;
-    if (document.visibilityState === "hidden") {
-      this.pausedByVisibility = true;
-      this.updateAnimationState();
-      return;
-    }
-    this.pausedByVisibility = false;
-    this.lastTs = performance.now();
-    this.updateAnimationState();
-  };
-
   private readonly onResize = (): void => {
     if (!this.container || this.items.length === 0) return;
     const bounds = this.getBounds();
@@ -184,11 +163,11 @@ export class FloatingImagesFeature implements Feature {
     }
   };
 
-  private readonly tick = (ts: number): void => {
+  private readonly tick = (frame: AnimationFrameContext): void => {
     if (!this.running || !this.container) return;
+    if (frame.overloaded && frame.frame % 2 === 1) return;
 
-    const dt = Math.min((ts - this.lastTs) / 1000, 0.05);
-    this.lastTs = ts;
+    const dt = Math.min(frame.deltaMs / 1000, 0.05);
     const bounds = this.getBounds();
 
     for (const item of this.items) {
@@ -216,20 +195,18 @@ export class FloatingImagesFeature implements Feature {
 
       this.renderItem(item);
     }
-
-    this.frame = window.requestAnimationFrame(this.tick);
   };
 
   private updateAnimationState(): void {
     if (!this.running) return;
-    const shouldRun = !this.pausedByVisibility && !this.pausedByScreensaver;
-    if (shouldRun && this.frame === null) {
-      this.frame = window.requestAnimationFrame(this.tick);
+    const shouldRun = !this.pausedByScreensaver;
+    if (shouldRun && !this.unsubAnimation) {
+      this.unsubAnimation = animationScheduler.add(this.tick);
       return;
     }
-    if (!shouldRun && this.frame !== null) {
-      window.cancelAnimationFrame(this.frame);
-      this.frame = null;
+    if (!shouldRun && this.unsubAnimation) {
+      this.unsubAnimation();
+      this.unsubAnimation = undefined;
     }
   }
 

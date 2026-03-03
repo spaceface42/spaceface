@@ -4,16 +4,8 @@
             "path": ".",
         },
         {
-            "name": "docs.src",
-            "path": "docs.src",
-        },
-        {
             "name": "src",
             "path": "src",
-        },
-        {
-            "name": "newworlddream",
-            "path": "newworlddream",
         },
     ],
     "settings": {
