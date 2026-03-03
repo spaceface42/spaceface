@@ -1,110 +1,95 @@
 # Spaceface
 
-Spaceface is a TypeScript runtime for display-focused web pages.
-It provides small, framework-free modules for:
+Spaceface is a small TypeScript runtime for interactive static pages.
+Current active runtime lives in `src/` and ships a demo from `docs/demo/`.
+Legacy code is preserved in `oldworld/`.
 
-- Event orchestration (`EventBus`, `EventBinder`, `EventWatcher`)
-- Feature controllers (`SlidePlayer`, `ScreensaverController`, `BaseImageEngine`, `DriftImageEngine`, `ParallaxDriftImageEngine`, `RainImageEngine`, `BrownianImageEngine`, `GlitchJumpImageEngine`, `WarpImageEngine`)
-- Runtime utilities (`PartialLoader`, `AsyncImageLoader`, `AnimationLoop`, `ResizeManager`, `InactivityWatcher`)
+## Project Layout
 
-## Architecture
+- `src/core/`: framework primitives (event bus, logger, startup pipeline, router, animation scheduler)
+- `src/features/`: feature modules (`slideshow`, `floating-images`, `screensaver`)
+- `src/app/main.ts`: composition root (register features, startup, lifecycle hooks)
+- `docs/demo/`: demo HTML pages (`index.html`, `page2.html`)
+- `docs/dist/`: generated JS bundle output (build artifact)
+- `docs/scripts/smoke-check.mjs`: post-build smoke validation
+- `oldworld/`: previous architecture kept for reference/migration
 
-- `src/system/`: reusable runtime and feature modules
-- `src/app/`: app entrypoints and startup orchestration
-- `src/app/spaceface.core.ts`: shared app core used by all entrypoints
-- `src/app/startup.ts`: shared startup flow used by all entry files
-- `src/app/config/features.ts`: shared feature presets
-- `src/app/dev/devEventLogger.ts`: dev-only event logging helper
-- Version source: `package.json` is the single project version source.
+## Runtime Model
 
-## Entrypoints
+1. `main.ts` resolves runtime config from DOM (`html[data-mode]`).
+2. `FeatureRegistry` activates features by selector presence.
+3. `StartupPipeline` initializes features with failure isolation (one feature error does not abort startup).
+4. `RouteCoordinator` intercepts same-origin links and swaps `data-route-container` content.
+5. Features reconcile on route changes (removed DOM => feature teardown, added DOM => feature init).
 
-- `src/app/main.ts`
-Development entry. Runtime partial loading is enabled and debug/event logging is enabled on localhost.
+## Features
 
-- `src/app/main.pjax.ts`
-PJAX entry. Runtime partial loading is disabled because HTML is pre-rendered during build.
+- `SlideshowFeature`
+  - Active when `[data-slideshow]` exists.
+  - Global controls via `slideshow:next` / `slideshow:prev` events.
+- `FloatingImagesFeature`
+  - Active when `[data-floating-images]` exists.
+  - Uses RAF via shared `AnimationScheduler`.
+  - Pauses/resumes on screensaver lifecycle events.
+- `ScreensaverFeature`
+  - Active when `#screensaver` exists.
+  - Emits `screensaver:shown` / `screensaver:hidden`.
+  - Starts/stops its own floating-images instance while visible.
 
-- `src/app/main.prod.ts`
-Production fallback entry without PJAX.
+## Build And Run
 
-## Build Pipeline
+Prereq:
 
-- JS bundle output: `docs/bin/`
-- HTML source: `docs.src/`
-- Final site output: `docs/` (generated)
+- Node from `.nvmrc`
+- PHP installed (for local static server script)
 
-`bin/build.js` builds the JS bundle.
-`bin/build-html.js` composes HTML from `docs.src` into `docs` and swaps script references to the bundle.
-`SITE_BASE` can be set during build (for example `/spaceface`) to prefix generated `href`/`src` paths for project-based GitHub Pages hosting.
+Install:
 
-GitHub Pages deploys via workflow artifact from generated `docs/`.
-`docs/` is treated as build output and is not tracked as source.
+```bash
+npm ci
+```
 
-## Build Commands
+Development bundle:
 
-- Node version: use `.nvmrc` (`nvm use`) before install/build.
+```bash
+npm run build:dev
+```
 
-- `npm run build:dev`
-Compile TS modules to `docs.src/spaceface` (`tsc`) and pre-render HTML to `docs` without swapping module scripts to bundle files.
+Production/minified bundle:
 
-- `npm run build:prod:pjax`
-Bundle with `ENTRY=./src/app/main.pjax.ts` and pre-render HTML (bundle script swap enabled).
+```bash
+npm run build:prod
+```
 
-- `npm run build:prod`
-Bundle with `ENTRY=./src/app/main.prod.ts` and pre-render HTML (bundle script swap enabled).
+Local demo server:
 
-- `npm run build`
-Default production bundle build (`main.pjax.ts`) and pre-render HTML.
+```bash
+php ./bin/start-server.php
+```
 
-- `npm run typecheck`
-Run TypeScript checks without emitting output.
+One-command demo (build + serve):
 
-- `npm run lint`
-Run ESLint for `src/` (currently warning-focused).
+```bash
+npm run build:dev && php ./bin/start-server.php
+```
 
-- `npm run lint:fix`
-Run ESLint with auto-fixes where possible.
+Quality checks:
+
+```bash
+npm run typecheck
+npm run lint
+npm run verify:docs
+```
+
+## GitHub Actions
+
+- `.github/workflows/ci.yml`
+  - Typecheck, lint, build, and docs smoke checks on `main` and `codex/**` branches + pull requests.
+- `.github/workflows/pages.yml`
+  - On push to `main`, builds production bundle, assembles Pages artifact from `docs/demo` + `docs/dist`, minifies HTML, and deploys.
 
 ## Notes
 
-- PJAX swaps container `innerHTML`. Scripts inside swapped HTML do not auto-execute.
-- If page-specific behavior is required after PJAX navigation, initialize it from the main bundle on `pjax:complete`.
-- For local debug logs, run `npm run build:dev` and serve `docs/` from `localhost` or `127.0.0.1`.
-
-## Feature Behavior
-
-- Boot sequence (`SpacefaceCore`):
-1. `initBase()` adds `js-enabled` and resolves `pageType` from `body[data-page]` or URL.
-2. `initDomFeatures()` initializes DOM-dependent features (`SlidePlayer`, motion image engines via `floatingImages` feature config).
-3. `initOnceFeatures()` initializes singleton/lifecycle features (`InactivityWatcher`, `ScreensaverController`).
-4. `InactivityWatcher` is intentionally a singleton: one app-level inactivity source drives one screensaver lifecycle per page.
-
-- `Motion Images` (`floatingImages` config key):
-1. Uses existing HTML markup (`.floating-images-container` + `.floating-image`) as source of truth.
-2. Supports interaction options: `hoverBehavior`, `hoverSlowMultiplier`, `tapToFreeze`.
-3. Active animation modes: `drift`, `rain`, `perlin-noise`.
-4. Engine + image classes are fully separated by active mode:
-   - `DriftImageEngine` -> `DriftImage`
-   - `RainImageEngine` -> `RainImage`
-   - `PerlinNoiseImageEngine` -> `PerlinNoiseImage`
-5. `pauseOnScreensaver` can be set explicitly per page.
-6. If omitted, default is page-aware: `true` on `floatingimages`/`motionimages` page, `false` elsewhere.
-7. Additional motion experiments are kept under `src/system/features/MotionImages/experimental` and are not wired into runtime config.
-
-- `ScreensaverController`:
-1. Starts on inactivity via `InactivityWatcher`.
-2. Emits lifecycle events: `screensaver:shown` and `screensaver:hidden`.
-3. Requires feature config with at least `screensaver.partialUrl`.
-4. `screensaver.motionMode` selects `drift`, `rain`, or `perlin-noise`.
-5. Motion image engines can listen to screensaver events and pause/resume when configured.
-
-### Screensaver config example
-
-```ts
-screensaver: {
-  delay: 4500,
-  partialUrl: 'content/feature/screensaver/index.html',
-  motionMode: 'rain', // 'drift' | 'rain' | 'perlin-noise'
-}
-```
+- `docs/dist/` is generated and ignored in git.
+- Route swaps update HTML and title only; scripts in swapped markup are not auto-executed.
+- Set `data-mode="prod"` on `<html>` to silence dev logging defaults.
