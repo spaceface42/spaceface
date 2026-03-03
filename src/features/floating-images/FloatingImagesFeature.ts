@@ -13,6 +13,8 @@ interface MotionItem {
   width: number;
   height: number;
   speedMultiplier: number;
+  renderedX: number;
+  renderedY: number;
 }
 
 export interface FloatingImagesFeatureOptions {
@@ -32,8 +34,12 @@ export class FloatingImagesFeature implements Feature {
   private items: MotionItem[] = [];
   private running = false;
   private pausedByScreensaver = false;
+  private inViewport = true;
   private initRunId = 0;
   private hoveredItem: HTMLElement | null = null;
+  private bounds = { width: 0, height: 0 };
+  private resizeRafId: number | null = null;
+  private intersectionObserver?: IntersectionObserver;
   private unsubAnimation?: UnsubscribeFn;
   private unsubScreensaverShown?: UnsubscribeFn;
   private unsubScreensaverHidden?: UnsubscribeFn;
@@ -75,7 +81,9 @@ export class FloatingImagesFeature implements Feature {
 
     this.running = true;
     this.pausedByScreensaver = false;
+    this.bounds = this.readBounds();
     window.addEventListener("resize", this.onResize, { passive: true });
+    this.attachViewportObserver();
     if (this.options.pauseOnScreensaver) {
       this.unsubScreensaverShown = ctx.events.on("screensaver:shown", () => {
         this.pausedByScreensaver = true;
@@ -99,7 +107,13 @@ export class FloatingImagesFeature implements Feature {
     this.running = false;
     this.unsubAnimation?.();
     this.unsubAnimation = undefined;
+    if (this.resizeRafId !== null) {
+      cancelAnimationFrame(this.resizeRafId);
+      this.resizeRafId = null;
+    }
     window.removeEventListener("resize", this.onResize);
+    this.intersectionObserver?.disconnect();
+    this.intersectionObserver = undefined;
     this.unsubScreensaverShown?.();
     this.unsubScreensaverHidden?.();
     this.unsubScreensaverShown = undefined;
@@ -118,6 +132,7 @@ export class FloatingImagesFeature implements Feature {
     this.items = [];
     this.container = null;
     this.pausedByScreensaver = false;
+    this.inViewport = true;
     this.hoveredItem = null;
   }
 
@@ -193,20 +208,26 @@ export class FloatingImagesFeature implements Feature {
         width,
         height,
         speedMultiplier: 1,
+        renderedX: Number.NaN,
+        renderedY: Number.NaN,
       };
     });
   }
 
   private readonly onResize = (): void => {
-    if (!this.container || this.items.length === 0) return;
-    const bounds = this.getBounds();
-    for (const item of this.items) {
-      item.width = Math.max(28, Math.round(item.el.getBoundingClientRect().width || item.width));
-      item.height = Math.max(28, Math.round(item.el.getBoundingClientRect().height || item.height));
-      item.x = clamp(item.x, 0, Math.max(0, bounds.width - item.width));
-      item.y = clamp(item.y, 0, Math.max(0, bounds.height - item.height));
-      this.renderItem(item);
-    }
+    if (this.resizeRafId !== null) return;
+    this.resizeRafId = requestAnimationFrame(() => {
+      this.resizeRafId = null;
+      if (!this.container || this.items.length === 0) return;
+      this.bounds = this.readBounds();
+      for (const item of this.items) {
+        item.width = Math.max(28, Math.round(item.el.getBoundingClientRect().width || item.width));
+        item.height = Math.max(28, Math.round(item.el.getBoundingClientRect().height || item.height));
+        item.x = clamp(item.x, 0, Math.max(0, this.bounds.width - item.width));
+        item.y = clamp(item.y, 0, Math.max(0, this.bounds.height - item.height));
+        this.renderItem(item);
+      }
+    });
   };
 
   private readonly tick = (frame: AnimationFrameContext): void => {
@@ -214,7 +235,7 @@ export class FloatingImagesFeature implements Feature {
     if (frame.overloaded && frame.frame % 2 === 1) return;
 
     const dt = Math.min(frame.deltaMs / 1000, 0.05);
-    const bounds = this.getBounds();
+    const bounds = this.bounds;
 
     for (const item of this.items) {
       const targetSpeedMultiplier = this.getItemSpeedMultiplier(item.el);
@@ -248,7 +269,7 @@ export class FloatingImagesFeature implements Feature {
 
   private updateAnimationState(): void {
     if (!this.running) return;
-    const shouldRun = !this.pausedByScreensaver;
+    const shouldRun = !this.pausedByScreensaver && this.inViewport;
     if (shouldRun && !this.unsubAnimation) {
       this.unsubAnimation = animationScheduler.add(this.tick);
       return;
@@ -259,7 +280,7 @@ export class FloatingImagesFeature implements Feature {
     }
   }
 
-  private getBounds(): { width: number; height: number } {
+  private readBounds(): { width: number; height: number } {
     if (!this.container) return { width: 0, height: 0 };
     return {
       width: this.container.clientWidth,
@@ -268,7 +289,12 @@ export class FloatingImagesFeature implements Feature {
   }
 
   private renderItem(item: MotionItem): void {
-    item.el.style.transform = `translate3d(${Math.round(item.x)}px, ${Math.round(item.y)}px, 0)`;
+    const rx = Math.round(item.x);
+    const ry = Math.round(item.y);
+    if (rx === item.renderedX && ry === item.renderedY) return;
+    item.renderedX = rx;
+    item.renderedY = ry;
+    item.el.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
   }
 
   private getItemSpeedMultiplier(el: HTMLElement): number {
@@ -293,6 +319,22 @@ export class FloatingImagesFeature implements Feature {
       this.hoveredItem = null;
     }
   };
+
+  private attachViewportObserver(): void {
+    if (!this.container) return;
+    if (!("IntersectionObserver" in window)) return;
+    this.intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.target !== this.container) continue;
+          this.inViewport = entry.isIntersecting;
+          this.updateAnimationState();
+        }
+      },
+      { root: null, threshold: 0.01 }
+    );
+    this.intersectionObserver.observe(this.container);
+  }
 }
 
 function clamp(value: number, min: number, max: number): number {
