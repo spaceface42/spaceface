@@ -2,8 +2,8 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from "node:fs";
 import { resolve, dirname, extname, relative, join, isAbsolute, normalize } from "node:path";
 
-const inDir = resolve(process.env.HTML_IN_DIR ?? "./docs.src");
-const outDir = resolve(process.env.HTML_OUT_DIR ?? "./docs");
+const inDir = resolve(process.env.HTML_IN_DIR ?? "./oldworld/docs.src");
+const outDir = resolve(process.env.HTML_OUT_DIR ?? "./oldworld/docs");
 const bundleSrc = process.env.HTML_BUNDLE_SRC ?? "./bin/bundle.min.js";
 const shouldSwapBundle = process.env.HTML_SWAP_BUNDLE !== "0";
 const siteBase = normalizeSiteBase(process.env.SITE_BASE ?? "");

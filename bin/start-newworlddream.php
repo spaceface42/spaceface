@@ -5,7 +5,7 @@ declare(strict_types=1);
 $defaults = [
     'host' => '127.0.0.1',
     'port' => '8787',
-    'root' => 'newworlddream',
+    'root' => 'docs',
 ];
 
 $options = $defaults;
@@ -41,7 +41,7 @@ if (!preg_match('/^\d+$/', $port) || (int) $port < 1 || (int) $port > 65535) {
 $host = $options['host'];
 $url = "http://{$host}:{$port}";
 
-fwrite(STDOUT, "Starting newworlddream demo at {$url}/demo/index.html (root: {$rootPath})\n");
+fwrite(STDOUT, "Starting docs demo at {$url}/demo/index.html (root: {$rootPath})\n");
 
 $cmd = sprintf(
     '%s -S %s -t %s',

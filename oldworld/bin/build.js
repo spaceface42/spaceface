@@ -3,8 +3,8 @@ import { build } from "esbuild";
 import { rmSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-const outDir = resolve("./docs/bin");
-const entryFile = process.env.ENTRY ?? "./src/app/main.pjax.ts";
+const outDir = resolve("./oldworld/docs/bin");
+const entryFile = process.env.ENTRY ?? "./oldworld/src/app/main.pjax.ts";
 
 // Clean previous build
 rmSync(outDir, { recursive: true, force: true });

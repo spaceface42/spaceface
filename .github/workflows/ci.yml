@@ -32,7 +32,7 @@ jobs:
       - name: Build (prod pjax)
         run: npm run build:prod:pjax
 
-  newworlddream:
+  docs-app:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -47,5 +47,5 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Verify (newworlddream)
-        run: npm run verify:newworlddream
+      - name: Verify (docs app)
+        run: npm run verify:docs

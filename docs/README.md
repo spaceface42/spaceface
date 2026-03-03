@@ -1,4 +1,4 @@
-# newworlddream
+# docs
 
 A clean, minimal TypeScript architecture scaffold for a feature-driven frontend system.
 
@@ -12,14 +12,16 @@ A clean, minimal TypeScript architecture scaffold for a feature-driven frontend 
 
 ## Structure
 
-- `src/core/events.ts`: typed EventBus + app events.
-- `src/core/lifecycle.ts`: feature contracts and startup context.
-- `src/core/config.ts`: runtime config parsing/validation.
-- `src/core/logger.ts`: environment-aware logger.
-- `src/core/registry.ts`: feature registry + activation predicates.
-- `src/core/startup.ts`: startup pipeline and teardown.
-- `src/features/*`: isolated feature controllers.
-- `src/app/main.ts`: composition root.
+- `../src/core/events.ts`: typed EventBus + app events.
+- `../src/core/lifecycle.ts`: feature contracts and startup context.
+- `../src/core/config.ts`: runtime config parsing/validation.
+- `../src/core/logger.ts`: environment-aware logger.
+- `../src/core/registry.ts`: feature registry + activation predicates.
+- `../src/core/startup.ts`: startup pipeline and teardown.
+- `../src/features/*`: isolated feature controllers.
+- `../src/app/main.ts`: composition root.
+- `demo/*`: demo pages/fixtures.
+- `scripts/*`: smoke checks.
 
 ## How this differs from the existing app
 
@@ -29,32 +31,32 @@ A clean, minimal TypeScript architecture scaffold for a feature-driven frontend 
 
 ## Next build steps
 
-1. Add a dedicated bundler/build script for `newworlddream/src/app/main.ts`.
+1. Keep root `src` as the active app source.
 2. Wire one HTML page with `type="module"` and import the built output.
 3. Port one existing feature at a time behind the new `Feature` contract.
 
 ## Typecheck this scaffold
 
 ```bash
-tsc -p newworlddream/tsconfig.json --noEmit
+tsc -p docs/tsconfig.json --noEmit
 ```
 
 ## Verify (Automated)
 
 ```bash
-npm run verify:newworlddream
+npm run verify:docs
 ```
 
 This runs:
 
-1. `typecheck:newworlddream`
-2. `build:newworlddream`
-3. `smoke:newworlddream` (fixture and bundle integrity checks)
+1. `typecheck:docs`
+2. `build:docs`
+3. `smoke:docs` (fixture and bundle integrity checks)
 
 ## Run demo
 
 ```bash
-npm run demo:newworlddream
+npm run demo:docs
 ```
 
 Then open:
@@ -64,7 +66,7 @@ Then open:
 Manual steps:
 
 ```bash
-npm run build:newworlddream
+npm run build:docs
 php bin/start-newworlddream.php
 ```
 
@@ -98,7 +100,7 @@ Both pages share a `data-route-container` region. Navigation swaps only that con
 
 ## Logging Architecture
 
-`newworlddream` now uses:
+`docs` now uses:
 
 1. `logger -> event bus -> sinks`
 2. Logger emits typed `log:entry` events.
@@ -122,7 +124,7 @@ Use this checklist after route-related changes:
 
 ## Animation Optimization
 
-`newworlddream` animation now runs through a shared scheduler:
+`docs` animation now runs through a shared scheduler:
 
 1. Single RAF loop (`AnimationScheduler`) for animated features.
 2. Auto-pause when the tab is hidden.

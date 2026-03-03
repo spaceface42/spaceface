@@ -2,13 +2,11 @@
 
 /node_modules/
 
-# GitHub Pages output (generated in CI/local build, not source of truth)
-/docs/**
+# Legacy oldworld build outputs (generated)
+/oldworld/docs/**
+/oldworld/docs.src/spaceface/**/*.js
+/oldworld/docs.src/spaceface/**/*.js.map
+/oldworld/docs.src/spaceface/**/*.d.ts
 
-# Ignore generated transpiled artifacts (keep source TS only)
-/docs.src/spaceface/**/*.js
-/docs.src/spaceface/**/*.js.map
-/docs.src/spaceface/**/*.d.ts
-
-# newworlddream build output (generated)
-/newworlddream/dist/**
+# docs app build output (generated)
+/docs/dist/**

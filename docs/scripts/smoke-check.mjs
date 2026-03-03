@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 
 const root = process.cwd();
 const files = {
-  index: resolve(root, 'newworlddream/demo/index.html'),
-  page2: resolve(root, 'newworlddream/demo/page2.html'),
-  bundle: resolve(root, 'newworlddream/dist/main.js'),
+  index: resolve(root, 'docs/demo/index.html'),
+  page2: resolve(root, 'docs/demo/page2.html'),
+  bundle: resolve(root, 'docs/dist/main.js'),
 };
 
 const failures = [];
@@ -46,14 +46,14 @@ if (failures.length === 0) {
 }
 
 if (failures.length > 0) {
-  console.error('[newworlddream smoke] FAILED');
+  console.error('[docs smoke] FAILED');
   for (const failure of failures) {
     console.error(`- ${failure}`);
   }
   process.exit(1);
 }
 
-console.log('[newworlddream smoke] OK');
+console.log('[docs smoke] OK');
 
 function assertContains(content, needle, message) {
   if (!content.includes(needle)) {

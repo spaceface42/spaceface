@@ -8,7 +8,6 @@
     "[html]": {
         "editor.defaultFormatter": "vscode.html-language-features"
     },
-    "editor.formatOnSave": true,
     "html.format.indentInnerHtml": true,
     "html.format.wrapLineLength": 120
 }

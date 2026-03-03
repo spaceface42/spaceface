@@ -31,12 +31,19 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build site (prod pjax)
-        run: SITE_BASE=/spaceface npm run build:prod:pjax
+      - name: Build docs app (prod)
+        run: npm run build:docs:prod
+
+      - name: Assemble Pages Directory
+        run: |
+          rm -rf ./.pages
+          mkdir -p ./.pages/dist
+          cp -R ./docs/demo/. ./.pages/
+          cp -R ./docs/dist/. ./.pages/dist/
 
       - name: Minify HTML (whitespace/comments)
         run: |
-          find docs -name "*.html" -print0 | while IFS= read -r -d '' file; do
+          find ./.pages -name "*.html" -print0 | while IFS= read -r -d '' file; do
             npx --yes html-minifier-terser \
               --collapse-whitespace \
               --remove-comments \
@@ -48,7 +55,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: .pages
 
   deploy:
     environment:
