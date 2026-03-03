@@ -29,11 +29,14 @@ Legacy code is preserved in `oldworld/`.
   - Global controls via `slideshow:next` / `slideshow:prev` events.
 - `FloatingImagesFeature`
   - Active when `[data-floating-images]` exists.
+  - Uses markup as source of truth (`[data-floating-item]` / `.floating-image`).
+  - Waits for image readiness through shared `src/core/images.ts` helper (reusable for image slideshows/decks).
   - Uses RAF via shared `AnimationScheduler`.
   - Pauses/resumes on screensaver lifecycle events.
 - `ScreensaverFeature`
   - Active when `#screensaver` exists.
   - Emits `screensaver:shown` / `screensaver:hidden`.
+  - Supports runtime partial content via `partialUrl` (cached fetch); falls back to generated markup if partial fails.
   - Starts/stops its own floating-images instance while visible.
 
 ## Build And Run
@@ -93,3 +96,4 @@ npm run verify:docs
 - `docs/dist/` is generated and ignored in git.
 - Route swaps update HTML and title only; scripts in swapped markup are not auto-executed.
 - Set `data-mode="prod"` on `<html>` to silence dev logging defaults.
+- For screensaver partials, image URLs in partial HTML resolve relative to the current page URL.
