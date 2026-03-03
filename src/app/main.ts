@@ -20,12 +20,12 @@ async function main(): Promise<void> {
   const detachConsoleSink = maybeAttachConsoleSink(config.mode, config.logLevel);
   const detachAnimationMetrics = maybeAttachAnimationMetrics(config.mode);
 
-  registry.register(new SlideshowFeature(), {
+  registry.register(new SlideshowFeature({ autoplayMs: 5000, pauseOnScreensaver: true }), {
     requiredSelector: "[data-slideshow]",
     mode: "any",
   });
 
-  registry.register(new FloatingImagesFeature(), {
+  registry.register(new FloatingImagesFeature({ hoverBehavior: "pause", hoverSlowMultiplier: 0.2 }), {
     requiredSelector: "[data-floating-images]",
     mode: "any",
   });

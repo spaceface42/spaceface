@@ -12,6 +12,7 @@ interface MotionItem {
   vy: number;
   width: number;
   height: number;
+  speedMultiplier: number;
 }
 
 export interface FloatingImagesFeatureOptions {
@@ -19,6 +20,8 @@ export interface FloatingImagesFeatureOptions {
   itemSelector?: string;
   baseSpeed?: number;
   pauseOnScreensaver?: boolean;
+  hoverBehavior?: "none" | "slow" | "pause";
+  hoverSlowMultiplier?: number;
 }
 
 export class FloatingImagesFeature implements Feature {
@@ -30,6 +33,7 @@ export class FloatingImagesFeature implements Feature {
   private running = false;
   private pausedByScreensaver = false;
   private initRunId = 0;
+  private hoveredItem: HTMLElement | null = null;
   private unsubAnimation?: UnsubscribeFn;
   private unsubScreensaverShown?: UnsubscribeFn;
   private unsubScreensaverHidden?: UnsubscribeFn;
@@ -40,6 +44,8 @@ export class FloatingImagesFeature implements Feature {
       itemSelector: options.itemSelector ?? "[data-floating-item], .floating-image",
       baseSpeed: options.baseSpeed ?? 46,
       pauseOnScreensaver: options.pauseOnScreensaver ?? true,
+      hoverBehavior: options.hoverBehavior ?? "none",
+      hoverSlowMultiplier: options.hoverSlowMultiplier ?? 0.2,
     };
   }
 
@@ -100,6 +106,8 @@ export class FloatingImagesFeature implements Feature {
     this.unsubScreensaverHidden = undefined;
 
     for (const item of this.items) {
+      item.el.removeEventListener("pointerenter", this.onItemPointerEnter);
+      item.el.removeEventListener("pointerleave", this.onItemPointerLeave);
       item.el.style.transform = "";
       item.el.style.willChange = "";
       item.el.style.position = "";
@@ -110,6 +118,7 @@ export class FloatingImagesFeature implements Feature {
     this.items = [];
     this.container = null;
     this.pausedByScreensaver = false;
+    this.hoveredItem = null;
   }
 
   onRouteChange(_nextRoute: string, ctx: StartupContext): void {
@@ -170,6 +179,10 @@ export class FloatingImagesFeature implements Feature {
       el.style.left = "0";
       el.style.top = "0";
       el.style.willChange = "transform";
+      if (this.options.hoverBehavior !== "none") {
+        el.addEventListener("pointerenter", this.onItemPointerEnter, { passive: true });
+        el.addEventListener("pointerleave", this.onItemPointerLeave, { passive: true });
+      }
 
       return {
         el,
@@ -179,6 +192,7 @@ export class FloatingImagesFeature implements Feature {
         vy: this.options.baseSpeed * (0.65 + jitter) * -direction,
         width,
         height,
+        speedMultiplier: 1,
       };
     });
   }
@@ -203,8 +217,11 @@ export class FloatingImagesFeature implements Feature {
     const bounds = this.getBounds();
 
     for (const item of this.items) {
-      item.x += item.vx * dt;
-      item.y += item.vy * dt;
+      const targetSpeedMultiplier = this.getItemSpeedMultiplier(item.el);
+      const lerp = Math.min(1, dt * 10);
+      item.speedMultiplier += (targetSpeedMultiplier - item.speedMultiplier) * lerp;
+      item.x += item.vx * dt * item.speedMultiplier;
+      item.y += item.vy * dt * item.speedMultiplier;
 
       const maxX = Math.max(0, bounds.width - item.width);
       const maxY = Math.max(0, bounds.height - item.height);
@@ -253,6 +270,29 @@ export class FloatingImagesFeature implements Feature {
   private renderItem(item: MotionItem): void {
     item.el.style.transform = `translate3d(${Math.round(item.x)}px, ${Math.round(item.y)}px, 0)`;
   }
+
+  private getItemSpeedMultiplier(el: HTMLElement): number {
+    if (this.hoveredItem !== el) return 1;
+    if (this.options.hoverBehavior === "pause") return 0;
+    if (this.options.hoverBehavior === "slow") {
+      return clamp(this.options.hoverSlowMultiplier, 0, 1);
+    }
+    return 1;
+  }
+
+  private readonly onItemPointerEnter = (event: Event): void => {
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) return;
+    this.hoveredItem = target;
+  };
+
+  private readonly onItemPointerLeave = (event: Event): void => {
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) return;
+    if (this.hoveredItem === target) {
+      this.hoveredItem = null;
+    }
+  };
 }
 
 function clamp(value: number, min: number, max: number): number {

@@ -153,6 +153,7 @@ export class ScreensaverFeature implements Feature {
       itemSelector: `${this.options.targetSelector} [data-screensaver-floating-item]`,
       baseSpeed: 30,
       pauseOnScreensaver: false,
+      hoverBehavior: "none",
     });
     this.screensaverFloating.init(this.ctx);
   }
