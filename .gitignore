@@ -8,5 +8,6 @@
 /oldworld/docs.src/spaceface/**/*.js.map
 /oldworld/docs.src/spaceface/**/*.d.ts
 
-# docs app build output (generated)
-/docs/dist/**
+# generated site output
+/docs/**
+/public/**

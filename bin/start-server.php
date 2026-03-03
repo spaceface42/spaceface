@@ -41,7 +41,7 @@ if (!preg_match('/^\d+$/', $port) || (int) $port < 1 || (int) $port > 65535) {
 $host = $options['host'];
 $url = "http://{$host}:{$port}";
 
-fwrite(STDOUT, "Starting docs site at {$url}/index.html (root: {$rootPath})\n");
+fwrite(STDOUT, "Starting site at {$url}/index.html (root: {$rootPath})\n");
 
 $cmd = sprintf(
     '%s -S %s -t %s',

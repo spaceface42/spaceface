@@ -45,6 +45,7 @@ async function renderHtmlWithIncludes(filePath, rootDir, stack) {
   let content = await fs.readFile(filePath, "utf8");
   const currentDir = path.dirname(filePath);
   const includeRegex = /<!--\s*@include\s+(.+?)\s*-->/g;
+  const linkPartialRegex = /<link\s+[^>]*rel=["']partial["'][^>]*>/gi;
 
   let match;
   while ((match = includeRegex.exec(content)) !== null) {
@@ -56,6 +57,25 @@ async function renderHtmlWithIncludes(filePath, rootDir, stack) {
     const included = await renderHtmlWithIncludes(includePath, rootDir, stack);
     content = content.slice(0, match.index) + included + content.slice(match.index + match[0].length);
     includeRegex.lastIndex = 0;
+  }
+
+  // Source-only partial tag:
+  // <link rel="partial" href="./partials/footer.html" />
+  // Replace the tag itself with rendered partial content.
+  while ((match = linkPartialRegex.exec(content)) !== null) {
+    const tag = match[0];
+    const hrefMatch = tag.match(/\shref=["']([^"']+)["']/i);
+    if (!hrefMatch) {
+      throw new Error(`Partial link is missing href in ${filePath}: ${tag}`);
+    }
+    const rawInclude = hrefMatch[1].trim();
+    const includePath = path.resolve(currentDir, rawInclude);
+    if (!includePath.startsWith(rootDir)) {
+      throw new Error(`Include path escapes root: ${rawInclude} in ${filePath}`);
+    }
+    const included = await renderHtmlWithIncludes(includePath, rootDir, stack);
+    content = content.slice(0, match.index) + included + content.slice(match.index + tag.length);
+    linkPartialRegex.lastIndex = 0;
   }
 
   stack.delete(normalized);

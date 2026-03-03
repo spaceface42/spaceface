@@ -86,17 +86,25 @@ npm run lint
 npm run verify:docs
 ```
 
+Build pipeline summary:
+
+1. `npm run build:html` renders `public.src` into fully static `public` (partials are replaced).
+2. `npm run build:js:dev` or `npm run build:js:prod` writes bundle to `docs/dist/main.js`.
+3. Local server serves `docs/` root.
+
 ## GitHub Actions
 
 - `.github/workflows/ci.yml`
   - Typecheck, lint, build, and docs smoke checks on `main` and `codex/**` branches + pull requests.
 - `.github/workflows/pages.yml`
   - On push to `main`, builds production static site (`public.src` -> `docs` + JS bundle), assembles Pages artifact from `docs/`, minifies HTML, and deploys.
+  - The deployed site is built in CI from source; local build output is not required in git.
 
 ## Notes
 
-- `docs/dist/` is generated and ignored in git.
+- `docs/` is generated and can be rebuilt from source at any time.
 - HTML/CSS source of truth is `public.src/`; production artifact is generated in `docs/`.
+- Build-time partial syntax in `public.src`: `<link rel="partial" href="./partials/footer.html" />`.
 - Route swaps update HTML and title only; scripts in swapped markup are not auto-executed.
 - Set `data-mode="prod"` on `<html>` to silence dev logging defaults.
 - For screensaver partials, image URLs in partial HTML resolve relative to the current page URL.
