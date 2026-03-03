@@ -17,12 +17,17 @@ export interface RouteCoordinatorOptions {
   containerSelector: string;
   logger: Logger;
   hooks?: RouteCoordinatorHooks;
+  cacheSize?: number;
 }
 
 export class RouteCoordinator {
   private readonly containerSelector: string;
   private readonly logger: Logger;
   private readonly hooks: RouteCoordinatorHooks;
+  private readonly cacheSize: number;
+  private pageCache = new Map<string, { title: string; html: string }>();
+  private cacheHits = 0;
+  private cacheMisses = 0;
   private currentAbort?: AbortController;
   private navToken = 0;
   private started = false;
@@ -31,11 +36,13 @@ export class RouteCoordinator {
     this.containerSelector = options.containerSelector;
     this.logger = options.logger;
     this.hooks = options.hooks ?? {};
+    this.cacheSize = Math.max(1, options.cacheSize ?? 16);
   }
 
   start(): void {
     if (this.started) return;
     this.started = true;
+    this.cacheCurrentPage();
     document.addEventListener("click", this.onDocumentClick);
     window.addEventListener("popstate", this.onPopState);
   }
@@ -72,6 +79,41 @@ export class RouteCoordinator {
     this.currentAbort = controller;
 
     try {
+      const cacheKey = url.toString();
+      const cached = this.pageCache.get(cacheKey);
+      if (cached) {
+        this.cacheHits += 1;
+        this.logger.debug("route cache hit", {
+          url: cacheKey,
+          hits: this.cacheHits,
+          misses: this.cacheMisses,
+          entries: this.pageCache.size,
+        });
+        if (token !== this.navToken) return;
+        const container = document.querySelector(this.containerSelector);
+        if (!container) {
+          window.location.href = url.toString();
+          return;
+        }
+
+        const nextDocument = document.implementation.createHTMLDocument("");
+        const nextContainer = nextDocument.createElement("div");
+        nextContainer.innerHTML = cached.html;
+        const swapContext: RouteSwapContext = { url, nextDocument, container, nextContainer };
+        await this.hooks.onBeforeSwap?.(swapContext);
+        if (token !== this.navToken) return;
+        this.applyNavigationFromSwapContext(url, swapContext, cached.title, cached.html, options);
+        await this.hooks.onAfterSwap?.(swapContext);
+        return;
+      }
+      this.cacheMisses += 1;
+      this.logger.debug("route cache miss", {
+        url: cacheKey,
+        hits: this.cacheHits,
+        misses: this.cacheMisses,
+        entries: this.pageCache.size,
+      });
+
       const response = await fetch(url.toString(), {
         signal: controller.signal,
         headers: { Accept: "text/html" },
@@ -98,18 +140,10 @@ export class RouteCoordinator {
       await this.hooks.onBeforeSwap?.(swapContext);
       if (token !== this.navToken) return;
 
-      container.innerHTML = nextContainer.innerHTML;
-      if (nextDocument.title) {
-        document.title = nextDocument.title;
-      }
-
-      if (!options.fromPopState) {
-        if (options.replace) {
-          window.history.replaceState(null, "", url.toString());
-        } else {
-          window.history.pushState(null, "", url.toString());
-        }
-      }
+      const title = nextDocument.title || document.title;
+      const nextHtml = nextContainer.innerHTML;
+      this.setCache(url.toString(), { title, html: nextHtml });
+      this.applyNavigationFromSwapContext(url, swapContext, title, nextHtml, options);
 
       await this.hooks.onAfterSwap?.(swapContext);
     } catch (error) {
@@ -151,4 +185,38 @@ export class RouteCoordinator {
   private readonly onPopState = (): void => {
     void this.navigate(window.location.href, { fromPopState: true, replace: true });
   };
+
+  private cacheCurrentPage(): void {
+    const container = document.querySelector(this.containerSelector);
+    if (!container) return;
+    this.setCache(window.location.href, { title: document.title, html: container.innerHTML });
+  }
+
+  private setCache(url: string, entry: { title: string; html: string }): void {
+    this.pageCache.delete(url);
+    this.pageCache.set(url, entry);
+    while (this.pageCache.size > this.cacheSize) {
+      const oldest = this.pageCache.keys().next().value as string | undefined;
+      if (!oldest) break;
+      this.pageCache.delete(oldest);
+    }
+  }
+
+  private applyNavigationFromSwapContext(
+    url: URL,
+    context: RouteSwapContext,
+    title: string,
+    html: string,
+    options: { replace?: boolean; fromPopState?: boolean }
+  ): void {
+    context.container.innerHTML = html;
+    document.title = title;
+    if (!options.fromPopState) {
+      if (options.replace) {
+        window.history.replaceState(null, "", url.toString());
+      } else {
+        window.history.pushState(null, "", url.toString());
+      }
+    }
+  }
 }

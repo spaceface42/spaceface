@@ -78,6 +78,7 @@ function readModeFromDom(): "dev" | "prod" {
 
 function bindGlobalSlideControls(): void {
   document.addEventListener("keydown", (event) => {
+    if (isEditableTarget(event.target)) return;
     if (event.key === "ArrowRight") {
       eventBus.emit("slideshow:next", { source: "keyboard" });
     }
@@ -99,6 +100,15 @@ function bindGlobalSlideControls(): void {
       eventBus.emit("slideshow:prev", { source: "click" });
     }
   });
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  if (el instanceof HTMLInputElement) return true;
+  if (el instanceof HTMLTextAreaElement) return true;
+  if (el instanceof HTMLSelectElement) return true;
+  return Boolean(el.closest("[contenteditable='true']"));
 }
 
 function bindLifecycleHooks(
