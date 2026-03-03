@@ -4,6 +4,7 @@ import { FeatureRegistry } from "../core/registry.js";
 import { StartupPipeline } from "../core/startup.js";
 import { attachConsoleLogSink, createLogger } from "../core/logger.js";
 import { RouteCoordinator } from "../core/router.js";
+import { animationScheduler } from "../core/animation.js";
 import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
 import { FloatingImagesFeature } from "../features/floating-images/FloatingImagesFeature.js";
@@ -17,6 +18,7 @@ async function main(): Promise<void> {
   const startup = new StartupPipeline(config);
   const registry = new FeatureRegistry();
   const detachConsoleSink = maybeAttachConsoleSink(config.mode, config.logLevel);
+  const detachAnimationMetrics = maybeAttachAnimationMetrics(config.mode);
 
   registry.register(new SlideshowFeature(), {
     requiredSelector: "[data-slideshow]",
@@ -65,7 +67,7 @@ async function main(): Promise<void> {
     },
   });
   routeCoordinator.start();
-  bindLifecycleHooks(startup, routeCoordinator, detachConsoleSink);
+  bindLifecycleHooks(startup, routeCoordinator, detachConsoleSink, detachAnimationMetrics);
 }
 
 function readModeFromDom(): "dev" | "prod" {
@@ -101,11 +103,13 @@ function bindGlobalSlideControls(): void {
 function bindLifecycleHooks(
   startup: StartupPipeline,
   routeCoordinator: RouteCoordinator,
-  detachConsoleSink: (() => void) | undefined
+  detachConsoleSink: (() => void) | undefined,
+  detachAnimationMetrics: (() => void) | undefined
 ): void {
   window.addEventListener("beforeunload", () => {
     routeCoordinator.destroy();
     detachConsoleSink?.();
+    detachAnimationMetrics?.();
     void startup.destroy("beforeunload");
   });
 }
@@ -114,15 +118,31 @@ function maybeAttachConsoleSink(mode: "dev" | "prod", logLevel: "debug" | "info"
   const sinkAttr = document.documentElement.getAttribute("data-log-sink");
   if (sinkAttr === "none") return undefined;
 
-  if (sinkAttr === "console") {
+  if (mode === "prod") {
+    if (sinkAttr === "force") {
+      return attachConsoleLogSink("warn");
+    }
+    return undefined;
+  }
+
+  if (sinkAttr === "console" || sinkAttr === "force") {
     return attachConsoleLogSink(logLevel);
   }
 
-  if (mode === "dev") {
-    return attachConsoleLogSink(logLevel);
-  }
+  return attachConsoleLogSink(logLevel);
+}
 
-  return undefined;
+function maybeAttachAnimationMetrics(mode: "dev" | "prod"): (() => void) | undefined {
+  if (mode !== "dev") return undefined;
+  const metricsAttr = document.documentElement.getAttribute("data-animation-metrics");
+  if (metricsAttr !== "on") return undefined;
+
+  const timer = window.setInterval(() => {
+    const stats = animationScheduler.getStats();
+    console.log("[animation] [METRICS]", stats);
+  }, 2000);
+
+  return () => window.clearInterval(timer);
 }
 
 void main();
