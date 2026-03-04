@@ -117,12 +117,36 @@ Default selectors from code:
 
 - Created dedicated feature stylesheet: `public.src/resources/spacesuit/features.css`.
 - Moved feature-specific CSS out of `styles.css` into `features.css`:
-  - Slideshow rules
-  - SlidePlayer rules
-  - Floating Images rules
-  - Screensaver rules
+    - Slideshow rules
+    - SlidePlayer rules
+    - Floating Images rules
+    - Screensaver rules
 - `styles.css` now holds shared/base page styles only.
 - Pages now load `features.css` explicitly:
-  - `public.src/index.html`
-  - `public.src/slideplayer.html`
+    - `public.src/index.html`
+    - `public.src/slideplayer.html`
 - Removed inline screensaver `<style>` from `public.src/resources/features/screensaver/index.html`; styling now comes from `features.css`.
+
+#D8D8D8 light neutral background
+#C4C4C4 mid gray
+#A9A9A8 device silver
+#8D8C8A darker metal gray
+#5F5A56 deep warm gray
+#2D2927 near-black details
+#E86A2F orange accent ring
+#F3F3F3 off-white body part
+#B99A7A muted bronze contact tint
+#111111 UI/text black
+
+:root {
+--color-bg-light: #d8d8d8;
+--color-gray-200: #c4c4c4;
+--color-metal-300: #a9a9a8;
+--color-metal-500: #8d8c8a;
+--color-gray-700: #5f5a56;
+--color-near-black: #2d2927;
+--color-accent-orange: #e86a2f;
+--color-off-white: #f3f3f3;
+--color-bronze-muted: #b99a7a;
+--color-black: #111111;
+}
