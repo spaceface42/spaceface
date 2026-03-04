@@ -38,7 +38,7 @@
         "demo:newworlddream": "npm run demo:docs",
         "build:old:html": "cross-env HTML_IN_DIR=./oldworld/docs.src HTML_OUT_DIR=./oldworld/docs node ./oldworld/bin/build-html.js",
         "typecheck": "tsc --noEmit",
-        "lint": "eslint src",
-        "lint:fix": "eslint src --fix"
+        "lint": "node ./bin/lint.mjs",
+        "lint:fix": "node ./bin/lint.mjs --fix"
     }
 }
