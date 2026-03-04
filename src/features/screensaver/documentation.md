@@ -52,7 +52,7 @@ Example registration:
 registry.register(
   new ScreensaverFeature({
     idleMs: 6000,
-    partialUrl: "./resources/screensaver/index.html",
+    partialUrl: "./resources/features/screensaver/index.html",
   }),
   { mode: "any" }
 );

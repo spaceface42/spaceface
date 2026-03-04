@@ -125,4 +125,4 @@ Default selectors from code:
 - Pages now load `features.css` explicitly:
   - `public.src/index.html`
   - `public.src/slideplayer.html`
-- Removed inline screensaver `<style>` from `public.src/resources/screensaver/index.html`; styling now comes from `features.css`.
+- Removed inline screensaver `<style>` from `public.src/resources/features/screensaver/index.html`; styling now comes from `features.css`.

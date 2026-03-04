@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   registry.register(
     new ScreensaverFeature({
       idleMs: config.screensaverIdleMs,
-      partialUrl: "./resources/screensaver/index.html",
+      partialUrl: "./resources/features/screensaver/index.html",
     }),
     {
       mode: "any",
