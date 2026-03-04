@@ -79,6 +79,11 @@ export class FloatingImagesFeature implements Feature {
       return;
     }
 
+    // Ensure valid initial layout even if animation is paused or first RAF tick is delayed.
+    for (const item of this.items) {
+      this.renderItem(item);
+    }
+
     this.running = true;
     this.pausedByScreensaver = false;
     this.bounds = this.readBounds();
@@ -137,13 +142,20 @@ export class FloatingImagesFeature implements Feature {
   }
 
   onRouteChange(_nextRoute: string, ctx: StartupContext): void {
-    const hasContainer = Boolean(document.querySelector(this.options.containerSelector));
-    if (hasContainer && this.items.length === 0) {
+    const nextContainer = document.querySelector<HTMLElement>(this.options.containerSelector);
+    if (!nextContainer) {
+      if (this.items.length > 0) this.destroy();
+      return;
+    }
+
+    if (this.container !== nextContainer) {
+      this.destroy();
       void this.init(ctx);
       return;
     }
-    if (!hasContainer && this.items.length > 0) {
-      this.destroy();
+
+    if (this.items.length === 0) {
+      void this.init(ctx);
     }
   }
 

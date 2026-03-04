@@ -20,12 +20,26 @@ export interface RouteCoordinatorOptions {
   cacheSize?: number;
 }
 
+interface CachedPageEntry {
+  title: string;
+  html: string;
+  htmlAttrs: {
+    lang: string;
+    dir: string | null;
+    dataMode: string | null;
+  };
+  bodyAttrs: {
+    className: string;
+    dataPage: string | null;
+  };
+}
+
 export class RouteCoordinator {
   private readonly containerSelector: string;
   private readonly logger: Logger;
   private readonly hooks: RouteCoordinatorHooks;
   private readonly cacheSize: number;
-  private pageCache = new Map<string, { title: string; html: string }>();
+  private pageCache = new Map<string, CachedPageEntry>();
   private cacheHits = 0;
   private cacheMisses = 0;
   private currentAbort?: AbortController;
@@ -102,7 +116,7 @@ export class RouteCoordinator {
         const swapContext: RouteSwapContext = { url, nextDocument, container, nextContainer };
         await this.hooks.onBeforeSwap?.(swapContext);
         if (token !== this.navToken) return;
-        this.applyNavigationFromSwapContext(url, swapContext, cached.title, cached.html, options);
+        this.applyNavigationFromSwapContext(url, swapContext, cached, options);
         await this.hooks.onAfterSwap?.(swapContext);
         return;
       }
@@ -140,10 +154,9 @@ export class RouteCoordinator {
       await this.hooks.onBeforeSwap?.(swapContext);
       if (token !== this.navToken) return;
 
-      const title = nextDocument.title || document.title;
-      const nextHtml = nextContainer.innerHTML;
-      this.setCache(url.toString(), { title, html: nextHtml });
-      this.applyNavigationFromSwapContext(url, swapContext, title, nextHtml, options);
+      const entry = this.createCacheEntry(nextDocument, nextContainer);
+      this.setCache(url.toString(), entry);
+      this.applyNavigationFromSwapContext(url, swapContext, entry, options);
 
       await this.hooks.onAfterSwap?.(swapContext);
     } catch (error) {
@@ -189,10 +202,22 @@ export class RouteCoordinator {
   private cacheCurrentPage(): void {
     const container = document.querySelector(this.containerSelector);
     if (!container) return;
-    this.setCache(window.location.href, { title: document.title, html: container.innerHTML });
+    this.setCache(window.location.href, {
+      title: document.title,
+      html: container.innerHTML,
+      htmlAttrs: {
+        lang: document.documentElement.lang,
+        dir: document.documentElement.getAttribute("dir"),
+        dataMode: document.documentElement.getAttribute("data-mode"),
+      },
+      bodyAttrs: {
+        className: document.body.className,
+        dataPage: document.body.getAttribute("data-page"),
+      },
+    });
   }
 
-  private setCache(url: string, entry: { title: string; html: string }): void {
+  private setCache(url: string, entry: CachedPageEntry): void {
     this.pageCache.delete(url);
     this.pageCache.set(url, entry);
     while (this.pageCache.size > this.cacheSize) {
@@ -205,12 +230,12 @@ export class RouteCoordinator {
   private applyNavigationFromSwapContext(
     url: URL,
     context: RouteSwapContext,
-    title: string,
-    html: string,
+    entry: CachedPageEntry,
     options: { replace?: boolean; fromPopState?: boolean }
   ): void {
-    context.container.innerHTML = html;
-    document.title = title;
+    context.container.innerHTML = entry.html;
+    document.title = entry.title;
+    this.applyDocumentAttributes(entry);
     if (!options.fromPopState) {
       if (options.replace) {
         window.history.replaceState(null, "", url.toString());
@@ -219,4 +244,37 @@ export class RouteCoordinator {
       }
     }
   }
+
+  private createCacheEntry(nextDocument: Document, nextContainer: Element): CachedPageEntry {
+    return {
+      title: nextDocument.title || document.title,
+      html: nextContainer.innerHTML,
+      htmlAttrs: {
+        lang: nextDocument.documentElement.lang || document.documentElement.lang,
+        dir: nextDocument.documentElement.getAttribute("dir"),
+        dataMode: nextDocument.documentElement.getAttribute("data-mode"),
+      },
+      bodyAttrs: {
+        className: nextDocument.body?.className ?? "",
+        dataPage: nextDocument.body?.getAttribute("data-page") ?? null,
+      },
+    };
+  }
+
+  private applyDocumentAttributes(entry: CachedPageEntry): void {
+    document.documentElement.lang = entry.htmlAttrs.lang;
+    setNullableAttribute(document.documentElement, "dir", entry.htmlAttrs.dir);
+    setNullableAttribute(document.documentElement, "data-mode", entry.htmlAttrs.dataMode);
+
+    document.body.className = entry.bodyAttrs.className;
+    setNullableAttribute(document.body, "data-page", entry.bodyAttrs.dataPage);
+  }
+}
+
+function setNullableAttribute(element: Element, name: string, value: string | null): void {
+  if (value === null) {
+    element.removeAttribute(name);
+    return;
+  }
+  element.setAttribute(name, value);
 }

@@ -38,7 +38,11 @@ Current active runtime lives in `src/` and ships static output to `docs/` from `
   - Uses RAF via shared `AnimationScheduler`.
   - Pauses/resumes on screensaver lifecycle events.
 - `ScreensaverFeature`
-  - Auto-creates host `#spcfc-screensaver` when missing.
+  - Auto-creates host `[data-screensaver]` when missing.
+  - Runtime-generated host:
+    ```html
+    <div data-screensaver="true" aria-hidden="true" hidden></div>
+    ```
   - Emits `screensaver:shown` / `screensaver:hidden`.
   - Supports runtime partial content via `partialUrl` (cached fetch); falls back to generated markup if partial fails.
   - Starts/stops its own floating-images instance while visible.

@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>newworlddream demo page 2</title>
+    <title>newworlddream demo slideplayer</title>
     <link rel="stylesheet" href="./resources/spacesuit/defaults.css" />
     <link rel="stylesheet" href="./resources/spacesuit/styles.css" />
   </head>
-  <body data-page="page2">
+  <body data-page="slideplayer">
     <main data-route-container>
       <link rel="partial" href="./resources/spacesuit/partials/demo-notice.html" />
       <section class="card">
-        <h1>Page 2</h1>
+        <h1>SlidePlayer</h1>
         <p>This page has no slideshow or floating-images container. Registry should deactivate both features here.</p>
         <p><a href="./index.html">Back to page 1</a></p>
       </section>
@@ -21,9 +21,16 @@
           <button type="button" data-slideplayer-prev>Prev</button>
           <button type="button" data-slideplayer-next>Next</button>
         </div>
-        <img data-slideplayer-image src="./content/floatingimages/a.svg" alt="Slide A" />
-        <img data-slideplayer-image src="./content/floatingimages/b.svg" alt="Slide B" hidden />
-        <img data-slideplayer-image src="./content/floatingimages/c.svg" alt="Slide C" hidden />
+        <div data-slideplayer-stage>
+          <img data-slideplayer-image src="./content/floatingimages/a.svg" alt="Slide A" />
+          <img data-slideplayer-image src="./content/floatingimages/b.svg" alt="Slide B" />
+          <img data-slideplayer-image src="./content/floatingimages/c.svg" alt="Slide C" />
+        </div>
+        <div data-slideplayer-bullets>
+          <button type="button" data-slideplayer-bullet aria-label="Go to slide 1"></button>
+          <button type="button" data-slideplayer-bullet aria-label="Go to slide 2"></button>
+          <button type="button" data-slideplayer-bullet aria-label="Go to slide 3"></button>
+        </div>
       </section>
       <link rel="partial" href="./resources/spacesuit/partials/footer.html" />
     </main>

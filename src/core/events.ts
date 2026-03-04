@@ -70,7 +70,9 @@ export class EventBus<TEvents extends object> {
     const list = [...(this.listeners.get(event) ?? [])] as Array<Listener<TEvents[K]>>;
     for (const listener of list) {
       try {
-        void listener.fn(payload);
+        Promise.resolve(listener.fn(payload)).catch((error) => {
+          console.error(`[EventBus] listener failed for ${event}`, error);
+        });
       } catch (error) {
         console.error(`[EventBus] listener failed for ${event}`, error);
       }

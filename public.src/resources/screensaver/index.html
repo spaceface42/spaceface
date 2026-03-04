@@ -1,5 +1,5 @@
 <style>
-  #spcfc-screensaver {
+  [data-screensaver] {
     position: fixed;
     inset: 0;
     display: grid;
@@ -11,15 +11,16 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 320ms ease;
+    z-index: 9999;
   }
 
-  #spcfc-screensaver.is-active {
+  [data-screensaver].is-active {
     opacity: 1;
     pointer-events: auto;
   }
 
-  #spcfc-screensaver [data-screensaver-floating],
-  #spcfc-screensaver [data-floating-images] {
+  [data-screensaver] [data-screensaver-floating],
+  [data-screensaver] [data-floating-images] {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -28,20 +29,20 @@
     background: transparent;
   }
 
-  #spcfc-screensaver [data-screensaver-floating-item],
-  #spcfc-screensaver [data-floating-item],
-  #spcfc-screensaver .floating-image {
+  [data-screensaver] [data-screensaver-floating-item],
+  [data-screensaver] [data-floating-item],
+  [data-screensaver] .floating-image {
     display: grid;
     place-items: center;
     pointer-events: none;
   }
 
-  #spcfc-screensaver .screensaver-label {
+  [data-screensaver] .screensaver-label {
     position: relative;
     z-index: 1;
   }
 
-  #spcfc-screensaver[hidden] {
+  [data-screensaver][hidden] {
     display: none;
   }
 </style>

@@ -8,6 +8,7 @@
         "strictNullChecks": true,
         "esModuleInterop": true,
         "useDefineForClassFields": true,
+        "types": [],
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "noEmit": true

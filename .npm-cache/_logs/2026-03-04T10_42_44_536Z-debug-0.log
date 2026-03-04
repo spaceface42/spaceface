@@ -1,0 +1,244 @@
+0 verbose cli /Users/sandorzsolt/.nvm/versions/node/v21.6.2/bin/node /Users/sandorzsolt/.nvm/versions/node/v21.6.2/bin/npm
+1 info using npm@10.6.0
+2 info using node@v21.6.2
+3 silly config:load:file:/Users/sandorzsolt/.nvm/versions/node/v21.6.2/lib/node_modules/npm/npmrc
+4 silly config:load:file:/Users/sandorzsolt/Documents/GitHub/spaceface/.npmrc
+5 silly config:load:file:/dev/null
+6 silly config:load:file:/Users/sandorzsolt/.nvm/versions/node/v21.6.2/etc/npmrc
+7 verbose title npm ci
+8 verbose argv "ci" "--cache" "./.npm-cache" "--userconfig" "/dev/null" "--no-audit" "--no-fund"
+9 verbose logfile logs-max:10 dir:/Users/sandorzsolt/Documents/GitHub/spaceface/.npm-cache/_logs/2026-03-04T10_42_44_536Z-
+10 verbose logfile /Users/sandorzsolt/Documents/GitHub/spaceface/.npm-cache/_logs/2026-03-04T10_42_44_536Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly idealTree buildDeps
+13 warn EBADENGINE Unsupported engine {
+13 warn EBADENGINE   package: 'balanced-match@4.0.4',
+13 warn EBADENGINE   required: { node: '18 || 20 || >=22' },
+13 warn EBADENGINE   current: { node: 'v21.6.2', npm: '10.6.0' }
+13 warn EBADENGINE }
+14 warn EBADENGINE Unsupported engine {
+14 warn EBADENGINE   package: 'brace-expansion@5.0.3',
+14 warn EBADENGINE   required: { node: '18 || 20 || >=22' },
+14 warn EBADENGINE   current: { node: 'v21.6.2', npm: '10.6.0' }
+14 warn EBADENGINE }
+15 warn EBADENGINE Unsupported engine {
+15 warn EBADENGINE   package: 'minimatch@10.2.3',
+15 warn EBADENGINE   required: { node: '18 || 20 || >=22' },
+15 warn EBADENGINE   current: { node: 'v21.6.2', npm: '10.6.0' }
+15 warn EBADENGINE }
+16 warn EBADENGINE Unsupported engine {
+16 warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
+16 warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
+16 warn EBADENGINE   current: { node: 'v21.6.2', npm: '10.6.0' }
+16 warn EBADENGINE }
+17 silly reify moves {}
+18 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/win32-x64
+19 silly reify mark deleted [
+19 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/win32-x64'
+19 silly reify ]
+20 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/win32-ia32
+21 silly reify mark deleted [
+21 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/win32-ia32'
+21 silly reify ]
+22 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/win32-arm64
+23 silly reify mark deleted [
+23 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/win32-arm64'
+23 silly reify ]
+24 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/sunos-x64
+25 silly reify mark deleted [
+25 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/sunos-x64'
+25 silly reify ]
+26 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/openharmony-arm64
+27 silly reify mark deleted [
+27 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/openharmony-arm64'
+27 silly reify ]
+28 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/openbsd-x64
+29 silly reify mark deleted [
+29 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/openbsd-x64'
+29 silly reify ]
+30 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/openbsd-arm64
+31 silly reify mark deleted [
+31 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/openbsd-arm64'
+31 silly reify ]
+32 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/netbsd-x64
+33 silly reify mark deleted [
+33 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/netbsd-x64'
+33 silly reify ]
+34 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/netbsd-arm64
+35 silly reify mark deleted [
+35 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/netbsd-arm64'
+35 silly reify ]
+36 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-x64
+37 silly reify mark deleted [
+37 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-x64'
+37 silly reify ]
+38 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-s390x
+39 silly reify mark deleted [
+39 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-s390x'
+39 silly reify ]
+40 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-riscv64
+41 silly reify mark deleted [
+41 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-riscv64'
+41 silly reify ]
+42 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-ppc64
+43 silly reify mark deleted [
+43 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-ppc64'
+43 silly reify ]
+44 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-mips64el
+45 silly reify mark deleted [
+45 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-mips64el'
+45 silly reify ]
+46 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-loong64
+47 silly reify mark deleted [
+47 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-loong64'
+47 silly reify ]
+48 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-ia32
+49 silly reify mark deleted [
+49 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-ia32'
+49 silly reify ]
+50 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-arm64
+51 silly reify mark deleted [
+51 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-arm64'
+51 silly reify ]
+52 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-arm
+53 silly reify mark deleted [
+53 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/linux-arm'
+53 silly reify ]
+54 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/freebsd-x64
+55 silly reify mark deleted [
+55 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/freebsd-x64'
+55 silly reify ]
+56 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/freebsd-arm64
+57 silly reify mark deleted [
+57 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/freebsd-arm64'
+57 silly reify ]
+58 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/darwin-x64
+59 silly reify mark deleted [
+59 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/darwin-x64'
+59 silly reify ]
+60 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/android-x64
+61 silly reify mark deleted [
+61 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/android-x64'
+61 silly reify ]
+62 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/android-arm64
+63 silly reify mark deleted [
+63 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/android-arm64'
+63 silly reify ]
+64 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/android-arm
+65 silly reify mark deleted [
+65 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/android-arm'
+65 silly reify ]
+66 verbose reify failed optional dependency /Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/aix-ppc64
+67 silly reify mark deleted [
+67 silly reify   '/Users/sandorzsolt/Documents/GitHub/spaceface/node_modules/@esbuild/aix-ppc64'
+67 silly reify ]
+68 silly tarball no local data for yocto-queue@https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz. Extracting by manifest.
+69 silly tarball no local data for word-wrap@https://registry.npmjs.org/word-wrap/-/word-wrap-1.2.5.tgz. Extracting by manifest.
+70 silly tarball no local data for which@https://registry.npmjs.org/which/-/which-2.0.2.tgz. Extracting by manifest.
+71 silly tarball no local data for uri-js@https://registry.npmjs.org/uri-js/-/uri-js-4.4.1.tgz. Extracting by manifest.
+72 silly tarball no local data for typescript@https://registry.npmjs.org/typescript/-/typescript-5.9.2.tgz. Extracting by manifest.
+73 silly tarball no local data for type-check@https://registry.npmjs.org/type-check/-/type-check-0.4.0.tgz. Extracting by manifest.
+74 silly tarball no local data for ts-api-utils@https://registry.npmjs.org/ts-api-utils/-/ts-api-utils-2.4.0.tgz. Extracting by manifest.
+75 silly tarball no local data for tinyglobby@https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.15.tgz. Extracting by manifest.
+76 silly tarball no local data for typescript-eslint@https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.56.1.tgz. Extracting by manifest.
+77 silly tarball no local data for strip-json-comments@https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-3.1.1.tgz. Extracting by manifest.
+78 silly tarball no local data for supports-color@https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz. Extracting by manifest.
+79 silly tarball no local data for shebang-regex@https://registry.npmjs.org/shebang-regex/-/shebang-regex-3.0.0.tgz. Extracting by manifest.
+80 silly tarball no local data for shebang-command@https://registry.npmjs.org/shebang-command/-/shebang-command-2.0.0.tgz. Extracting by manifest.
+81 silly tarball no local data for semver@https://registry.npmjs.org/semver/-/semver-7.7.4.tgz. Extracting by manifest.
+82 silly tarball no local data for resolve-from@https://registry.npmjs.org/resolve-from/-/resolve-from-4.0.0.tgz. Extracting by manifest.
+83 silly tarball no local data for punycode@https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz. Extracting by manifest.
+84 silly tarball no local data for path-key@https://registry.npmjs.org/path-key/-/path-key-3.1.1.tgz. Extracting by manifest.
+85 silly tarball no local data for picomatch@https://registry.npmjs.org/picomatch/-/picomatch-4.0.3.tgz. Extracting by manifest.
+86 silly tarball no local data for path-exists@https://registry.npmjs.org/path-exists/-/path-exists-4.0.0.tgz. Extracting by manifest.
+87 silly tarball no local data for prelude-ls@https://registry.npmjs.org/prelude-ls/-/prelude-ls-1.2.1.tgz. Extracting by manifest.
+88 silly tarball no local data for parent-module@https://registry.npmjs.org/parent-module/-/parent-module-1.0.1.tgz. Extracting by manifest.
+89 silly tarball no local data for p-limit@https://registry.npmjs.org/p-limit/-/p-limit-3.1.0.tgz. Extracting by manifest.
+90 silly tarball no local data for p-locate@https://registry.npmjs.org/p-locate/-/p-locate-5.0.0.tgz. Extracting by manifest.
+91 silly tarball no local data for optionator@https://registry.npmjs.org/optionator/-/optionator-0.9.4.tgz. Extracting by manifest.
+92 silly tarball no local data for natural-compare@https://registry.npmjs.org/natural-compare/-/natural-compare-1.4.0.tgz. Extracting by manifest.
+93 silly tarball no local data for ms@https://registry.npmjs.org/ms/-/ms-2.1.3.tgz. Extracting by manifest.
+94 silly tarball no local data for minimatch@https://registry.npmjs.org/minimatch/-/minimatch-3.1.4.tgz. Extracting by manifest.
+95 silly tarball no local data for lodash.merge@https://registry.npmjs.org/lodash.merge/-/lodash.merge-4.6.2.tgz. Extracting by manifest.
+96 silly tarball no local data for json-stable-stringify-without-jsonify@https://registry.npmjs.org/json-stable-stringify-without-jsonify/-/json-stable-stringify-without-jsonify-1.0.1.tgz. Extracting by manifest.
+97 silly tarball no local data for locate-path@https://registry.npmjs.org/locate-path/-/locate-path-6.0.0.tgz. Extracting by manifest.
+98 silly tarball no local data for keyv@https://registry.npmjs.org/keyv/-/keyv-4.5.4.tgz. Extracting by manifest.
+99 silly tarball no local data for levn@https://registry.npmjs.org/levn/-/levn-0.4.1.tgz. Extracting by manifest.
+100 silly tarball no local data for json-schema-traverse@https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz. Extracting by manifest.
+101 silly tarball no local data for json-buffer@https://registry.npmjs.org/json-buffer/-/json-buffer-3.0.1.tgz. Extracting by manifest.
+102 silly tarball no local data for isexe@https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz. Extracting by manifest.
+103 silly tarball no local data for js-yaml@https://registry.npmjs.org/js-yaml/-/js-yaml-4.1.1.tgz. Extracting by manifest.
+104 silly tarball no local data for imurmurhash@https://registry.npmjs.org/imurmurhash/-/imurmurhash-0.1.4.tgz. Extracting by manifest.
+105 silly tarball no local data for is-glob@https://registry.npmjs.org/is-glob/-/is-glob-4.0.3.tgz. Extracting by manifest.
+106 silly tarball no local data for is-extglob@https://registry.npmjs.org/is-extglob/-/is-extglob-2.1.1.tgz. Extracting by manifest.
+107 silly tarball no local data for import-fresh@https://registry.npmjs.org/import-fresh/-/import-fresh-3.3.1.tgz. Extracting by manifest.
+108 silly tarball no local data for globals@https://registry.npmjs.org/globals/-/globals-14.0.0.tgz. Extracting by manifest.
+109 silly tarball no local data for glob-parent@https://registry.npmjs.org/glob-parent/-/glob-parent-6.0.2.tgz. Extracting by manifest.
+110 silly tarball no local data for ignore@https://registry.npmjs.org/ignore/-/ignore-5.3.2.tgz. Extracting by manifest.
+111 silly tarball no local data for has-flag@https://registry.npmjs.org/has-flag/-/has-flag-4.0.0.tgz. Extracting by manifest.
+112 silly tarball no local data for flatted@https://registry.npmjs.org/flatted/-/flatted-3.3.3.tgz. Extracting by manifest.
+113 silly tarball no local data for flat-cache@https://registry.npmjs.org/flat-cache/-/flat-cache-4.0.1.tgz. Extracting by manifest.
+114 silly tarball no local data for find-up@https://registry.npmjs.org/find-up/-/find-up-5.0.0.tgz. Extracting by manifest.
+115 silly tarball no local data for file-entry-cache@https://registry.npmjs.org/file-entry-cache/-/file-entry-cache-8.0.0.tgz. Extracting by manifest.
+116 silly tarball no local data for fast-deep-equal@https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz. Extracting by manifest.
+117 silly tarball no local data for fdir@https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz. Extracting by manifest.
+118 silly tarball no local data for fast-levenshtein@https://registry.npmjs.org/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz. Extracting by manifest.
+119 silly tarball no local data for fast-json-stable-stringify@https://registry.npmjs.org/fast-json-stable-stringify/-/fast-json-stable-stringify-2.1.0.tgz. Extracting by manifest.
+120 silly tarball no local data for esutils@https://registry.npmjs.org/esutils/-/esutils-2.0.3.tgz. Extracting by manifest.
+121 silly tarball no local data for estraverse@https://registry.npmjs.org/estraverse/-/estraverse-5.3.0.tgz. Extracting by manifest.
+122 silly tarball no local data for esquery@https://registry.npmjs.org/esquery/-/esquery-1.7.0.tgz. Extracting by manifest.
+123 silly tarball no local data for esrecurse@https://registry.npmjs.org/esrecurse/-/esrecurse-4.3.0.tgz. Extracting by manifest.
+124 silly tarball no local data for eslint-visitor-keys@https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-4.2.1.tgz. Extracting by manifest.
+125 silly tarball no local data for espree@https://registry.npmjs.org/espree/-/espree-10.4.0.tgz. Extracting by manifest.
+126 silly tarball no local data for eslint@https://registry.npmjs.org/eslint/-/eslint-9.39.3.tgz. Extracting by manifest.
+127 silly tarball no local data for eslint-scope@https://registry.npmjs.org/eslint-scope/-/eslint-scope-8.4.0.tgz. Extracting by manifest.
+128 silly tarball no local data for esbuild@https://registry.npmjs.org/esbuild/-/esbuild-0.27.2.tgz. Extracting by manifest.
+129 silly tarball no local data for escape-string-regexp@https://registry.npmjs.org/escape-string-regexp/-/escape-string-regexp-4.0.0.tgz. Extracting by manifest.
+130 silly tarball no local data for deep-is@https://registry.npmjs.org/deep-is/-/deep-is-0.1.4.tgz. Extracting by manifest.
+131 silly tarball no local data for debug@https://registry.npmjs.org/debug/-/debug-4.4.3.tgz. Extracting by manifest.
+132 silly tarball no local data for color-name@https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz. Extracting by manifest.
+133 silly tarball no local data for concat-map@https://registry.npmjs.org/concat-map/-/concat-map-0.0.1.tgz. Extracting by manifest.
+134 silly tarball no local data for cross-env@https://registry.npmjs.org/cross-env/-/cross-env-7.0.3.tgz. Extracting by manifest.
+135 silly tarball no local data for cross-spawn@https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz. Extracting by manifest.
+136 silly tarball no local data for callsites@https://registry.npmjs.org/callsites/-/callsites-3.1.0.tgz. Extracting by manifest.
+137 silly tarball no local data for chalk@https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz. Extracting by manifest.
+138 silly tarball no local data for color-convert@https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz. Extracting by manifest.
+139 silly tarball no local data for brace-expansion@https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.12.tgz. Extracting by manifest.
+140 silly tarball no local data for ansi-styles@https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz. Extracting by manifest.
+141 silly tarball no local data for argparse@https://registry.npmjs.org/argparse/-/argparse-2.0.1.tgz. Extracting by manifest.
+142 silly tarball no local data for balanced-match@https://registry.npmjs.org/balanced-match/-/balanced-match-1.0.2.tgz. Extracting by manifest.
+143 silly tarball no local data for ajv@https://registry.npmjs.org/ajv/-/ajv-6.14.0.tgz. Extracting by manifest.
+144 silly tarball no local data for acorn-jsx@https://registry.npmjs.org/acorn-jsx/-/acorn-jsx-5.3.2.tgz. Extracting by manifest.
+145 silly tarball no local data for acorn@https://registry.npmjs.org/acorn/-/acorn-8.16.0.tgz. Extracting by manifest.
+146 silly tarball no local data for @typescript-eslint/visitor-keys@https://registry.npmjs.org/@typescript-eslint/visitor-keys/-/visitor-keys-8.56.1.tgz. Extracting by manifest.
+147 silly tarball no local data for @typescript-eslint/utils@https://registry.npmjs.org/@typescript-eslint/utils/-/utils-8.56.1.tgz. Extracting by manifest.
+148 silly tarball no local data for @typescript-eslint/type-utils@https://registry.npmjs.org/@typescript-eslint/type-utils/-/type-utils-8.56.1.tgz. Extracting by manifest.
+149 silly tarball no local data for @typescript-eslint/tsconfig-utils@https://registry.npmjs.org/@typescript-eslint/tsconfig-utils/-/tsconfig-utils-8.56.1.tgz. Extracting by manifest.
+150 silly tarball no local data for @typescript-eslint/types@https://registry.npmjs.org/@typescript-eslint/types/-/types-8.56.1.tgz. Extracting by manifest.
+151 silly tarball no local data for @typescript-eslint/scope-manager@https://registry.npmjs.org/@typescript-eslint/scope-manager/-/scope-manager-8.56.1.tgz. Extracting by manifest.
+152 silly tarball no local data for @typescript-eslint/parser@https://registry.npmjs.org/@typescript-eslint/parser/-/parser-8.56.1.tgz. Extracting by manifest.
+153 silly tarball no local data for @typescript-eslint/project-service@https://registry.npmjs.org/@typescript-eslint/project-service/-/project-service-8.56.1.tgz. Extracting by manifest.
+154 silly tarball no local data for @typescript-eslint/eslint-plugin@https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.56.1.tgz. Extracting by manifest.
+155 silly tarball no local data for @humanwhocodes/retry@https://registry.npmjs.org/@humanwhocodes/retry/-/retry-0.4.3.tgz. Extracting by manifest.
+156 silly tarball no local data for @humanwhocodes/module-importer@https://registry.npmjs.org/@humanwhocodes/module-importer/-/module-importer-1.0.1.tgz. Extracting by manifest.
+157 silly tarball no local data for @types/json-schema@https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.15.tgz. Extracting by manifest.
+158 silly tarball no local data for @types/estree@https://registry.npmjs.org/@types/estree/-/estree-1.0.8.tgz. Extracting by manifest.
+159 silly tarball no local data for @humanfs/core@https://registry.npmjs.org/@humanfs/core/-/core-0.19.1.tgz. Extracting by manifest.
+160 silly tarball no local data for @eslint/plugin-kit@https://registry.npmjs.org/@eslint/plugin-kit/-/plugin-kit-0.4.1.tgz. Extracting by manifest.
+161 silly tarball no local data for @humanfs/node@https://registry.npmjs.org/@humanfs/node/-/node-0.16.7.tgz. Extracting by manifest.
+162 silly tarball no local data for @eslint/object-schema@https://registry.npmjs.org/@eslint/object-schema/-/object-schema-2.1.7.tgz. Extracting by manifest.
+163 silly tarball no local data for @eslint/js@https://registry.npmjs.org/@eslint/js/-/js-9.39.3.tgz. Extracting by manifest.
+164 silly tarball no local data for @eslint/eslintrc@https://registry.npmjs.org/@eslint/eslintrc/-/eslintrc-3.3.4.tgz. Extracting by manifest.
+165 silly tarball no local data for @eslint/core@https://registry.npmjs.org/@eslint/core/-/core-0.17.0.tgz. Extracting by manifest.
+166 silly tarball no local data for @eslint/config-helpers@https://registry.npmjs.org/@eslint/config-helpers/-/config-helpers-0.4.2.tgz. Extracting by manifest.
+167 silly tarball no local data for @eslint/config-array@https://registry.npmjs.org/@eslint/config-array/-/config-array-0.21.1.tgz. Extracting by manifest.
+168 silly tarball no local data for @esbuild/darwin-arm64@https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.27.2.tgz. Extracting by manifest.
+169 silly tarball no local data for @eslint-community/eslint-utils@https://registry.npmjs.org/@eslint-community/eslint-utils/-/eslint-utils-4.9.1.tgz. Extracting by manifest.
+170 silly tarball no local data for @eslint-community/regexpp@https://registry.npmjs.org/@eslint-community/regexpp/-/regexpp-4.12.2.tgz. Extracting by manifest.
+171 silly tarball no local data for brace-expansion@https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.3.tgz. Extracting by manifest.
+172 silly tarball no local data for minimatch@https://registry.npmjs.org/minimatch/-/minimatch-10.2.3.tgz. Extracting by manifest.
+173 silly tarball no local data for balanced-match@https://registry.npmjs.org/balanced-match/-/balanced-match-4.0.4.tgz. Extracting by manifest.
+174 silly tarball no local data for ignore@https://registry.npmjs.org/ignore/-/ignore-7.0.5.tgz. Extracting by manifest.
+175 silly tarball no local data for eslint-visitor-keys@https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-3.4.3.tgz. Extracting by manifest.
+176 silly tarball no local data for eslint-visitor-keys@https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-5.0.1.tgz. Extracting by manifest.
+177 silly tarball no local data for @typescript-eslint/typescript-estree@https://registry.npmjs.org/@typescript-eslint/typescript-estree/-/typescript-estree-8.56.1.tgz. Extracting by manifest.

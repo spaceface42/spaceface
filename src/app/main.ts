@@ -58,7 +58,6 @@ async function main(): Promise<void> {
   const activeFeatures = registry.resolve(ctxForResolve);
   await startup.init(activeFeatures);
 
-  bindGlobalSlideControls();
   const routeCoordinator = new RouteCoordinator({
     containerSelector: "[data-route-container]",
     logger: createLogger("router", config.logLevel),
@@ -80,41 +79,6 @@ async function main(): Promise<void> {
 function readModeFromDom(): "dev" | "prod" {
   const value = document.documentElement.getAttribute("data-mode");
   return value === "prod" ? "prod" : "dev";
-}
-
-function bindGlobalSlideControls(): void {
-  document.addEventListener("keydown", (event) => {
-    if (isEditableTarget(event.target)) return;
-    if (event.key === "ArrowRight") {
-      eventBus.emit("slideshow:next", { source: "keyboard" });
-    }
-    if (event.key === "ArrowLeft") {
-      eventBus.emit("slideshow:prev", { source: "keyboard" });
-    }
-  });
-
-  document.addEventListener("click", (event) => {
-    const target = event.target as Element | null;
-    if (!target) return;
-    const next = target.closest("[data-slide-next]");
-    if (next) {
-      eventBus.emit("slideshow:next", { source: "click" });
-      return;
-    }
-    const prev = target.closest("[data-slide-prev]");
-    if (prev) {
-      eventBus.emit("slideshow:prev", { source: "click" });
-    }
-  });
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null;
-  if (!el) return false;
-  if (el instanceof HTMLInputElement) return true;
-  if (el instanceof HTMLTextAreaElement) return true;
-  if (el instanceof HTMLSelectElement) return true;
-  return Boolean(el.closest("[contenteditable='true']"));
 }
 
 function bindLifecycleHooks(

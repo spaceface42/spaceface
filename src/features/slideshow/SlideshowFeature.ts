@@ -4,6 +4,8 @@ import type { UnsubscribeFn } from "../../core/events.js";
 export interface SlideshowFeatureOptions {
   autoplayMs?: number;
   pauseOnScreensaver?: boolean;
+  prevSelector?: string;
+  nextSelector?: string;
 }
 
 export class SlideshowFeature implements Feature {
@@ -18,11 +20,15 @@ export class SlideshowFeature implements Feature {
   private unsubscribePrev?: UnsubscribeFn;
   private unsubscribeScreensaverShown?: UnsubscribeFn;
   private unsubscribeScreensaverHidden?: UnsubscribeFn;
+  private detachPrevClick?: () => void;
+  private detachNextClick?: () => void;
 
   constructor(options: SlideshowFeatureOptions = {}) {
     this.options = {
       autoplayMs: options.autoplayMs ?? 5000,
       pauseOnScreensaver: options.pauseOnScreensaver ?? true,
+      prevSelector: options.prevSelector ?? "[data-slide-prev]",
+      nextSelector: options.nextSelector ?? "[data-slide-next]",
     };
   }
 
@@ -36,6 +42,7 @@ export class SlideshowFeature implements Feature {
     this.slides = Array.from(this.root.querySelectorAll<HTMLElement>("[data-slide]"));
     this.index = 0;
     this.render();
+    this.bindControls();
 
     this.unsubscribeNext = ctx.events.on("slideshow:next", () => this.next());
     this.unsubscribePrev = ctx.events.on("slideshow:prev", () => this.prev());
@@ -67,9 +74,31 @@ export class SlideshowFeature implements Feature {
     this.unsubscribePrev = undefined;
     this.unsubscribeScreensaverShown = undefined;
     this.unsubscribeScreensaverHidden = undefined;
+    this.detachPrevClick?.();
+    this.detachNextClick?.();
+    this.detachPrevClick = undefined;
+    this.detachNextClick = undefined;
     this.root = null;
     this.slides = [];
     this.pausedByScreensaver = false;
+  }
+
+  private bindControls(): void {
+    if (!this.root) return;
+
+    const prevButton = this.root.querySelector<HTMLElement>(this.options.prevSelector);
+    if (prevButton) {
+      const onPrev = () => this.prev();
+      prevButton.addEventListener("click", onPrev);
+      this.detachPrevClick = () => prevButton.removeEventListener("click", onPrev);
+    }
+
+    const nextButton = this.root.querySelector<HTMLElement>(this.options.nextSelector);
+    if (nextButton) {
+      const onNext = () => this.next();
+      nextButton.addEventListener("click", onNext);
+      this.detachNextClick = () => nextButton.removeEventListener("click", onNext);
+    }
   }
 
   private next(): void {
