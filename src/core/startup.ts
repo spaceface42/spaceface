@@ -9,6 +9,7 @@ export class StartupPipeline {
   private readonly logger: Logger;
   private readonly featureInstances: Feature[] = [];
   private ctx: StartupContext;
+  private reconcileInFlight: Promise<void> | null = null;
 
   constructor(config: AppConfig) {
     this.config = config;
@@ -87,6 +88,21 @@ export class StartupPipeline {
   }
 
   async reconcileFeatures(features: Feature[], path: string): Promise<void> {
+    if (this.reconcileInFlight) {
+      await this.reconcileInFlight;
+    }
+
+    const run = this.reconcileFeaturesInternal(features, path);
+    const inFlight = run.finally(() => {
+      if (this.reconcileInFlight === inFlight) {
+        this.reconcileInFlight = null;
+      }
+    });
+    this.reconcileInFlight = inFlight;
+    await inFlight;
+  }
+
+  private async reconcileFeaturesInternal(features: Feature[], path: string): Promise<void> {
     this.ctx.route = path;
     eventBus.emit("route:changed", { path });
 

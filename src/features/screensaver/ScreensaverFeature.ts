@@ -11,6 +11,7 @@ export interface ScreensaverFeatureOptions {
 export class ScreensaverFeature implements Feature {
   readonly name = "screensaver";
   private static readonly FADE_OUT_CLEANUP_MS = 360;
+  private static readonly MOUSEMOVE_THROTTLE_MS = 120;
   private static readonly DEFAULT_TARGET_ATTR = "data-screensaver";
   private static readonly DEFAULT_TARGET_SELECTOR = `[${ScreensaverFeature.DEFAULT_TARGET_ATTR}]`;
 
@@ -18,6 +19,7 @@ export class ScreensaverFeature implements Feature {
   private timer: number | null = null;
   private target: HTMLElement | null = null;
   private onActivityBound: () => void;
+  private onMouseMoveBound: () => void;
   private events?: StartupContext["events"];
   private ctx?: StartupContext;
   private screensaverFloating?: FloatingImagesFeature;
@@ -25,10 +27,12 @@ export class ScreensaverFeature implements Feature {
   private partialLoaded = false;
   private hideCleanupTimer: number | null = null;
   private autoCreatedTarget = false;
+  private lastMouseMoveAt = 0;
 
   constructor(options: ScreensaverFeatureOptions) {
     this.options = options;
     this.onActivityBound = this.onActivity.bind(this);
+    this.onMouseMoveBound = this.onMouseMoveActivity.bind(this);
   }
 
   init(ctx: StartupContext): void {
@@ -43,7 +47,7 @@ export class ScreensaverFeature implements Feature {
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");
 
-    document.addEventListener("mousemove", this.onActivityBound, { passive: true });
+    document.addEventListener("mousemove", this.onMouseMoveBound, { passive: true });
     document.addEventListener("keydown", this.onActivityBound, { passive: true });
     document.addEventListener("pointerdown", this.onActivityBound, { passive: true });
 
@@ -51,7 +55,7 @@ export class ScreensaverFeature implements Feature {
   }
 
   destroy(): void {
-    document.removeEventListener("mousemove", this.onActivityBound);
+    document.removeEventListener("mousemove", this.onMouseMoveBound);
     document.removeEventListener("keydown", this.onActivityBound);
     document.removeEventListener("pointerdown", this.onActivityBound);
     if (this.timer !== null) {
@@ -75,6 +79,50 @@ export class ScreensaverFeature implements Feature {
     this.stopScreensaverFloating();
     this.ctx = undefined;
     this.events = undefined;
+    this.lastMouseMoveAt = 0;
+  }
+
+  onRouteChange(_nextRoute: string, ctx: StartupContext): void {
+    this.ctx = ctx;
+    this.events = ctx.events;
+
+    const previousTarget = this.target;
+    const previousWasAutoCreated = this.autoCreatedTarget;
+    const wasVisible = previousTarget?.classList.contains("is-active") ?? false;
+
+    if (wasVisible) {
+      this.events.emit("screensaver:hidden", { target: this.options.targetSelector ?? ScreensaverFeature.DEFAULT_TARGET_SELECTOR });
+    }
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.hideCleanupTimer !== null) {
+      clearTimeout(this.hideCleanupTimer);
+      this.hideCleanupTimer = null;
+    }
+    this.stopScreensaverFloating();
+    if (previousTarget) {
+      previousTarget.classList.remove("is-active");
+      previousTarget.setAttribute("aria-hidden", "true");
+    }
+
+    this.target = this.resolveOrCreateTarget();
+    if (previousTarget && previousTarget !== this.target && previousWasAutoCreated && previousTarget.isConnected) {
+      previousTarget.remove();
+    }
+    if (!this.target) return;
+
+    this.target.hidden = false;
+    this.target.classList.remove("is-active");
+    this.target.setAttribute("aria-hidden", "true");
+
+    if (previousTarget !== this.target) {
+      this.partialLoaded = false;
+      this.partialLoadPromise = undefined;
+    }
+
+    this.armTimer(ctx);
   }
 
   private onActivity(): void {
@@ -88,6 +136,13 @@ export class ScreensaverFeature implements Feature {
     }
     this.events?.emit("user:active", { at: Date.now() });
     this.armTimer();
+  }
+
+  private onMouseMoveActivity(): void {
+    const now = Date.now();
+    if (now - this.lastMouseMoveAt < ScreensaverFeature.MOUSEMOVE_THROTTLE_MS) return;
+    this.lastMouseMoveAt = now;
+    this.onActivity();
   }
 
   private armTimer(ctx?: StartupContext): void {

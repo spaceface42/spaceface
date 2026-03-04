@@ -5,6 +5,7 @@ export interface RouteSwapContext {
   nextDocument: Document;
   container: Element;
   nextContainer: Element;
+  isCurrentNavigation: () => boolean;
 }
 
 export interface RouteCoordinatorHooks {
@@ -113,11 +114,19 @@ export class RouteCoordinator {
         const nextDocument = document.implementation.createHTMLDocument("");
         const nextContainer = nextDocument.createElement("div");
         nextContainer.innerHTML = cached.html;
-        const swapContext: RouteSwapContext = { url, nextDocument, container, nextContainer };
+        const swapContext: RouteSwapContext = {
+          url,
+          nextDocument,
+          container,
+          nextContainer,
+          isCurrentNavigation: () => token === this.navToken,
+        };
         await this.hooks.onBeforeSwap?.(swapContext);
         if (token !== this.navToken) return;
         this.applyNavigationFromSwapContext(url, swapContext, cached, options);
+        if (token !== this.navToken) return;
         await this.hooks.onAfterSwap?.(swapContext);
+        if (token !== this.navToken) return;
         return;
       }
       this.cacheMisses += 1;
@@ -150,15 +159,23 @@ export class RouteCoordinator {
         return;
       }
 
-      const swapContext: RouteSwapContext = { url, nextDocument, container, nextContainer };
+      const swapContext: RouteSwapContext = {
+        url,
+        nextDocument,
+        container,
+        nextContainer,
+        isCurrentNavigation: () => token === this.navToken,
+      };
       await this.hooks.onBeforeSwap?.(swapContext);
       if (token !== this.navToken) return;
 
       const entry = this.createCacheEntry(nextDocument, nextContainer);
       this.setCache(url.toString(), entry);
       this.applyNavigationFromSwapContext(url, swapContext, entry, options);
+      if (token !== this.navToken) return;
 
       await this.hooks.onAfterSwap?.(swapContext);
+      if (token !== this.navToken) return;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       this.logger.error("route navigation failed", { error, url: url.toString() });

@@ -10,8 +10,6 @@ import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.j
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
 import { FloatingImagesFeature } from "../features/floating-images/FloatingImagesFeature.js";
 
-console.log("MU/TH/UR");
-
 async function main(): Promise<void> {
   const config = resolveConfig({
     mode: readModeFromDom(),
@@ -21,6 +19,7 @@ async function main(): Promise<void> {
   const startup = new StartupPipeline(config);
   const registry = new FeatureRegistry();
   const detachConsoleSink = maybeAttachConsoleSink(config.mode, config.logLevel);
+  const detachEventSink = maybeAttachEventSink(config.mode);
   const detachAnimationMetrics = maybeAttachAnimationMetrics(config.mode);
 
   registry.register(new SlideshowFeature({ autoplayMs: 5000, pauseOnScreensaver: true }), {
@@ -63,19 +62,21 @@ async function main(): Promise<void> {
     containerSelector: "[data-route-container]",
     logger: createLogger("router", config.logLevel),
     hooks: {
-      onAfterSwap: async ({ url }) => {
+      onAfterSwap: async ({ url, isCurrentNavigation }) => {
+        if (!isCurrentNavigation()) return;
         const nextCtx = {
           ...ctxForResolve,
           route: url.pathname,
         };
         const nextFeatures = registry.resolve(nextCtx);
         await startup.reconcileFeatures(nextFeatures, url.pathname);
+        if (!isCurrentNavigation()) return;
         updateNavActiveLink();
       },
     },
   });
   routeCoordinator.start();
-  bindLifecycleHooks(startup, routeCoordinator, detachConsoleSink, detachAnimationMetrics);
+  bindLifecycleHooks(startup, routeCoordinator, detachConsoleSink, detachEventSink, detachAnimationMetrics);
 }
 
 function readModeFromDom(): "dev" | "prod" {
@@ -87,11 +88,13 @@ function bindLifecycleHooks(
   startup: StartupPipeline,
   routeCoordinator: RouteCoordinator,
   detachConsoleSink: (() => void) | undefined,
+  detachEventSink: (() => void) | undefined,
   detachAnimationMetrics: (() => void) | undefined
 ): void {
   window.addEventListener("beforeunload", () => {
     routeCoordinator.destroy();
     detachConsoleSink?.();
+    detachEventSink?.();
     detachAnimationMetrics?.();
     void startup.destroy("beforeunload");
   });
@@ -113,6 +116,16 @@ function maybeAttachConsoleSink(mode: "dev" | "prod", logLevel: "debug" | "info"
   }
 
   return attachConsoleLogSink(logLevel);
+}
+
+function maybeAttachEventSink(mode: "dev" | "prod"): (() => void) | undefined {
+  if (mode !== "dev") return undefined;
+  const attr = document.documentElement.getAttribute("data-event-log");
+  if (attr !== "on") return undefined;
+
+  return eventBus.onAny((eventName, payload) => {
+    console.log("[event]", eventName, payload);
+  });
 }
 
 function maybeAttachAnimationMetrics(mode: "dev" | "prod"): (() => void) | undefined {
