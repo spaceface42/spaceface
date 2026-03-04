@@ -1,17 +1,16 @@
 # Copilot Instructions for Spaceface
 
-This repository currently has two code lines:
+This repository has one active code line:
 
-1. Active app source: `src/` (new architecture).
-2. Archived legacy app: `oldworld/src/` with legacy assets in `oldworld/docs.src/` and `oldworld/docs/`.
+1. Active app source: `src/`.
 
 ## Active Architecture
 
 - `src/core/*`: startup pipeline, router, event bus, logger, config, shared animation scheduler.
 - `src/features/*`: lifecycle-managed feature controllers.
 - `src/app/main.ts`: composition root.
-- `docs/demo/*`: demo pages.
-- `docs/scripts/smoke-check.mjs`: smoke verification script.
+- `public.src/*`: source demo pages/assets.
+- `bin/smoke-check.mjs`: smoke verification script.
 
 ## Build and Verify
 
@@ -22,16 +21,8 @@ This repository currently has two code lines:
 
 Compatibility aliases may still exist under `*newworlddream*` names.
 
-## Legacy Build
-
-- Legacy prod pjax build: `npm run build:old:prod:pjax`
-- Legacy prod build: `npm run build:old:prod`
-
-Legacy outputs are generated in `oldworld/docs/`.
-
 ## Conventions
 
 - Keep root `src/` as source of truth for active development.
-- Do not add new feature work under `oldworld/` unless explicitly requested.
-- Keep generated output (`docs/dist/`, `oldworld/docs/`) out of source edits.
+- Keep generated output (`docs/dist/`) out of source edits.
 - Prefer event-driven logging (`logger -> event bus -> sink`) over direct console writes in feature code.

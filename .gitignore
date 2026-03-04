@@ -3,12 +3,6 @@
 /node_modules/
 /.npm-cache/
 
-# Legacy oldworld build outputs (generated)
-/oldworld/docs/**
-/oldworld/docs.src/spaceface/**/*.js
-/oldworld/docs.src/spaceface/**/*.js.map
-/oldworld/docs.src/spaceface/**/*.d.ts
-
 # generated site output
 /docs/**
 /public/**

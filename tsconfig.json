@@ -14,5 +14,5 @@
         "noEmit": true
     },
     "include": ["src/**/*"],
-    "exclude": ["docs/**/*", "oldworld/**/*", "node_modules/**/*"]
+    "exclude": ["docs/**/*", "node_modules/**/*"]
 }

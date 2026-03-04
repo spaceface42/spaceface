@@ -22,8 +22,6 @@
         "build:docs:prod": "npm run build:prod",
         "build:newworlddream": "npm run build:docs",
         "build:newworlddream:prod": "npm run build:docs:prod",
-        "build:old:prod:pjax": "cross-env ENTRY=./oldworld/src/app/main.pjax.ts node ./oldworld/bin/build.js && cross-env HTML_IN_DIR=./oldworld/docs.src HTML_OUT_DIR=./oldworld/docs node ./oldworld/bin/build-html.js",
-        "build:old:prod": "cross-env ENTRY=./oldworld/src/app/main.prod.ts node ./oldworld/bin/build.js && cross-env HTML_IN_DIR=./oldworld/docs.src HTML_OUT_DIR=./oldworld/docs node ./oldworld/bin/build-html.js",
         "typecheck:docs": "tsc -p ./tsconfig.json --noEmit",
         "typecheck:newworlddream": "npm run typecheck:docs",
         "smoke:docs": "node ./bin/smoke-check.mjs",
@@ -37,7 +35,6 @@
         "serve:newworlddream": "npm run serve:docs",
         "demo:docs": "npm run build:dev && npm run serve:docs",
         "demo:newworlddream": "npm run demo:docs",
-        "build:old:html": "cross-env HTML_IN_DIR=./oldworld/docs.src HTML_OUT_DIR=./oldworld/docs node ./oldworld/bin/build-html.js",
         "typecheck": "tsc --noEmit",
         "lint": "node ./bin/lint.mjs",
         "lint:fix": "node ./bin/lint.mjs --fix"
