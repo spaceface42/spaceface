@@ -3,7 +3,8 @@
 Source of truth:
 
 - `public.src/index.html`
-- `public.src/resources/spacesuit/styles.css`
+- `public.src/resources/spacesuit/features.css`
+- `public.src/resources/spacesuit/styles.css` (base/layout only)
 - `src/features/floating-images/FloatingImagesFeature.ts`
 
 ## Markup Contract
@@ -27,7 +28,7 @@ Default selectors from code:
         Lifecycle-managed animation that deactivates when route swap removes
         this container.
     </p>
-    <div data-floating-images class="floating-images-container">
+    <div data-floating-images>
         <img
             data-floating-item
             src="./content/floatingimages/a.svg"
@@ -111,3 +112,17 @@ Default selectors from code:
 - Feature sets each item to `position: absolute` at runtime.
 - If container is `position: static`, feature promotes it to `position: relative`.
 - Hover behavior is configured in TypeScript options (`none`, `slow`, `pause`).
+
+## Recent Changes
+
+- Created dedicated feature stylesheet: `public.src/resources/spacesuit/features.css`.
+- Moved feature-specific CSS out of `styles.css` into `features.css`:
+  - Slideshow rules
+  - SlidePlayer rules
+  - Floating Images rules
+  - Screensaver rules
+- `styles.css` now holds shared/base page styles only.
+- Pages now load `features.css` explicitly:
+  - `public.src/index.html`
+  - `public.src/slideplayer.html`
+- Removed inline screensaver `<style>` from `public.src/resources/screensaver/index.html`; styling now comes from `features.css`.

@@ -57,6 +57,7 @@ async function main(): Promise<void> {
 
   const activeFeatures = registry.resolve(ctxForResolve);
   await startup.init(activeFeatures);
+  updateNavActiveLink();
 
   const routeCoordinator = new RouteCoordinator({
     containerSelector: "[data-route-container]",
@@ -69,6 +70,7 @@ async function main(): Promise<void> {
         };
         const nextFeatures = registry.resolve(nextCtx);
         await startup.reconcileFeatures(nextFeatures, url.pathname);
+        updateNavActiveLink();
       },
     },
   });
@@ -124,6 +126,17 @@ function maybeAttachAnimationMetrics(mode: "dev" | "prod"): (() => void) | undef
   }, 2000);
 
   return () => window.clearInterval(timer);
+}
+
+function updateNavActiveLink(): void {
+  const page = document.body.getAttribute("data-page");
+  const links = Array.from(document.querySelectorAll<HTMLElement>("[data-nav-link]"));
+  for (const link of links) {
+    link.removeAttribute("aria-current");
+  }
+  if (!page) return;
+  const active = document.querySelector<HTMLElement>(`[data-nav-link="${page}"]`);
+  active?.setAttribute("aria-current", "page");
 }
 
 void main();
