@@ -83,6 +83,24 @@ export class SlideshowFeature implements Feature {
     this.pausedByScreensaver = false;
   }
 
+  onRouteChange(_nextRoute: string, ctx: StartupContext): void {
+    const nextRoot = document.querySelector<HTMLElement>("[data-slideshow]");
+    if (!nextRoot) {
+      if (this.root || this.slides.length > 0) this.destroy();
+      return;
+    }
+
+    if (!this.root) {
+      this.init(ctx);
+      return;
+    }
+
+    if (this.root !== nextRoot) {
+      this.destroy();
+      this.init(ctx);
+    }
+  }
+
   private bindControls(): void {
     if (!this.root) return;
 

@@ -150,3 +150,39 @@ Default selectors from code:
 --color-bronze-muted: #b99a7a;
 --color-black: #111111;
 }
+
+## Src System Check - 2026-03-04
+
+Scope checked:
+- `src/app/*`
+- `src/core/*`
+- `src/features/*`
+
+Validation commands run:
+- `npm run typecheck:docs` -> PASS
+- `npm run build:dev` -> PASS
+- `npm run smoke:docs` -> PASS after build
+- `npm run lint` -> BLOCKED in current environment (`spawnSync ... eslint.cmd EINVAL`)
+
+Observed transient state:
+- `smoke:docs` failed before rebuild because generated file `docs/slideplayer.html` was missing.
+- This is generated output state, not a `src` authored-code defect.
+
+Primary finding (high severity):
+- `SlideshowFeature` has no `onRouteChange` handler, while route swaps keep feature instances by identity when names match.
+- Result: when both old and new routes include `[data-slideshow]`, the same slideshow instance can keep stale DOM references (`root`, `slides`, listeners/timer) after PJAX container swap.
+
+Key references:
+- `src/features/slideshow/SlideshowFeature.ts`
+- `src/core/startup.ts` (`reconcileFeaturesInternal` keeps same instance when feature object identity is unchanged)
+- `src/app/main.ts` (single `SlideshowFeature` instance registered once and reused)
+
+Recommended fix:
+- Add `onRouteChange` to `SlideshowFeature` mirroring `SlidePlayerFeature` / `FloatingImagesFeature` pattern:
+  - if no slideshow root on new route: destroy when active
+  - if root changed: destroy + init
+  - if root same and active: keep
+
+Risk if left unfixed:
+- autoplay/events can target detached elements after route swap
+- controls can become inconsistent on pages that preserve slideshow selector across routes
