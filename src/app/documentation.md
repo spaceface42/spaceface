@@ -116,5 +116,3 @@ All `data-*` attributes currently used by runtime code and feature markup:
   - Screensaver floating item.
 - `data-screensaver-partial`
   - Internal mount for loaded screensaver partial content.
-- `data-screensaver-host-id`
-  - Internal generated attribute used to scope screensaver floating selectors.

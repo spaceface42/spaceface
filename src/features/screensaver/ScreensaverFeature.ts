@@ -13,7 +13,6 @@ export class ScreensaverFeature implements Feature {
   private static readonly FADE_OUT_CLEANUP_MS = 360;
   private static readonly DEFAULT_TARGET_ATTR = "data-screensaver";
   private static readonly DEFAULT_TARGET_SELECTOR = `[${ScreensaverFeature.DEFAULT_TARGET_ATTR}]`;
-  private static readonly HOST_ID_ATTR = "data-screensaver-host-id";
 
   private readonly options: ScreensaverFeatureOptions;
   private timer: number | null = null;
@@ -26,7 +25,6 @@ export class ScreensaverFeature implements Feature {
   private partialLoaded = false;
   private hideCleanupTimer: number | null = null;
   private autoCreatedTarget = false;
-  private hostId: string | null = null;
 
   constructor(options: ScreensaverFeatureOptions) {
     this.options = options;
@@ -151,8 +149,6 @@ export class ScreensaverFeature implements Feature {
 
   private startScreensaverFloating(): void {
     if (!this.target || !this.ctx) return;
-    this.hostId = this.ensureHostId(this.target);
-    if (!this.hostId) return;
     const floatingRoot = this.ensureFloatingRoot(this.target);
     if (!floatingRoot) return;
     floatingRoot.style.opacity = "0";
@@ -163,8 +159,8 @@ export class ScreensaverFeature implements Feature {
     }
 
     this.screensaverFloating = new FloatingImagesFeature({
-      containerSelector: `[${ScreensaverFeature.HOST_ID_ATTR}="${this.hostId}"] [data-screensaver-floating]`,
-      itemSelector: `[${ScreensaverFeature.HOST_ID_ATTR}="${this.hostId}"] [data-screensaver-floating-item]`,
+      containerSelector: `[data-screensaver] [data-screensaver-floating]`,
+      itemSelector: `[data-screensaver] [data-screensaver-floating-item]`,
       baseSpeed: 30,
       pauseOnScreensaver: false,
       hoverBehavior: "none",
@@ -277,13 +273,5 @@ export class ScreensaverFeature implements Feature {
     document.body.appendChild(el);
     this.autoCreatedTarget = true;
     return el;
-  }
-
-  private ensureHostId(target: HTMLElement): string | null {
-    const existing = target.getAttribute(ScreensaverFeature.HOST_ID_ATTR);
-    if (existing) return existing;
-    const value = `screensaver-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    target.setAttribute(ScreensaverFeature.HOST_ID_ATTR, value);
-    return value;
   }
 }
