@@ -38,6 +38,8 @@ These are also read from `<html>` at runtime:
 
 - `data-animation-metrics`
   - `on` -> logs animation scheduler stats periodically (dev mode only)
+- `data-event-log`
+  - `on` -> logs every event bus emission to console (dev mode only)
 
 ## Body/Page Attribute
 
@@ -71,6 +73,8 @@ All `data-*` attributes currently used by runtime code and feature markup:
   - Optional on `<html>`; console sink behavior.
 - `data-animation-metrics`
   - Optional on `<html>`; periodic animation metric logging in dev mode.
+- `data-event-log`
+  - Optional on `<html>`; enables `eventBus.onAny(...)` console logging in dev mode.
 - `data-page`
   - On `<body>`; page identity/style variant marker.
 - `data-route-container`
@@ -116,3 +120,8 @@ All `data-*` attributes currently used by runtime code and feature markup:
   - Screensaver floating item.
 - `data-screensaver-partial`
   - Internal mount for loaded screensaver partial content.
+
+## Event Bus Tap
+
+- The app event bus supports `onAny((eventName, payload) => ...)` and `onceAny(...)`.
+- In dev mode, set `data-event-log="on"` on `<html>` to enable a built-in console sink for all events.

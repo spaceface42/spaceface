@@ -41,6 +41,8 @@ if (failures.length === 0) {
   assertContains(bundle, 'screensaver:hidden', 'bundle should contain screensaver hidden event wiring');
   assertContains(bundle, 'AnimationScheduler', 'bundle should include animation scheduler');
   assertContains(bundle, 'dataset.router', 'bundle should include router opt-out support');
+  assertContains(bundle, 'isCurrentNavigation', 'bundle should include stale-navigation guard hook context');
+  assertContains(bundle, 'reconcileInFlight', 'bundle should include serialized route reconcile guard');
 
   if (bundleSize <= 0) {
     failures.push('bundle size must be > 0');
