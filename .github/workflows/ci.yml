@@ -29,6 +29,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check Partial Asset Paths
+        run: npm run check:partial-paths
+
       - name: Build (prod)
         run: npm run build:prod
 

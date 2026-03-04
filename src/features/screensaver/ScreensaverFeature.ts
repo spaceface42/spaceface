@@ -125,12 +125,14 @@ export class ScreensaverFeature implements Feature {
     }
 
     const logger = this.ctx?.logger;
+    const partialBaseUrl = new URL(this.options.partialUrl ?? "", window.location.href);
     this.partialLoadPromise = (async () => {
       try {
         const html = await loadPartialHtml(this.options.partialUrl ?? "", { cache: true });
         if (!this.target) return;
         const mount = this.getOrCreatePartialMount(this.target);
         mount.innerHTML = html;
+        this.normalizePartialAssetUrls(mount, partialBaseUrl);
         this.normalizeScreensaverMarkup(mount);
         this.partialLoaded = true;
         logger?.info("screensaver partial loaded", { partialUrl: this.options.partialUrl });
@@ -238,6 +240,16 @@ export class ScreensaverFeature implements Feature {
     const nodes = floatingRoot.querySelectorAll<HTMLElement>("[data-screensaver-floating-item], [data-floating-item], .floating-image");
     nodes.forEach((node) => {
       node.setAttribute("data-screensaver-floating-item", "true");
+    });
+  }
+
+  private normalizePartialAssetUrls(root: HTMLElement, baseUrl: URL): void {
+    const images = root.querySelectorAll<HTMLImageElement>("img[src]");
+    images.forEach((image) => {
+      const src = image.getAttribute("src");
+      if (!src) return;
+      if (/^(?:[a-z]+:|\/\/|#|data:)/i.test(src)) return;
+      image.src = new URL(src, baseUrl).toString();
     });
   }
 
