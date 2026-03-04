@@ -1,6 +1,7 @@
 .DS_Store
 
 /node_modules/
+/.npm-cache/
 
 # Legacy oldworld build outputs (generated)
 /oldworld/docs/**
