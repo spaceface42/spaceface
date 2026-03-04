@@ -1,8 +1,12 @@
+import { PerformanceMonitor, type PerformanceLevel } from "./performance.js";
+
 export interface AnimationFrameContext {
   now: number;
   deltaMs: number;
   frame: number;
   overloaded: boolean;
+  fps: number;
+  performanceLevel: PerformanceLevel;
 }
 
 export interface AnimationSchedulerStats {
@@ -14,6 +18,8 @@ export interface AnimationSchedulerStats {
   reducedMotion: boolean;
   averageDeltaMs: number;
   overloadFrames: number;
+  fps: number;
+  performanceLevel: PerformanceLevel;
 }
 
 export type AnimationCallback = (ctx: AnimationFrameContext) => void;
@@ -29,6 +35,7 @@ export class AnimationScheduler {
   private readonly overloadThresholdMs: number;
   private averageDeltaMs = 16.7;
   private overloadFrames = 0;
+  private readonly performanceMonitor = new PerformanceMonitor();
 
   constructor(overloadThresholdMs = 24) {
     this.overloadThresholdMs = overloadThresholdMs;
@@ -56,6 +63,7 @@ export class AnimationScheduler {
   }
 
   getStats(): AnimationSchedulerStats {
+    const performance = this.performanceMonitor.getSnapshot();
     return {
       callbacks: this.callbacks.size,
       frame: this.frame,
@@ -65,6 +73,8 @@ export class AnimationScheduler {
       reducedMotion: this.reducedMotion,
       averageDeltaMs: Number(this.averageDeltaMs.toFixed(2)),
       overloadFrames: this.overloadFrames,
+      fps: performance.fps,
+      performanceLevel: performance.level,
     };
   }
 
@@ -73,6 +83,7 @@ export class AnimationScheduler {
     if (this.callbacks.size === 0) return;
     if (this.isPaused()) return;
     this.lastNow = performance.now();
+    this.performanceMonitor.reset(this.lastNow);
     this.rafId = window.requestAnimationFrame(this.onFrame);
   }
 
@@ -94,11 +105,14 @@ export class AnimationScheduler {
     const overloaded = deltaMs > this.overloadThresholdMs;
     this.averageDeltaMs = this.averageDeltaMs * 0.9 + deltaMs * 0.1;
     if (overloaded) this.overloadFrames += 1;
+    const performance = this.performanceMonitor.update(now);
     const ctx: AnimationFrameContext = {
       now,
       deltaMs,
       frame: this.frame,
       overloaded,
+      fps: performance.fps,
+      performanceLevel: performance.level,
     };
 
     for (const callback of this.callbacks) {
