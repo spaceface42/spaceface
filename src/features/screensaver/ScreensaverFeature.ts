@@ -23,6 +23,7 @@ export class ScreensaverFeature implements Feature {
   private events?: StartupContext["events"];
   private ctx?: StartupContext;
   private screensaverFloating?: FloatingImagesFeature;
+  private screensaverFloatingStarting = false;
   private partialLoadPromise?: Promise<void>;
   private partialLoaded = false;
   private hideCleanupTimer: number | null = null;
@@ -206,34 +207,37 @@ export class ScreensaverFeature implements Feature {
     if (!this.target || !this.ctx) return;
     const floatingRoot = this.ensureFloatingRoot(this.target);
     if (!floatingRoot) return;
+    if (this.screensaverFloating || this.screensaverFloatingStarting) return;
+
+    this.screensaverFloatingStarting = true;
     floatingRoot.style.opacity = "0";
-
-    if (this.screensaverFloating) {
-      this.screensaverFloating.destroy();
-      this.screensaverFloating = undefined;
-    }
-
-    this.screensaverFloating = new FloatingImagesFeature({
+    const floating = new FloatingImagesFeature({
       containerSelector: `[data-screensaver] [data-screensaver-floating]`,
       itemSelector: `[data-screensaver] [data-screensaver-floating-item]`,
       baseSpeed: 30,
       pauseOnScreensaver: false,
       hoverBehavior: "none",
     });
-    this.screensaverFloating
+    this.screensaverFloating = floating;
+    floating
       .init(this.ctx)
       .catch(() => {
+        if (this.screensaverFloating === floating) {
+          this.screensaverFloating = undefined;
+        }
         // Keep screensaver visible even if floating init fails.
       })
       .finally(() => {
+        this.screensaverFloatingStarting = false;
         // Reveal after first placement pass to avoid one-frame flash at origin/layout positions.
-        if (this.target && this.target.contains(floatingRoot)) {
+        if (this.target && this.target.contains(floatingRoot) && this.screensaverFloating === floating) {
           floatingRoot.style.opacity = "1";
         }
       });
   }
 
   private stopScreensaverFloating(): void {
+    this.screensaverFloatingStarting = false;
     this.screensaverFloating?.destroy();
     this.screensaverFloating = undefined;
     if (this.target) {

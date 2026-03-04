@@ -107,7 +107,7 @@ export class RouteCoordinator {
         if (token !== this.navToken) return;
         const container = document.querySelector(this.containerSelector);
         if (!container) {
-          window.location.href = url.toString();
+          this.fallbackToDocumentNavigation(url, options);
           return;
         }
 
@@ -155,7 +155,7 @@ export class RouteCoordinator {
       const container = document.querySelector(this.containerSelector);
       const nextContainer = nextDocument.querySelector(this.containerSelector);
       if (!container || !nextContainer) {
-        window.location.href = url.toString();
+        this.fallbackToDocumentNavigation(url, options);
         return;
       }
 
@@ -180,12 +180,21 @@ export class RouteCoordinator {
       if (error instanceof DOMException && error.name === "AbortError") return;
       this.logger.error("route navigation failed", { error, url: url.toString() });
       this.hooks.onError?.(error, url);
-      window.location.href = url.toString();
+      this.fallbackToDocumentNavigation(url, options);
     } finally {
       if (this.currentAbort === controller) {
         this.currentAbort = undefined;
       }
     }
+  }
+
+  private fallbackToDocumentNavigation(url: URL, options: { replace?: boolean; fromPopState?: boolean }): void {
+    // During browser back/forward, avoid writing a new history entry, otherwise forward chain can be lost.
+    if (options.fromPopState) {
+      window.location.replace(url.toString());
+      return;
+    }
+    window.location.href = url.toString();
   }
 
   private readonly onDocumentClick = (event: MouseEvent): void => {
