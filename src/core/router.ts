@@ -97,6 +97,8 @@ export class RouteCoordinator {
     const controller = new AbortController();
     this.currentAbort = controller;
 
+    this.cacheCurrentPage();
+
     try {
       const cacheKey = this.toCacheKey(url);
       const cached = this.pageCache.get(cacheKey);
