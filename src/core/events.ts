@@ -31,8 +31,12 @@ interface AnyListener<TEvents extends object> {
   priority: number;
 }
 
+type ListenerStore<T> = {
+  [K in keyof T]?: Listener<T[K]>[];
+};
+
 export class EventBus<TEvents extends object> {
-  private listeners = new Map<string, Listener<unknown>[]>();
+  private listeners: ListenerStore<TEvents> = {};
   private anyListeners: Array<AnyListener<TEvents>> = [];
 
   on<K extends keyof TEvents & string>(
@@ -40,13 +44,13 @@ export class EventBus<TEvents extends object> {
     fn: (payload: TEvents[K]) => void | Promise<void>,
     priority = 0
   ): UnsubscribeFn {
-    const list = this.listeners.get(event) ?? [];
+    const list = this.listeners[event] ?? [];
     const listener: Listener<TEvents[K]> = { fn, priority };
 
     let i = list.length;
     while (i > 0 && list[i - 1].priority < priority) i -= 1;
-    list.splice(i, 0, listener as Listener<unknown>);
-    this.listeners.set(event, list);
+    list.splice(i, 0, listener);
+    this.listeners[event] = list;
 
     return () => this.off(event, fn);
   }
@@ -86,12 +90,9 @@ export class EventBus<TEvents extends object> {
   }
 
   off<K extends keyof TEvents & string>(event: K, fn: (payload: TEvents[K]) => void | Promise<void>): void {
-    const list = this.listeners.get(event);
+    const list = this.listeners[event];
     if (!list) return;
-    this.listeners.set(
-      event,
-      list.filter((listener) => listener.fn !== fn)
-    );
+    this.listeners[event] = list.filter((listener) => listener.fn !== fn);
   }
 
   offAny(fn: <K extends keyof TEvents & string>(event: K, payload: TEvents[K]) => void | Promise<void>): void {
@@ -106,7 +107,7 @@ export class EventBus<TEvents extends object> {
   }
 
   emit<K extends keyof TEvents & string>(event: K, payload: TEvents[K]): void {
-    const list = [...(this.listeners.get(event) ?? [])] as Array<Listener<TEvents[K]>>;
+    const list = [...(this.listeners[event] ?? [])];
     const anyList = [...this.anyListeners];
     for (const listener of list) {
       try {
@@ -125,7 +126,7 @@ export class EventBus<TEvents extends object> {
   }
 
   async emitAsync<K extends keyof TEvents & string>(event: K, payload: TEvents[K]): Promise<void> {
-    const list = [...(this.listeners.get(event) ?? [])] as Array<Listener<TEvents[K]>>;
+    const list = [...(this.listeners[event] ?? [])];
     const anyList = [...this.anyListeners];
     for (const listener of list) {
       try {

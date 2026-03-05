@@ -19,6 +19,5 @@ Currently, features are completely isolated. If `Feature A` needs to talk to `Fe
 There is some fairly complex physics math statically hiding in the UI layer (for example, the bounding box collision, jitter, and Gaussian distribution in `FloatingImagesFeature.ts`).
 * **The Evolution:** As more complex interactive features are added, pure math and logic functions should be extracted into a `mathUtils.ts` module and paired with a fast unit test runner (like `Vitest`). This ensures edge cases in the physics/UI generation algorithms are caught immediately before hitting the browser.
 
-## 5. Fully Type-Safe Event Bus
-The current `EventBus` has a great `AppEventMap` interface that provides autocomplete for payload types at the consumer level.
-* **The Evolution:** The `EventBus` class itself has a few `any` and `unknown` casts internally to manage the generic listener maps. While it works perfectly now, as TypeScript features evolve, the internal `Map` should be refactored to be completely type-safe without relying on explicit type assertions.
+## 5. Fully Type-Safe Event Bus (IMPLEMENTED)
+*(Implemented in v2.0.4. The `EventBus` now successfully uses mapped Types via `ListenerStore<T>` instead of raw `Map<string, unknown>`, making it 100% type-safe under the hood without the need for `as ...` type-casting.)*
