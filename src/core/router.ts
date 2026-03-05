@@ -42,6 +42,7 @@ export class RouteCoordinator {
   private readonly hooks: RouteCoordinatorHooks;
   private readonly cacheSize: number;
   private pageCache = new Map<string, CachedPageEntry>();
+  private prefetches = new Set<string>();
   private cacheHits = 0;
   private cacheMisses = 0;
   private currentAbort?: AbortController;
@@ -60,13 +61,15 @@ export class RouteCoordinator {
     this.started = true;
     this.cacheCurrentPage();
     document.addEventListener("click", this.onDocumentClick);
+    document.addEventListener("pointerenter", this.onPointerEnter, { capture: true, passive: true });
     window.addEventListener("popstate", this.onPopState);
   }
 
   destroy(): void {
     if (!this.started) return;
-    this.started = false;
+    this.started = true;
     document.removeEventListener("click", this.onDocumentClick);
+    document.removeEventListener("pointerenter", this.onPointerEnter, { capture: true });
     window.removeEventListener("popstate", this.onPopState);
     this.currentAbort?.abort();
     this.currentAbort = undefined;
@@ -240,6 +243,68 @@ export class RouteCoordinator {
     event.preventDefault();
     void this.navigate(url.toString());
   };
+
+  private readonly onPointerEnter = (event: PointerEvent): void => {
+    if (event.pointerType === "mouse" && event.buttons !== 0) return;
+    const target = event.target as Element | null;
+    const anchor = target?.closest("a[href]") as HTMLAnchorElement | null;
+    if (!anchor) return;
+
+    const href = anchor.getAttribute("href");
+    if (!href) return;
+
+    if (anchor.target && anchor.target !== "_self") return;
+    if (anchor.dataset.router === "off") return;
+    if (anchor.hasAttribute("download")) return;
+    if (href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
+
+    const url = new URL(href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+    if (url.pathname === window.location.pathname && url.search === window.location.search) {
+      return;
+    }
+
+    void this.prefetch(url);
+  };
+
+  private async prefetch(url: URL): Promise<void> {
+    const cacheKey = this.toCacheKey(url);
+    if (this.pageCache.has(cacheKey)) return;
+    if (this.prefetches.has(cacheKey)) return;
+
+    this.prefetches.add(cacheKey);
+
+    try {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), 10000); // 10s prefetch timeout
+
+      const response = await fetch(url.toString(), {
+        signal: controller.signal,
+        headers: { Accept: "text/html", "X-Prefetch": "true" },
+        priority: "low",
+      });
+      window.clearTimeout(timer);
+
+      if (!response.ok) return;
+
+      const html = await response.text();
+      const parser = new DOMParser();
+      const nextDocument = parser.parseFromString(html, "text/html");
+
+      const nextContainer = nextDocument.querySelector(this.containerSelector);
+      if (!nextContainer) return;
+
+      const entry = this.createCacheEntry(nextDocument, nextContainer);
+      this.setCache(cacheKey, entry);
+
+      this.logger.debug("route prefetched", { url: cacheKey });
+    } catch {
+      // Silently swallow prefetch errors (network issues, aborts, etc)
+      // If prefetch fails, the eventual click will simply trigger a normal navigate fetch.
+    } finally {
+      this.prefetches.delete(cacheKey);
+    }
+  }
 
   private readonly onPopState = (): void => {
     void this.navigate(window.location.href, { fromPopState: true, replace: true });
