@@ -246,8 +246,9 @@ export class RouteCoordinator {
 
   private readonly onPointerEnter = (event: PointerEvent): void => {
     if (event.pointerType === "mouse" && event.buttons !== 0) return;
-    const target = event.target as Element | null;
-    const anchor = target?.closest("a[href]") as HTMLAnchorElement | null;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
     if (!anchor) return;
 
     const href = anchor.getAttribute("href");
