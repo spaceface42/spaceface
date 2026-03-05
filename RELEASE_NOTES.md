@@ -2,7 +2,7 @@
 
 ## 2026-03-05
 
-### Architectural Edge-Case Resolutions (v2.0.1-rc)
+### Architectural Edge-Case Resolutions (v2.0.2)
 
 - **Floating Images Bounds**: Fixed a severe mathematical collision where the container shrinking smaller than the images would cause the boundaries to trap images in an infinite oscillation/jitter loop.
 - **SEO Route Meta Persistence**: `RouteCoordinator`'s string-cache now explicitly preserves and restores `<meta>` tags and OpenGraph data per-page during PJAX navigation, rather than just `document.title`.
