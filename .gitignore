@@ -6,3 +6,5 @@
 # generated site output
 /docs/**
 /public/**
+
+/tmp/**
