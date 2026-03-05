@@ -4,6 +4,7 @@
 
 ### Architectural Edge-Case Resolutions (v2.0.2)
 
+- **Floating Images One-Dimensional Bounds**: Fixed a critical edge-case drift bug where floating items would sail off-screen infinitely if the container was shrunk below the item size on only one axis (for instance, a very narrow bounding box).
 - **Floating Images Bounds**: Fixed a severe mathematical collision where the container shrinking smaller than the images would cause the boundaries to trap images in an infinite oscillation/jitter loop.
 - **SEO Route Meta Persistence**: `RouteCoordinator`'s string-cache now explicitly preserves and restores `<meta>` tags and OpenGraph data per-page during PJAX navigation, rather than just `document.title`.
 - **Global Error Telemetry**: Added a top-level `window.addEventListener("error")` and `"unhandledrejection"` boundary to `main.ts` to capture and broadcast async timeline crashes.
