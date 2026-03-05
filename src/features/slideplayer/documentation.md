@@ -76,6 +76,7 @@ Notes:
 - Runtime active state:
   - slides: `.is-active`
   - bullets: `.active`
+  - *Note: Active slide state is automatically preserved and restored during page navigation (via back/forward routing).*
 - Slide transition uses opacity animation.
 
 ## Keyboard

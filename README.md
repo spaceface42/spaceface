@@ -119,6 +119,6 @@ Build pipeline summary:
 - `docs/` is generated and can be rebuilt from source at any time.
 - HTML/CSS source of truth is `public.src/`; production artifact is generated in `docs/`.
 - Build-time partial syntax in `public.src`: `<link rel="partial" href="./resources/partials/footer.html" />`.
-- Route swaps update HTML and title only; scripts in swapped markup are not auto-executed.
+- Route swaps update HTML, title, and SEO `<meta>` tags; scripts in swapped markup are not auto-executed.
 - Set `data-mode="prod"` on `<html>` to silence dev logging defaults.
 - For screensaver partials, image URLs in partial HTML resolve relative to the current page URL.
