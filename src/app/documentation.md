@@ -116,6 +116,7 @@ All `data-*` attributes currently used by runtime code and feature markup:
   - Screensaver host element (auto-created when missing).
 - `data-screensaver-floating`
   - Screensaver floating root container.
+  - Required screensaver partial root selector (do not use `data-floating-images` here).
 - `data-screensaver-floating-item`
   - Screensaver floating item.
 - `data-screensaver-partial`

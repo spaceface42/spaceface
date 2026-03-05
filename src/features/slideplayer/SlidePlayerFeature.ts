@@ -1,5 +1,6 @@
 import type { Feature, StartupContext } from "../../core/lifecycle.js";
 import type { UnsubscribeFn } from "../../core/events.js";
+import { rebindOnRoute } from "../../core/rebindOnRoute.js";
 
 interface PlayerState {
   root: HTMLElement;
@@ -24,9 +25,11 @@ export interface SlidePlayerFeatureOptions {
 
 export class SlidePlayerFeature implements Feature {
   readonly name = "slideplayer";
+  readonly domBound = true;
 
   private readonly options: Required<SlidePlayerFeatureOptions>;
   private players: PlayerState[] = [];
+  private boundRoots: HTMLElement[] = [];
   private pausedByScreensaver = false;
   private unsubscribeScreensaverShown?: UnsubscribeFn;
   private unsubscribeScreensaverHidden?: UnsubscribeFn;
@@ -50,6 +53,7 @@ export class SlidePlayerFeature implements Feature {
       ctx.logger.debug("slideplayer skipped: missing containers", { selector: this.options.rootSelector });
       return;
     }
+    this.boundRoots = roots;
 
     this.players = roots
       .map((root) => this.createPlayer(root))
@@ -99,27 +103,24 @@ export class SlidePlayerFeature implements Feature {
     }
 
     this.players = [];
+    this.boundRoots = [];
     this.pausedByScreensaver = false;
   }
 
   onRouteChange(_nextRoute: string, ctx: StartupContext): void {
-    const roots = Array.from(document.querySelectorAll<HTMLElement>(this.options.rootSelector));
-    if (roots.length === 0) {
-      if (this.players.length > 0) this.destroy();
-      return;
-    }
-
-    if (this.players.length === 0) {
-      this.init(ctx);
-      return;
-    }
-
-    const changed =
-      roots.length !== this.players.length || roots.some((root, index) => this.players[index]?.root !== root);
-    if (!changed) return;
-
-    this.destroy();
-    this.init(ctx);
+    const currentBinding = this.boundRoots.length > 0 ? this.boundRoots : null;
+    const nextBinding = rebindOnRoute<HTMLElement[]>({
+      getNextBinding: () => {
+        const roots = Array.from(document.querySelectorAll<HTMLElement>(this.options.rootSelector));
+        return roots.length > 0 ? roots : null;
+      },
+      currentBinding,
+      hasActiveState: this.players.length > 0,
+      onInit: () => this.init(ctx),
+      onDestroy: () => this.destroy(),
+      equals: sameElementArray,
+    });
+    this.boundRoots = nextBinding ?? [];
   }
 
   private createPlayer(root: HTMLElement): PlayerState | null {
@@ -269,4 +270,12 @@ export class SlidePlayerFeature implements Feature {
       player.autoplayTimer = null;
     }
   }
+}
+
+function sameElementArray(a: HTMLElement[], b: HTMLElement[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }

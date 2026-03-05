@@ -34,8 +34,8 @@ Optional:
 If `partialUrl` is configured, HTML is fetched once and cached.
 
 Supported selectors inside partial:
-- floating root: `[data-screensaver-floating]` (or `[data-floating-images]`)
-- floating item: `[data-screensaver-floating-item]` (or `[data-floating-item]` / `.floating-image`)
+- floating root: `[data-screensaver-floating]`
+- floating item: `[data-screensaver-floating-item]`
 
 If no floating root/items exist, feature creates fallback floating markup.
 

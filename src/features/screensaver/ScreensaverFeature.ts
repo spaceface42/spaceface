@@ -10,6 +10,7 @@ export interface ScreensaverFeatureOptions {
 
 export class ScreensaverFeature implements Feature {
   readonly name = "screensaver";
+  readonly domBound = true;
   private static readonly FADE_OUT_CLEANUP_MS = 360;
   private static readonly MOUSEMOVE_THROTTLE_MS = 120;
   private static readonly DEFAULT_TARGET_ATTR = "data-screensaver";
@@ -90,6 +91,8 @@ export class ScreensaverFeature implements Feature {
     const previousTarget = this.target;
     const previousWasAutoCreated = this.autoCreatedTarget;
     const wasVisible = previousTarget?.classList.contains("is-active") ?? false;
+    const hasPendingFadeCleanup = this.hideCleanupTimer !== null;
+    const shouldKeepFadeOut = wasVisible || hasPendingFadeCleanup;
 
     if (wasVisible) {
       this.events.emit("screensaver:hidden", { target: this.options.targetSelector ?? ScreensaverFeature.DEFAULT_TARGET_SELECTOR });
@@ -98,14 +101,20 @@ export class ScreensaverFeature implements Feature {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    if (this.hideCleanupTimer !== null) {
-      clearTimeout(this.hideCleanupTimer);
-      this.hideCleanupTimer = null;
-    }
-    this.stopScreensaverFloating();
     if (previousTarget) {
       previousTarget.classList.remove("is-active");
       previousTarget.setAttribute("aria-hidden", "true");
+    }
+    if (shouldKeepFadeOut) {
+      if (this.hideCleanupTimer === null) {
+        this.scheduleFloatingStopAfterFade(previousTarget);
+      }
+    } else {
+      if (this.hideCleanupTimer !== null) {
+        clearTimeout(this.hideCleanupTimer);
+        this.hideCleanupTimer = null;
+      }
+      this.stopScreensaverFloating(previousTarget);
     }
 
     this.target = this.resolveOrCreateTarget();
@@ -236,28 +245,29 @@ export class ScreensaverFeature implements Feature {
       });
   }
 
-  private stopScreensaverFloating(): void {
+  private stopScreensaverFloating(cleanupTarget: HTMLElement | null = this.target): void {
     this.screensaverFloatingStarting = false;
     this.screensaverFloating?.destroy();
     this.screensaverFloating = undefined;
-    if (this.target) {
-      const floatingRoot = this.target.querySelector<HTMLElement>("[data-screensaver-floating], [data-floating-images]");
+    if (cleanupTarget) {
+      const floatingRoot = cleanupTarget.querySelector<HTMLElement>("[data-screensaver-floating]");
       if (floatingRoot) floatingRoot.style.opacity = "";
     }
   }
 
-  private scheduleFloatingStopAfterFade(): void {
+  private scheduleFloatingStopAfterFade(targetForCleanup: HTMLElement | null = this.target): void {
     if (this.hideCleanupTimer !== null) {
       clearTimeout(this.hideCleanupTimer);
     }
+    const cleanupTarget = targetForCleanup;
     this.hideCleanupTimer = window.setTimeout(() => {
-      this.stopScreensaverFloating();
+      this.stopScreensaverFloating(cleanupTarget);
       this.hideCleanupTimer = null;
     }, ScreensaverFeature.FADE_OUT_CLEANUP_MS);
   }
 
   private ensureFloatingRoot(target: HTMLElement): HTMLElement | null {
-    let floatingRoot = target.querySelector<HTMLElement>("[data-screensaver-floating], [data-floating-images]");
+    let floatingRoot = target.querySelector<HTMLElement>("[data-screensaver-floating]");
     if (floatingRoot) return floatingRoot;
 
     floatingRoot = document.createElement("div");
@@ -285,17 +295,11 @@ export class ScreensaverFeature implements Feature {
   }
 
   private normalizeScreensaverMarkup(root: HTMLElement): void {
-    const floatingRoot = root.querySelector<HTMLElement>("[data-screensaver-floating], [data-floating-images]");
+    const floatingRoot = root.querySelector<HTMLElement>("[data-screensaver-floating]");
     if (!floatingRoot) return;
-    floatingRoot.setAttribute("data-screensaver-floating", "true");
     // Prevent page-level floating container styles (fixed card height/border/background)
     // from constraining screensaver layout.
     floatingRoot.classList.remove("floating-images-container");
-
-    const nodes = floatingRoot.querySelectorAll<HTMLElement>("[data-screensaver-floating-item], [data-floating-item], .floating-image");
-    nodes.forEach((node) => {
-      node.setAttribute("data-screensaver-floating-item", "true");
-    });
   }
 
   private normalizePartialAssetUrls(root: HTMLElement, baseUrl: URL): void {

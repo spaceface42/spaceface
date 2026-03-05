@@ -115,8 +115,7 @@
     pointer-events: auto;
 }
 
-[data-screensaver] [data-screensaver-floating],
-[data-screensaver] [data-floating-images] {
+[data-screensaver] [data-screensaver-floating] {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -126,10 +125,12 @@
 }
 
 [data-screensaver] [data-screensaver-floating-item],
-[data-screensaver] [data-floating-item],
 [data-screensaver] .floating-image {
+    width: 12%;
+    height: auto;
     display: grid;
     place-items: center;
+    user-select: none;
     pointer-events: none;
 }
 

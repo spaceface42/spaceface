@@ -16,8 +16,10 @@ This feature powers image-based slide players using `data-slideplayer-*` markup.
 
 Required elements:
 - `data-slideplayer`: feature root
-- `data-slideplayer-stage`: slide stage container
 - `data-slideplayer-image`: one or more slides
+
+Recommended (for stacked fade styling):
+- `data-slideplayer-stage`: slide stage container
 
 ## Optional Controls
 

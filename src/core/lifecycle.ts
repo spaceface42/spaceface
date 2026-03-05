@@ -11,6 +11,7 @@ export interface StartupContext {
 
 export interface Feature {
   readonly name: string;
+  readonly domBound?: boolean;
   init(ctx: StartupContext): Promise<void> | void;
   destroy?(): Promise<void> | void;
   onRouteChange?(nextRoute: string, ctx: StartupContext): Promise<void> | void;

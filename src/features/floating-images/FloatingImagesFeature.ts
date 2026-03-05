@@ -3,6 +3,7 @@ import type { UnsubscribeFn } from "../../core/events.js";
 import { animationScheduler } from "../../core/animation.js";
 import type { AnimationFrameContext } from "../../core/animation.js";
 import { waitForImagesReady } from "../../core/images.js";
+import { rebindOnRoute } from "../../core/rebindOnRoute.js";
 
 interface MotionItem {
   el: HTMLElement;
@@ -28,6 +29,7 @@ export interface FloatingImagesFeatureOptions {
 
 export class FloatingImagesFeature implements Feature {
   readonly name = "floating-images";
+  readonly domBound = true;
 
   private readonly options: Required<FloatingImagesFeatureOptions>;
   private container: HTMLElement | null = null;
@@ -142,21 +144,15 @@ export class FloatingImagesFeature implements Feature {
   }
 
   onRouteChange(_nextRoute: string, ctx: StartupContext): void {
-    const nextContainer = document.querySelector<HTMLElement>(this.options.containerSelector);
-    if (!nextContainer) {
-      if (this.items.length > 0) this.destroy();
-      return;
-    }
-
-    if (this.container !== nextContainer) {
-      this.destroy();
-      void this.init(ctx);
-      return;
-    }
-
-    if (this.items.length === 0) {
-      void this.init(ctx);
-    }
+    this.container = rebindOnRoute<HTMLElement>({
+      getNextBinding: () => document.querySelector<HTMLElement>(this.options.containerSelector),
+      currentBinding: this.container,
+      hasActiveState: this.items.length > 0,
+      onInit: () => {
+        void this.init(ctx);
+      },
+      onDestroy: () => this.destroy(),
+    });
   }
 
   private collectItems(container: HTMLElement): MotionItem[] {

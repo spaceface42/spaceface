@@ -1,5 +1,6 @@
 import type { Feature, StartupContext } from "../../core/lifecycle.js";
 import type { UnsubscribeFn } from "../../core/events.js";
+import { rebindOnRoute } from "../../core/rebindOnRoute.js";
 
 export interface SlideshowFeatureOptions {
   autoplayMs?: number;
@@ -10,6 +11,7 @@ export interface SlideshowFeatureOptions {
 
 export class SlideshowFeature implements Feature {
   readonly name = "slideshow";
+  readonly domBound = true;
   private readonly options: Required<SlideshowFeatureOptions>;
   private root: HTMLElement | null = null;
   private slides: HTMLElement[] = [];
@@ -84,21 +86,13 @@ export class SlideshowFeature implements Feature {
   }
 
   onRouteChange(_nextRoute: string, ctx: StartupContext): void {
-    const nextRoot = document.querySelector<HTMLElement>("[data-slideshow]");
-    if (!nextRoot) {
-      if (this.root || this.slides.length > 0) this.destroy();
-      return;
-    }
-
-    if (!this.root) {
-      this.init(ctx);
-      return;
-    }
-
-    if (this.root !== nextRoot) {
-      this.destroy();
-      this.init(ctx);
-    }
+    this.root = rebindOnRoute<HTMLElement>({
+      getNextBinding: () => document.querySelector<HTMLElement>("[data-slideshow]"),
+      currentBinding: this.root,
+      hasActiveState: this.slides.length > 0,
+      onInit: () => this.init(ctx),
+      onDestroy: () => this.destroy(),
+    });
   }
 
   private bindControls(): void {

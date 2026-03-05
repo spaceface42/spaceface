@@ -46,6 +46,7 @@ Current active runtime lives in `src/` and ships static output to `docs/` from `
         ```
     - Emits `screensaver:shown` / `screensaver:hidden`.
     - Supports runtime partial content via `partialUrl` (cached fetch); falls back to generated markup if partial fails.
+    - Screensaver partial contract is strict: use `data-screensaver-floating` + `data-screensaver-floating-item` (no `data-floating-*` fallback selectors).
     - Starts/stops its own floating-images instance while visible.
 
 ## Build And Run
@@ -90,6 +91,7 @@ Quality checks:
 ```bash
 npm run typecheck
 npm run lint
+npm run check:lifecycle
 npm run verify:docs
 ```
 

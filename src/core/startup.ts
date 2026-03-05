@@ -10,6 +10,7 @@ export class StartupPipeline {
   private readonly featureInstances: Feature[] = [];
   private ctx: StartupContext;
   private reconcileInFlight: Promise<void> | null = null;
+  private warnedRouteBinding = new Set<string>();
 
   constructor(config: AppConfig) {
     this.config = config;
@@ -29,6 +30,7 @@ export class StartupPipeline {
 
     const initialized: string[] = [];
     const failed: Array<{ feature: string; error: unknown }> = [];
+    features.forEach((feature) => this.warnIfDomBoundWithoutRouteHandler(feature));
 
     const results = await Promise.all(
       features.map(async (feature) => {
@@ -105,6 +107,7 @@ export class StartupPipeline {
   private async reconcileFeaturesInternal(features: Feature[], path: string): Promise<void> {
     this.ctx.route = path;
     eventBus.emit("route:changed", { path });
+    features.forEach((feature) => this.warnIfDomBoundWithoutRouteHandler(feature));
 
     const nextByName = new Map(features.map((feature) => [feature.name, feature] as const));
     const currentByName = new Map(this.featureInstances.map((feature) => [feature.name, feature] as const));
@@ -188,6 +191,18 @@ export class StartupPipeline {
     }
 
     this.featureInstances.length = 0;
+  }
+
+  private warnIfDomBoundWithoutRouteHandler(feature: Feature): void {
+    if (this.config.mode !== "dev") return;
+    if (!feature.domBound) return;
+    if (typeof feature.onRouteChange === "function") return;
+    const key = feature.name;
+    if (this.warnedRouteBinding.has(key)) return;
+    this.warnedRouteBinding.add(key);
+    this.logger.warn(
+      `DOM-bound feature "${feature.name}" has no onRouteChange handler; route swaps may leave stale DOM refs.`
+    );
   }
 }
 
