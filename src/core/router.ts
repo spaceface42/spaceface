@@ -79,14 +79,18 @@ export class RouteCoordinator {
       window.location.href = url.toString();
       return;
     }
-    if (
-      url.pathname === current.pathname &&
-      url.search === current.search &&
-      url.hash === current.hash &&
-      !options.fromPopState
-    ) {
+    const sameDocument = url.pathname === current.pathname && url.search === current.search;
+    if (sameDocument && url.hash !== current.hash) {
+      if (!options.fromPopState) {
+        if (options.replace) {
+          window.history.replaceState(null, "", url.toString());
+        } else {
+          window.location.hash = url.hash;
+        }
+      }
       return;
     }
+    if (sameDocument && url.hash === current.hash && !options.fromPopState) return;
 
     const token = ++this.navToken;
     this.currentAbort?.abort();
@@ -94,7 +98,7 @@ export class RouteCoordinator {
     this.currentAbort = controller;
 
     try {
-      const cacheKey = url.toString();
+      const cacheKey = this.toCacheKey(url);
       const cached = this.pageCache.get(cacheKey);
       if (cached) {
         this.cacheHits += 1;
@@ -112,8 +116,18 @@ export class RouteCoordinator {
         }
 
         const nextDocument = document.implementation.createHTMLDocument("");
-        const nextContainer = nextDocument.createElement("div");
+        nextDocument.title = cached.title;
+        nextDocument.documentElement.lang = cached.htmlAttrs.lang;
+        setNullableAttribute(nextDocument.documentElement, "dir", cached.htmlAttrs.dir);
+        setNullableAttribute(nextDocument.documentElement, "data-mode", cached.htmlAttrs.dataMode);
+        nextDocument.body.className = cached.bodyAttrs.className;
+        setNullableAttribute(nextDocument.body, "data-page", cached.bodyAttrs.dataPage);
+
+        // Mirror network-path hook context: provide a real nextDocument/body tree
+        // with a container element matching the current container shape.
+        const nextContainer = container.cloneNode(false) as Element;
         nextContainer.innerHTML = cached.html;
+        nextDocument.body.appendChild(nextContainer);
         const swapContext: RouteSwapContext = {
           url,
           nextDocument,
@@ -170,7 +184,7 @@ export class RouteCoordinator {
       if (token !== this.navToken) return;
 
       const entry = this.createCacheEntry(nextDocument, nextContainer);
-      this.setCache(url.toString(), entry);
+      this.setCache(cacheKey, entry);
       this.applyNavigationFromSwapContext(url, swapContext, entry, options);
       if (token !== this.navToken) return;
 
@@ -216,6 +230,9 @@ export class RouteCoordinator {
 
     const url = new URL(href, window.location.href);
     if (url.origin !== window.location.origin) return;
+    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash !== window.location.hash) {
+      return;
+    }
 
     event.preventDefault();
     void this.navigate(url.toString());
@@ -228,7 +245,7 @@ export class RouteCoordinator {
   private cacheCurrentPage(): void {
     const container = document.querySelector(this.containerSelector);
     if (!container) return;
-    this.setCache(window.location.href, {
+    this.setCache(this.toCacheKey(window.location.href), {
       title: document.title,
       html: container.innerHTML,
       htmlAttrs: {
@@ -251,6 +268,11 @@ export class RouteCoordinator {
       if (!oldest) break;
       this.pageCache.delete(oldest);
     }
+  }
+
+  private toCacheKey(input: string | URL): string {
+    const url = new URL(input.toString(), window.location.href);
+    return `${url.origin}${url.pathname}${url.search}`;
   }
 
   private applyNavigationFromSwapContext(

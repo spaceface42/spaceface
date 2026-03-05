@@ -26,10 +26,12 @@ export class ScreensaverFeature implements Feature {
   private screensaverFloating?: FloatingImagesFeature;
   private screensaverFloatingStarting = false;
   private partialLoadPromise?: Promise<void>;
+  private partialLoadAbort?: AbortController;
   private partialLoaded = false;
   private hideCleanupTimer: number | null = null;
   private autoCreatedTarget = false;
   private lastMouseMoveAt = 0;
+  private activationRunId = 0;
 
   constructor(options: ScreensaverFeatureOptions) {
     this.options = options;
@@ -57,6 +59,7 @@ export class ScreensaverFeature implements Feature {
   }
 
   destroy(): void {
+    this.invalidatePendingAsyncWork();
     document.removeEventListener("mousemove", this.onMouseMoveBound);
     document.removeEventListener("keydown", this.onActivityBound);
     document.removeEventListener("pointerdown", this.onActivityBound);
@@ -87,6 +90,7 @@ export class ScreensaverFeature implements Feature {
   onRouteChange(_nextRoute: string, ctx: StartupContext): void {
     this.ctx = ctx;
     this.events = ctx.events;
+    this.invalidatePendingAsyncWork();
 
     const previousTarget = this.target;
     const previousWasAutoCreated = this.autoCreatedTarget;
@@ -129,7 +133,6 @@ export class ScreensaverFeature implements Feature {
 
     if (previousTarget !== this.target) {
       this.partialLoaded = false;
-      this.partialLoadPromise = undefined;
     }
 
     this.armTimer(ctx);
@@ -137,6 +140,7 @@ export class ScreensaverFeature implements Feature {
 
   private onActivity(): void {
     if (!this.target) return;
+    this.invalidatePendingAsyncWork();
     const wasVisible = this.target.classList.contains("is-active");
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");
@@ -156,15 +160,21 @@ export class ScreensaverFeature implements Feature {
   }
 
   private armTimer(ctx?: StartupContext): void {
+    this.invalidatePendingAsyncWork();
     if (this.timer !== null) {
       clearTimeout(this.timer);
     }
 
     const events = ctx?.events ?? this.events;
+    const activationId = this.activationRunId;
 
     this.timer = window.setTimeout(async () => {
+      if (activationId !== this.activationRunId) return;
       if (!this.target) return;
-      await this.prepareScreensaverMarkup();
+      const activationTarget = this.target;
+      await this.prepareScreensaverMarkup(activationTarget, activationId);
+      if (activationId !== this.activationRunId) return;
+      if (this.target !== activationTarget) return;
       if (!this.target) return;
       if (this.hideCleanupTimer !== null) {
         clearTimeout(this.hideCleanupTimer);
@@ -178,8 +188,9 @@ export class ScreensaverFeature implements Feature {
     }, this.options.idleMs);
   }
 
-  private async prepareScreensaverMarkup(): Promise<void> {
-    if (!this.target) return;
+  private async prepareScreensaverMarkup(target: HTMLElement, activationId: number): Promise<void> {
+    if (activationId !== this.activationRunId) return;
+    if (!this.target || this.target !== target) return;
     if (!this.options.partialUrl) return;
     if (this.partialLoaded) return;
     if (this.partialLoadPromise) {
@@ -189,22 +200,29 @@ export class ScreensaverFeature implements Feature {
 
     const logger = this.ctx?.logger;
     const partialBaseUrl = new URL(this.options.partialUrl ?? "", window.location.href);
+    const abortController = new AbortController();
+    this.partialLoadAbort = abortController;
     this.partialLoadPromise = (async () => {
       try {
-        const html = await loadPartialHtml(this.options.partialUrl ?? "", { cache: true });
-        if (!this.target) return;
-        const mount = this.getOrCreatePartialMount(this.target);
+        const html = await loadPartialHtml(this.options.partialUrl ?? "", { cache: true, signal: abortController.signal });
+        if (activationId !== this.activationRunId) return;
+        if (!this.target || this.target !== target) return;
+        const mount = this.getOrCreatePartialMount(target);
         mount.innerHTML = html;
         this.normalizePartialAssetUrls(mount, partialBaseUrl);
         this.normalizeScreensaverMarkup(mount);
         this.partialLoaded = true;
         logger?.info("screensaver partial loaded", { partialUrl: this.options.partialUrl });
       } catch (error) {
+        if (abortController.signal.aborted) return;
         logger?.warn("screensaver partial load failed; using fallback markup", {
           partialUrl: this.options.partialUrl,
           error,
         });
       } finally {
+        if (this.partialLoadAbort === abortController) {
+          this.partialLoadAbort = undefined;
+        }
         this.partialLoadPromise = undefined;
       }
     })();
@@ -336,5 +354,12 @@ export class ScreensaverFeature implements Feature {
     document.body.appendChild(el);
     this.autoCreatedTarget = true;
     return el;
+  }
+
+  private invalidatePendingAsyncWork(): void {
+    this.activationRunId += 1;
+    this.partialLoadAbort?.abort();
+    this.partialLoadAbort = undefined;
+    this.partialLoadPromise = undefined;
   }
 }
