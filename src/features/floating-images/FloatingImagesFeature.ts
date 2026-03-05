@@ -270,20 +270,28 @@ export class FloatingImagesFeature implements Feature {
       const maxX = Math.max(0, bounds.width - item.width);
       const maxY = Math.max(0, bounds.height - item.height);
 
-      if (item.x <= 0) {
+      if (maxX <= 0 && maxY <= 0) {
+        // If container is smaller than item, stop moving to prevent jitter
         item.x = 0;
-        item.vx = Math.abs(item.vx);
-      } else if (item.x >= maxX) {
-        item.x = maxX;
-        item.vx = -Math.abs(item.vx);
-      }
-
-      if (item.y <= 0) {
         item.y = 0;
-        item.vy = Math.abs(item.vy);
-      } else if (item.y >= maxY) {
-        item.y = maxY;
-        item.vy = -Math.abs(item.vy);
+      } else {
+        if (item.x <= 0) {
+          item.x = 0;
+          item.vx = Math.abs(item.vx);
+        }
+        if (item.x >= maxX && maxX > 0) {
+          item.x = maxX;
+          item.vx = -Math.abs(item.vx);
+        }
+
+        if (item.y <= 0) {
+          item.y = 0;
+          item.vy = Math.abs(item.vy);
+        }
+        if (item.y >= maxY && maxY > 0) {
+          item.y = maxY;
+          item.vy = -Math.abs(item.vy);
+        }
       }
 
       this.renderItem(item);

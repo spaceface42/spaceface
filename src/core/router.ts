@@ -23,6 +23,7 @@ export interface RouteCoordinatorOptions {
 
 interface CachedPageEntry {
   title: string;
+  headNodes: string[];
   html: string;
   htmlAttrs: {
     lang: string;
@@ -249,6 +250,7 @@ export class RouteCoordinator {
     if (!container) return;
     this.setCache(this.toCacheKey(window.location.href), {
       title: document.title,
+      headNodes: this.extractHeadNodes(document),
       html: container.innerHTML,
       htmlAttrs: {
         lang: document.documentElement.lang,
@@ -298,6 +300,7 @@ export class RouteCoordinator {
   private createCacheEntry(nextDocument: Document, nextContainer: Element): CachedPageEntry {
     return {
       title: nextDocument.title || document.title,
+      headNodes: this.extractHeadNodes(nextDocument),
       html: nextContainer.innerHTML,
       htmlAttrs: {
         lang: nextDocument.documentElement.lang || document.documentElement.lang,
@@ -311,6 +314,12 @@ export class RouteCoordinator {
     };
   }
 
+  private extractHeadNodes(doc: Document): string[] {
+    if (!doc.head) return [];
+    const nodes = Array.from(doc.head.querySelectorAll("meta, link:not([rel='stylesheet'])"));
+    return nodes.map(n => n.outerHTML);
+  }
+
   private applyDocumentAttributes(entry: CachedPageEntry): void {
     document.documentElement.lang = entry.htmlAttrs.lang;
     setNullableAttribute(document.documentElement, "dir", entry.htmlAttrs.dir);
@@ -318,6 +327,16 @@ export class RouteCoordinator {
 
     document.body.className = entry.bodyAttrs.className;
     setNullableAttribute(document.body, "data-page", entry.bodyAttrs.dataPage);
+
+    if (!document.head) return;
+    const oldNodes = document.head.querySelectorAll("meta, link:not([rel='stylesheet'])");
+    for (const node of oldNodes) node.remove();
+
+    for (const html of entry.headNodes) {
+      const template = document.createElement("template");
+      template.innerHTML = html;
+      document.head.appendChild(template.content);
+    }
   }
 }
 

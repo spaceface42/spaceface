@@ -16,6 +16,8 @@ async function main(): Promise<void> {
     screensaverIdleMs: 6000,
   });
 
+  setupGlobalErrorTelemetry();
+
   const startup = new StartupPipeline(config);
   const registry = new FeatureRegistry();
   const detachConsoleSink = maybeAttachConsoleSink(config.mode, config.logLevel);
@@ -82,6 +84,28 @@ async function main(): Promise<void> {
 function readModeFromDom(): "dev" | "prod" {
   const value = document.documentElement.getAttribute("data-mode");
   return value === "prod" ? "prod" : "dev";
+}
+
+function setupGlobalErrorTelemetry(): void {
+  window.addEventListener("error", (event) => {
+    eventBus.emit("log:entry", {
+      scope: "global:sync",
+      level: "error",
+      message: event.message || "Uncaught Error",
+      data: { filename: event.filename, lineno: event.lineno, colno: event.colno, error: event.error },
+      time: Date.now(),
+    });
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    eventBus.emit("log:entry", {
+      scope: "global:async",
+      level: "error",
+      message: "Unhandled Promise Rejection",
+      data: { reason: event.reason },
+      time: Date.now(),
+    });
+  });
 }
 
 function bindLifecycleHooks(

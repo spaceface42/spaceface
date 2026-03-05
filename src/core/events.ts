@@ -98,25 +98,28 @@ export class EventBus<TEvents extends object> {
     this.anyListeners = this.anyListeners.filter((listener) => listener.fn !== fn);
   }
 
+  private reportError(event: string, error: unknown): void {
+    console.error(`[EventBus] listener failed for ${event}`, error);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new ErrorEvent("error", { error, message: `[EventBus] listener failed for ${event}` }));
+    }
+  }
+
   emit<K extends keyof TEvents & string>(event: K, payload: TEvents[K]): void {
     const list = [...(this.listeners.get(event) ?? [])] as Array<Listener<TEvents[K]>>;
     const anyList = [...this.anyListeners];
     for (const listener of list) {
       try {
-        Promise.resolve(listener.fn(payload)).catch((error) => {
-          console.error(`[EventBus] listener failed for ${event}`, error);
-        });
+        Promise.resolve(listener.fn(payload)).catch((error) => this.reportError(event, error));
       } catch (error) {
-        console.error(`[EventBus] listener failed for ${event}`, error);
+        this.reportError(event, error);
       }
     }
     for (const listener of anyList) {
       try {
-        Promise.resolve(listener.fn(event, payload)).catch((error) => {
-          console.error(`[EventBus] onAny listener failed for ${event}`, error);
-        });
+        Promise.resolve(listener.fn(event, payload)).catch((error) => this.reportError(`onAny(${event})`, error));
       } catch (error) {
-        console.error(`[EventBus] onAny listener failed for ${event}`, error);
+        this.reportError(`onAny(${event})`, error);
       }
     }
   }
@@ -128,14 +131,14 @@ export class EventBus<TEvents extends object> {
       try {
         await listener.fn(payload);
       } catch (error) {
-        console.error(`[EventBus] listener failed for ${event}`, error);
+        this.reportError(event, error);
       }
     }
     for (const listener of anyList) {
       try {
         await listener.fn(event, payload);
       } catch (error) {
-        console.error(`[EventBus] onAny listener failed for ${event}`, error);
+        this.reportError(`onAny(${event})`, error);
       }
     }
   }

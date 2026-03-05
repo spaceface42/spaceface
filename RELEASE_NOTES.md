@@ -2,6 +2,17 @@
 
 ## 2026-03-05
 
+### Architectural Edge-Case Resolutions (v2.0.1-rc)
+
+- **Floating Images Bounds**: Fixed a severe mathematical collision where the container shrinking smaller than the images would cause the boundaries to trap images in an infinite oscillation/jitter loop.
+- **SEO Route Meta Persistence**: `RouteCoordinator`'s string-cache now explicitly preserves and restores `<meta>` tags and OpenGraph data per-page during PJAX navigation, rather than just `document.title`.
+- **Global Error Telemetry**: Added a top-level `window.addEventListener("error")` and `"unhandledrejection"` boundary to `main.ts` to capture and broadcast async timeline crashes.
+- **EventBus Traceability**: Modified the internal `EventBus` to dispatch explicit `ErrorEvent`s when listeners crash, ensuring they hit the new global telemetry bounds instead of failing silently.
+- **Screensaver DOM Race Condition**: Applied a secondary `.is-active` guard to `stopScreensaverFloating` so delayed fade-out cleanup timers do not inadvertently destroy newly started screensavers if the user frantically wiggles the mouse.
+- **Screensaver Fallback Timers**: Converted hardcoded `360ms` CSS transition waits to dynamically parse `getComputedStyle().transitionDuration`, providing a failsafe mechanism that inherently syncs JavaScript with CSS.
+- **Partial Cache Exhaustion**: Implemented a maximum size of 10 for the HTML `partialCache` in `core/partials.ts` to prevent unbounded memory growth on long-lived sessions.
+- **Interactive State Recovery**: Modified `RouteCoordinator` to sync states *immediately before* navigating, allowing `SlideshowFeature` and `SlidePlayerFeature` to reliably hydrate their exact slide position when a user clicks the Back button.
+
 ### Stability And Lifecycle Hardening
 
 - Added shared route-swap helper: `src/core/rebindOnRoute.ts`.

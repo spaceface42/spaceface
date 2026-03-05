@@ -279,6 +279,8 @@ export class ScreensaverFeature implements Feature {
   }
 
   private stopScreensaverFloating(cleanupTarget: HTMLElement | null = this.target): void {
+    if (cleanupTarget && cleanupTarget.classList.contains("is-active")) return;
+
     this.screensaverFloatingStarting = false;
     this.screensaverFloating?.destroy();
     this.screensaverFloating = undefined;
