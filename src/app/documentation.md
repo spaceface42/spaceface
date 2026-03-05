@@ -83,7 +83,7 @@ All `data-*` attributes currently used by runtime code and feature markup:
   - Optional on links; `data-router="off"` disables route interception.
 - `data-nav-link`
   - Nav link key used by runtime to set `aria-current="page"` after route swaps.
-  - Expected values currently match `body[data-page]` (for example `index`, `slideplayer`).
+  - Expected values currently match `body[data-page]` (for example `index`, `slideplayer`, `floatingimages`).
 - `data-slideshow`
   - Slideshow feature root.
 - `data-slide`

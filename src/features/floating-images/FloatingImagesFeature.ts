@@ -25,6 +25,7 @@ export interface FloatingImagesFeatureOptions {
   pauseOnScreensaver?: boolean;
   hoverBehavior?: "none" | "slow" | "pause";
   hoverSlowMultiplier?: number;
+  initialDistribution?: "gaussian" | "random";
 }
 
 export class FloatingImagesFeature implements Feature {
@@ -54,6 +55,7 @@ export class FloatingImagesFeature implements Feature {
       pauseOnScreensaver: options.pauseOnScreensaver ?? true,
       hoverBehavior: options.hoverBehavior ?? "none",
       hoverSlowMultiplier: options.hoverSlowMultiplier ?? 0.2,
+      initialDistribution: options.initialDistribution ?? "gaussian",
     };
   }
 
@@ -106,6 +108,7 @@ export class FloatingImagesFeature implements Feature {
     ctx.logger.info("floating-images initialized", {
       items: this.items.length,
       selector: this.options.containerSelector,
+      initialDistribution: this.options.initialDistribution,
     });
   }
 
@@ -162,6 +165,7 @@ export class FloatingImagesFeature implements Feature {
     }
 
     const nodes = Array.from(container.querySelectorAll<HTMLElement>(this.options.itemSelector));
+    const useGaussian = this.options.initialDistribution === "gaussian";
     const placedCenters: Array<{ x: number; y: number }> = [];
 
     return nodes.map((el, index) => {
@@ -176,27 +180,34 @@ export class FloatingImagesFeature implements Feature {
       const maxY = Math.max(0, containerRect.height - height);
       const minDistance = Math.max(18, Math.min(width, height) * 0.7);
 
-      let x = clamp(centerX + gaussianRandom() * spread, 0, maxX);
-      let y = clamp(centerY + gaussianRandom() * spread, 0, maxY);
+      let x = 0;
+      let y = 0;
+      if (useGaussian) {
+        x = clamp(centerX + gaussianRandom() * spread, 0, maxX);
+        y = clamp(centerY + gaussianRandom() * spread, 0, maxY);
 
-      // Try a few candidates and pick one that avoids excessive initial overlap.
-      for (let i = 0; i < 18; i += 1) {
-        const candidateX = clamp(centerX + gaussianRandom() * spread, 0, maxX);
-        const candidateY = clamp(centerY + gaussianRandom() * spread, 0, maxY);
-        const candidateCenterX = candidateX + width * 0.5;
-        const candidateCenterY = candidateY + height * 0.5;
-        const tooClose = placedCenters.some((p) => distance(p.x, p.y, candidateCenterX, candidateCenterY) < minDistance);
-        if (!tooClose) {
-          x = candidateX;
-          y = candidateY;
-          break;
+        // Try a few candidates and pick one that avoids excessive initial overlap.
+        for (let i = 0; i < 18; i += 1) {
+          const candidateX = clamp(centerX + gaussianRandom() * spread, 0, maxX);
+          const candidateY = clamp(centerY + gaussianRandom() * spread, 0, maxY);
+          const candidateCenterX = candidateX + width * 0.5;
+          const candidateCenterY = candidateY + height * 0.5;
+          const tooClose = placedCenters.some((p) => distance(p.x, p.y, candidateCenterX, candidateCenterY) < minDistance);
+          if (!tooClose) {
+            x = candidateX;
+            y = candidateY;
+            break;
+          }
         }
+        placedCenters.push({ x: x + width * 0.5, y: y + height * 0.5 });
+      } else {
+        x = randomBetween(0, maxX);
+        y = randomBetween(0, maxY);
       }
-
-      placedCenters.push({ x: x + width * 0.5, y: y + height * 0.5 });
 
       const direction = index % 2 === 0 ? 1 : -1;
       const jitter = (index % 3) * 0.08;
+      const speedVariance = randomBetween(0.8, 1.2);
 
       el.style.position = "absolute";
       el.style.left = "0";
@@ -211,8 +222,8 @@ export class FloatingImagesFeature implements Feature {
         el,
         x,
         y,
-        vx: this.options.baseSpeed * (1 + jitter) * direction,
-        vy: this.options.baseSpeed * (0.65 + jitter) * -direction,
+        vx: this.options.baseSpeed * (1 + jitter) * speedVariance * direction,
+        vy: this.options.baseSpeed * (0.65 + jitter) * speedVariance * -direction,
         width,
         height,
         speedMultiplier: 1,
@@ -361,4 +372,9 @@ function gaussianRandom(): number {
   while (u === 0) u = Math.random();
   while (v === 0) v = Math.random();
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function randomBetween(min: number, max: number): number {
+  if (max <= min) return min;
+  return min + Math.random() * (max - min);
 }

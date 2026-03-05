@@ -23,6 +23,11 @@ Current active runtime lives in `src/` and ships static output to `docs/` from `
 4. `RouteCoordinator` intercepts same-origin links and swaps `data-route-container` content.
 5. Features reconcile on route changes (removed DOM => feature teardown, added DOM => feature init).
 
+Current demo routes:
+- `index.html`
+- `slideplayer.html`
+- `floatingimages.html`
+
 ## Features
 
 - `SlideshowFeature`

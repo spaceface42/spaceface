@@ -28,6 +28,8 @@ Default selector contract in code:
 - Waits for item images to load before measuring/animating.
 - Converts items to absolutely-positioned moving elements.
 - Bounces items inside container bounds.
+- Supports configurable initial placement distribution (`gaussian` or `random`).
+- Applies slight per-item speed variance for less uniform motion.
 - Pauses animation when out of viewport.
 - Optionally pauses when screensaver is shown.
 
@@ -66,14 +68,22 @@ Notes:
 - `pauseOnScreensaver` (default: `true`)
 - `hoverBehavior` (default: `"none"`) values: `"none" | "slow" | "pause"`
 - `hoverSlowMultiplier` (default: `0.2`)
+- `initialDistribution` (default: `"gaussian"`) values: `"gaussian" | "random"`
 
 Example registration:
 
 ```ts
-registry.register(new FloatingImagesFeature({ hoverBehavior: "pause", hoverSlowMultiplier: 0.2 }), {
+registry.register(
+  new FloatingImagesFeature({
+    hoverBehavior: "pause",
+    hoverSlowMultiplier: 0.2,
+    initialDistribution: "random", // test mode
+  }),
+  {
   requiredSelector: "[data-floating-images]",
   mode: "any",
-});
+  }
+);
 ```
 
 ## Common Pitfalls

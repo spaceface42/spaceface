@@ -32,7 +32,7 @@ async function main(): Promise<void> {
     mode: "any",
   });
 
-  registry.register(new FloatingImagesFeature({ hoverBehavior: "pause", hoverSlowMultiplier: 0.2 }), {
+  registry.register(new FloatingImagesFeature({ hoverBehavior: "pause", hoverSlowMultiplier: 0.2, initialDistribution: "gaussian" }), {
     requiredSelector: "[data-floating-images]",
     mode: "any",
   });

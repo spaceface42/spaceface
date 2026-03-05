@@ -84,6 +84,10 @@
         radial-gradient(circle at 90% 85%, #dbeafe, transparent 45%), #ffffff;
 }
 
+body[data-page="floatingimages"] [data-floating-images] {
+    height: calc(100vh - 108px);
+}
+
 [data-floating-item] {
     width: 12%;
     height: auto;
