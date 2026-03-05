@@ -1,4 +1,5 @@
 import type { Logger } from "./logger.js";
+import { morphNode } from "./morphdom.js";
 
 export interface RouteSwapContext {
   url: URL;
@@ -351,7 +352,10 @@ export class RouteCoordinator {
     entry: CachedPageEntry,
     options: { replace?: boolean; fromPopState?: boolean }
   ): void {
-    context.container.innerHTML = entry.html;
+    const tempContainer = document.createElement("div");
+    tempContainer.innerHTML = entry.html;
+    morphNode(context.container, tempContainer);
+
     document.title = entry.title;
     this.applyDocumentAttributes(entry);
     if (!options.fromPopState) {
