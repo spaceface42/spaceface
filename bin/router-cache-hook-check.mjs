@@ -31,7 +31,8 @@ const PAGE2_HTML = `
 </html>
 `;
 
-try {
+async function main() {
+  try {
   await build({
     stdin: {
       contents: 'export { RouteCoordinator } from "./src/core/router.ts";',
@@ -70,6 +71,9 @@ try {
   await router.navigate(PAGE2_URL); // network
   await router.navigate(INDEX_URL); // cache
   await router.navigate(PAGE2_URL); // cache
+  const fetchCountBeforeHash = globalThis.fetch.calls.count;
+  await router.navigate(`${PAGE2_URL}#details`); // same document hash only
+  const fetchCountAfterHash = globalThis.fetch.calls.count;
 
   const page2Before = snapshots.filter((item) => item.path === '/slideplayer.html' && item.phase === 'before');
   const page2After = snapshots.filter((item) => item.path === '/slideplayer.html' && item.phase === 'after');
@@ -80,16 +84,19 @@ try {
   assert.deepEqual(page2After[0], page2After[1], 'after-hook context should be parity between network and cache');
 
   assert.equal(globalThis.fetch.calls.count, 1, 'slideplayer should be fetched once, second visit should come from cache');
+  assert.equal(fetchCountAfterHash, fetchCountBeforeHash, 'hash-only navigation should not fetch/swap route content');
+  assert.equal(globalThis.window.location.hash, '#details', 'hash-only navigation should update location hash');
   assert.equal(logger.debugEntries.filter((item) => item.message === 'route cache miss').length >= 1, true);
   assert.equal(logger.debugEntries.filter((item) => item.message === 'route cache hit').length >= 1, true);
 
   console.log('[router cache hook parity] OK');
-} catch (error) {
+  } catch (error) {
   console.error('[router cache hook parity] FAILED');
   console.error(error);
   process.exitCode = 1;
-} finally {
+  } finally {
   rmSync(tempDir, { recursive: true, force: true });
+  }
 }
 
 function captureSnapshot(phase, ctx) {
@@ -242,6 +249,11 @@ function createDomMocks(initialUrl, initialHtml) {
     get hash() {
       return currentUrl.hash;
     },
+    set hash(next) {
+      const base = new URL(currentUrl.toString());
+      base.hash = String(next);
+      currentUrl = base;
+    },
   };
 
   const history = {
@@ -316,3 +328,5 @@ function matchesSelector(element, selector) {
   }
   return element.tagName.toLowerCase() === selector.toLowerCase();
 }
+
+await main();
