@@ -130,11 +130,12 @@ export class ScreensaverFeature implements Feature {
         if (previousHideCleanup !== null) {
             clearTimeout(previousHideCleanup);
         }
+        const durationMs = getTransitionDurationMs(cleanupTarget);
         this.hideCleanupTimer = window.setTimeout(() => {
           this.stopScreensaverFloating(cleanupTarget);
           cleanupTarget.remove();
           this.hideCleanupTimer = null;
-        }, ScreensaverFeature.FADE_OUT_CLEANUP_MS);
+        }, durationMs);
       } else {
         previousTarget.remove();
       }
@@ -292,10 +293,11 @@ export class ScreensaverFeature implements Feature {
       clearTimeout(this.hideCleanupTimer);
     }
     const cleanupTarget = targetForCleanup;
+    const durationMs = cleanupTarget ? getTransitionDurationMs(cleanupTarget) : ScreensaverFeature.FADE_OUT_CLEANUP_MS;
     this.hideCleanupTimer = window.setTimeout(() => {
       this.stopScreensaverFloating(cleanupTarget);
       this.hideCleanupTimer = null;
-    }, ScreensaverFeature.FADE_OUT_CLEANUP_MS);
+    }, durationMs);
   }
 
   private ensureFloatingRoot(target: HTMLElement): HTMLElement | null {
@@ -377,3 +379,14 @@ export class ScreensaverFeature implements Feature {
     this.partialLoadPromise = undefined;
   }
 }
+
+function getTransitionDurationMs(element: HTMLElement): number {
+  if (typeof window === "undefined") return 360;
+  const style = window.getComputedStyle(element);
+  const duration = style.transitionDuration;
+  if (!duration) return 360;
+
+  const maxDelay = Math.max(...duration.split(",").map((s) => parseFloat(s) * (s.includes("ms") ? 1 : 1000)));
+  return isNaN(maxDelay) ? 360 : maxDelay;
+}
+

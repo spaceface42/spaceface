@@ -1,4 +1,5 @@
 const partialCache = new Map<string, string>();
+const MAX_PARTIAL_CACHE_SIZE = 10;
 
 export interface LoadPartialOptions {
   cache?: boolean;
@@ -10,7 +11,11 @@ export async function loadPartialHtml(url: string, options: LoadPartialOptions =
   const useCache = options.cache ?? true;
 
   if (useCache && partialCache.has(resolvedUrl)) {
-    return partialCache.get(resolvedUrl) ?? "";
+    // Refresh LRU order by delete/set
+    const html = partialCache.get(resolvedUrl)!;
+    partialCache.delete(resolvedUrl);
+    partialCache.set(resolvedUrl, html);
+    return html;
   }
 
   const response = await fetch(resolvedUrl, {
@@ -27,6 +32,10 @@ export async function loadPartialHtml(url: string, options: LoadPartialOptions =
   const html = await response.text();
   if (useCache) {
     partialCache.set(resolvedUrl, html);
+    if (partialCache.size > MAX_PARTIAL_CACHE_SIZE) {
+      const oldest = partialCache.keys().next().value as string | undefined;
+      if (oldest) partialCache.delete(oldest);
+    }
   }
   return html;
 }
