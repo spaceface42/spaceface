@@ -90,16 +90,19 @@ export class StartupPipeline {
   }
 
   async reconcileFeatures(features: Feature[], path: string): Promise<void> {
-    if (this.reconcileInFlight) {
-      await this.reconcileInFlight;
-    }
+    const runInFlight = async () => {
+      if (this.reconcileInFlight) {
+        await this.reconcileInFlight;
+      }
+      await this.reconcileFeaturesInternal(features, path);
+    };
 
-    const run = this.reconcileFeaturesInternal(features, path);
-    const inFlight = run.finally(() => {
+    const inFlight = runInFlight().finally(() => {
       if (this.reconcileInFlight === inFlight) {
         this.reconcileInFlight = null;
       }
     });
+
     this.reconcileInFlight = inFlight;
     await inFlight;
   }

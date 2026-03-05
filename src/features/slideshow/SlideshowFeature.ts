@@ -17,6 +17,8 @@ export class SlideshowFeature implements Feature {
   private slides: HTMLElement[] = [];
   private index = 0;
   private autoplayTimer: number | null = null;
+  private autoplayStartTime = 0;
+  private autoplayRemainingMs = 0;
   private pausedByScreensaver = false;
   private unsubscribeNext?: UnsubscribeFn;
   private unsubscribePrev?: UnsubscribeFn;
@@ -32,6 +34,7 @@ export class SlideshowFeature implements Feature {
       prevSelector: options.prevSelector ?? "[data-slide-prev]",
       nextSelector: options.nextSelector ?? "[data-slide-next]",
     };
+    this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
   init(ctx: StartupContext): void {
@@ -42,12 +45,21 @@ export class SlideshowFeature implements Feature {
     }
 
     this.slides = Array.from(this.root.querySelectorAll<HTMLElement>("[data-slide]"));
-    this.index = 0;
+
+    // Attempt to resume from the currently active slide if restoring from cache
+    let activeIndex = this.slides.findIndex(s => s.getAttribute("aria-hidden") === "false");
+    if (activeIndex === -1) {
+      activeIndex = this.slides.findIndex(s => !s.hidden);
+    }
+    this.index = Math.max(0, activeIndex);
+
     this.render();
     this.bindControls();
 
-    this.unsubscribeNext = ctx.events.on("slideshow:next", () => this.next());
-    this.unsubscribePrev = ctx.events.on("slideshow:prev", () => this.prev());
+    this.autoplayRemainingMs = this.options.autoplayMs;
+
+    this.unsubscribeNext = ctx.events.on("slideshow:next", () => this.next(true));
+    this.unsubscribePrev = ctx.events.on("slideshow:prev", () => this.prev(true));
     if (this.options.pauseOnScreensaver) {
       this.unsubscribeScreensaverShown = ctx.events.on("screensaver:shown", () => {
         this.pausedByScreensaver = true;
@@ -83,6 +95,7 @@ export class SlideshowFeature implements Feature {
     this.root = null;
     this.slides = [];
     this.pausedByScreensaver = false;
+    this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
   onRouteChange(_nextRoute: string, ctx: StartupContext): void {
@@ -100,29 +113,31 @@ export class SlideshowFeature implements Feature {
 
     const prevButton = this.root.querySelector<HTMLElement>(this.options.prevSelector);
     if (prevButton) {
-      const onPrev = () => this.prev();
+      const onPrev = () => this.prev(true);
       prevButton.addEventListener("click", onPrev);
       this.detachPrevClick = () => prevButton.removeEventListener("click", onPrev);
     }
 
     const nextButton = this.root.querySelector<HTMLElement>(this.options.nextSelector);
     if (nextButton) {
-      const onNext = () => this.next();
+      const onNext = () => this.next(true);
       nextButton.addEventListener("click", onNext);
       this.detachNextClick = () => nextButton.removeEventListener("click", onNext);
     }
   }
 
-  private next(): void {
+  private next(manual = false): void {
     if (this.slides.length === 0) return;
     this.index = (this.index + 1) % this.slides.length;
     this.render();
+    if (manual) this.resetAutoplay();
   }
 
-  private prev(): void {
+  private prev(manual = false): void {
     if (this.slides.length === 0) return;
     this.index = (this.index - 1 + this.slides.length) % this.slides.length;
     this.render();
+    if (manual) this.resetAutoplay();
   }
 
   private render(): void {
@@ -133,24 +148,45 @@ export class SlideshowFeature implements Feature {
     }
   }
 
+  private scheduleNextAutoplay(waitMs: number): void {
+    if (this.autoplayTimer !== null) {
+      clearTimeout(this.autoplayTimer);
+    }
+    this.autoplayStartTime = Date.now();
+    this.autoplayRemainingMs = waitMs;
+    this.autoplayTimer = window.setTimeout(() => {
+      this.next(false);
+      this.scheduleNextAutoplay(this.options.autoplayMs);
+    }, waitMs);
+  }
+
+  private resetAutoplay(): void {
+    this.autoplayRemainingMs = this.options.autoplayMs;
+    if (this.autoplayTimer !== null && !this.pausedByScreensaver) {
+      this.scheduleNextAutoplay(this.options.autoplayMs);
+    }
+  }
+
   private updateAutoplayState(): void {
     if (this.options.autoplayMs <= 0) {
       this.clearAutoplay();
       return;
     }
     if (!this.root || this.slides.length <= 1 || this.pausedByScreensaver) {
-      this.clearAutoplay();
+      if (this.autoplayTimer !== null) {
+        const elapsed = Date.now() - this.autoplayStartTime;
+        this.autoplayRemainingMs = Math.max(0, this.autoplayRemainingMs - elapsed);
+        this.clearAutoplay();
+      }
       return;
     }
     if (this.autoplayTimer !== null) return;
-    this.autoplayTimer = window.setInterval(() => {
-      this.next();
-    }, this.options.autoplayMs);
+    this.scheduleNextAutoplay(this.autoplayRemainingMs > 0 ? this.autoplayRemainingMs : this.options.autoplayMs);
   }
 
   private clearAutoplay(): void {
     if (this.autoplayTimer === null) return;
-    clearInterval(this.autoplayTimer);
+    clearTimeout(this.autoplayTimer);
     this.autoplayTimer = null;
   }
 }

@@ -10,6 +10,8 @@ interface PlayerState {
   bulletsRoot: HTMLElement | null;
   index: number;
   autoplayTimer: number | null;
+  autoplayStartTime: number;
+  autoplayRemainingMs: number;
   detachControls: Array<() => void>;
 }
 
@@ -128,6 +130,12 @@ export class SlidePlayerFeature implements Feature {
     const bulletsRoot = root.querySelector<HTMLElement>("[data-slideplayer-bullets]");
     const slides = Array.from(root.querySelectorAll<HTMLElement>(this.options.slideSelector));
     if (slides.length === 0) return null;
+    let activeIndex = slides.findIndex(s => s.classList.contains("is-active") || s.getAttribute("aria-hidden") === "false");
+    if (activeIndex === -1) {
+      activeIndex = slides.findIndex(s => !s.hidden);
+    }
+    const startIndex = Math.max(0, activeIndex);
+
     for (const slide of slides) {
       slide.hidden = false;
       slide.removeAttribute("hidden");
@@ -139,21 +147,23 @@ export class SlidePlayerFeature implements Feature {
       bullets: [],
       stage,
       bulletsRoot,
-      index: 0,
+      index: startIndex,
       autoplayTimer: null,
+      autoplayStartTime: 0,
+      autoplayRemainingMs: this.options.autoplayMs,
       detachControls: [],
     };
 
     const prevButton = root.querySelector<HTMLElement>(this.options.prevSelector);
     if (prevButton) {
-      const onPrev = () => this.prev(player);
+      const onPrev = () => this.prev(player, true);
       prevButton.addEventListener("click", onPrev);
       player.detachControls.push(() => prevButton.removeEventListener("click", onPrev));
     }
 
     const nextButton = root.querySelector<HTMLElement>(this.options.nextSelector);
     if (nextButton) {
-      const onNext = () => this.next(player);
+      const onNext = () => this.next(player, true);
       nextButton.addEventListener("click", onNext);
       player.detachControls.push(() => nextButton.removeEventListener("click", onNext));
     }
@@ -165,7 +175,7 @@ export class SlidePlayerFeature implements Feature {
         const datasetIndex = Number.parseInt(bullet.dataset.slideplayerBulletIndex ?? "", 10);
         const targetIndex = Number.isInteger(datasetIndex) ? datasetIndex : i;
         if (targetIndex < 0 || targetIndex >= slides.length) continue;
-        const onBullet = () => this.goTo(player, targetIndex);
+        const onBullet = () => this.goTo(player, targetIndex, true);
         bullet.addEventListener("click", onBullet);
         player.detachControls.push(() => bullet.removeEventListener("click", onBullet));
         player.bullets.push({ el: bullet, index: targetIndex });
@@ -190,10 +200,10 @@ export class SlidePlayerFeature implements Feature {
 
       event.preventDefault();
       if (event.key === "ArrowLeft") {
-        this.prev(player);
+        this.prev(player, true);
         return;
       }
-      this.next(player);
+      this.next(player, true);
     };
     document.addEventListener("keydown", this.onKeydown);
   }
@@ -215,22 +225,25 @@ export class SlidePlayerFeature implements Feature {
     return Boolean(el.closest("[contenteditable='true']"));
   }
 
-  private goTo(player: PlayerState, index: number): void {
+  private goTo(player: PlayerState, index: number, manual = false): void {
     if (index < 0 || index >= player.slides.length || index === player.index) return;
     player.index = index;
     this.render(player);
+    if (manual) this.resetAutoplay(player);
   }
 
-  private next(player: PlayerState): void {
+  private next(player: PlayerState, manual = false): void {
     if (player.slides.length <= 1) return;
     player.index = (player.index + 1) % player.slides.length;
     this.render(player);
+    if (manual) this.resetAutoplay(player);
   }
 
-  private prev(player: PlayerState): void {
+  private prev(player: PlayerState, manual = false): void {
     if (player.slides.length <= 1) return;
     player.index = (player.index - 1 + player.slides.length) % player.slides.length;
     this.render(player);
+    if (manual) this.resetAutoplay(player);
   }
 
   private render(player: PlayerState): void {
@@ -249,24 +262,52 @@ export class SlidePlayerFeature implements Feature {
     }
   }
 
+  private scheduleNextAutoplay(player: PlayerState, waitMs: number): void {
+    if (player.autoplayTimer !== null) {
+      clearTimeout(player.autoplayTimer);
+    }
+    player.autoplayStartTime = Date.now();
+    player.autoplayRemainingMs = waitMs;
+    player.autoplayTimer = window.setTimeout(() => {
+      this.next(player, false);
+      this.scheduleNextAutoplay(player, this.options.autoplayMs);
+    }, waitMs);
+  }
+
+  private resetAutoplay(player: PlayerState): void {
+    player.autoplayRemainingMs = this.options.autoplayMs;
+    if (player.autoplayTimer !== null && !this.pausedByScreensaver) {
+      this.scheduleNextAutoplay(player, this.options.autoplayMs);
+    }
+  }
+
   private updateAutoplay(): void {
-    if (this.options.autoplayMs <= 0 || this.pausedByScreensaver) {
+    if (this.options.autoplayMs <= 0) {
       this.clearAutoplay();
+      return;
+    }
+    if (this.pausedByScreensaver) {
+      for (const player of this.players) {
+        if (player.autoplayTimer !== null) {
+          const elapsed = Date.now() - player.autoplayStartTime;
+          player.autoplayRemainingMs = Math.max(0, player.autoplayRemainingMs - elapsed);
+          clearTimeout(player.autoplayTimer);
+          player.autoplayTimer = null;
+        }
+      }
       return;
     }
 
     for (const player of this.players) {
       if (player.slides.length <= 1 || player.autoplayTimer !== null) continue;
-      player.autoplayTimer = window.setInterval(() => {
-        this.next(player);
-      }, this.options.autoplayMs);
+      this.scheduleNextAutoplay(player, player.autoplayRemainingMs > 0 ? player.autoplayRemainingMs : this.options.autoplayMs);
     }
   }
 
   private clearAutoplay(): void {
     for (const player of this.players) {
       if (player.autoplayTimer === null) continue;
-      clearInterval(player.autoplayTimer);
+      clearTimeout(player.autoplayTimer);
       player.autoplayTimer = null;
     }
   }

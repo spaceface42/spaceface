@@ -123,7 +123,21 @@ export class ScreensaverFeature implements Feature {
 
     this.target = this.resolveOrCreateTarget();
     if (previousTarget && previousTarget !== this.target && previousWasAutoCreated && previousTarget.isConnected) {
-      previousTarget.remove();
+      if (shouldKeepFadeOut) {
+        // Delay removal until the fade-out completes instead of instantly chopping it off.
+        const cleanupTarget = previousTarget;
+        const previousHideCleanup = this.hideCleanupTimer;
+        if (previousHideCleanup !== null) {
+            clearTimeout(previousHideCleanup);
+        }
+        this.hideCleanupTimer = window.setTimeout(() => {
+          this.stopScreensaverFloating(cleanupTarget);
+          cleanupTarget.remove();
+          this.hideCleanupTimer = null;
+        }, ScreensaverFeature.FADE_OUT_CLEANUP_MS);
+      } else {
+        previousTarget.remove();
+      }
     }
     if (!this.target) return;
 

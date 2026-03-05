@@ -238,7 +238,11 @@ export class FloatingImagesFeature implements Feature {
     this.resizeRafId = requestAnimationFrame(() => {
       this.resizeRafId = null;
       if (!this.container || this.items.length === 0) return;
-      this.bounds = this.readBounds();
+
+      const newBounds = this.readBounds();
+      if (newBounds.width === 0 && newBounds.height === 0) return;
+      this.bounds = newBounds;
+
       for (const item of this.items) {
         item.width = Math.max(28, Math.round(item.el.getBoundingClientRect().width || item.width));
         item.height = Math.max(28, Math.round(item.el.getBoundingClientRect().height || item.height));
@@ -289,13 +293,31 @@ export class FloatingImagesFeature implements Feature {
   private updateAnimationState(): void {
     if (!this.running) return;
     const shouldRun = !this.pausedByScreensaver && this.inViewport;
-    if (shouldRun && !this.unsubAnimation) {
-      this.unsubAnimation = animationScheduler.add(this.tick);
+
+    // If the animation scheduler is paused (e.g., due to reduced motion), we still need to
+    // run at least one tick so the items aren't stuck at 0,0.
+    if (!shouldRun || animationScheduler.isPaused()) {
+      if (this.unsubAnimation) {
+        this.unsubAnimation();
+        this.unsubAnimation = undefined;
+      }
+
+      if (shouldRun && animationScheduler.isPaused()) {
+        const perf = animationScheduler.getStats();
+        this.tick({
+          now: performance.now(),
+          deltaMs: 16.7,
+          frame: perf.frame,
+          overloaded: false,
+          fps: perf.fps,
+          performanceLevel: perf.performanceLevel,
+        });
+      }
       return;
     }
-    if (!shouldRun && this.unsubAnimation) {
-      this.unsubAnimation();
-      this.unsubAnimation = undefined;
+
+    if (!this.unsubAnimation) {
+      this.unsubAnimation = animationScheduler.add(this.tick);
     }
   }
 
