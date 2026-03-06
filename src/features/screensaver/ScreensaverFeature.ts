@@ -186,7 +186,10 @@ export class ScreensaverFeature implements Feature {
     this.timer = window.setTimeout(async () => {
       if (activationId !== this.activationRunId) return;
       if (!this.target) return;
+
       const activationTarget = this.target;
+      if (this.screensaverFloatingStarting || this.screensaverFloating) return;
+
       await this.prepareScreensaverMarkup(activationTarget, activationId);
       if (activationId !== this.activationRunId) return;
       if (this.target !== activationTarget) return;

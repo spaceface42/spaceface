@@ -49,6 +49,7 @@ export class RouteCoordinator {
   private currentAbort?: AbortController;
   private navToken = 0;
   private started = false;
+  private currentUrl = "";
 
   constructor(options: RouteCoordinatorOptions) {
     this.containerSelector = options.containerSelector;
@@ -60,6 +61,7 @@ export class RouteCoordinator {
   start(): void {
     if (this.started) return;
     this.started = true;
+    this.currentUrl = window.location.href;
     this.cacheCurrentPage();
     document.addEventListener("click", this.onDocumentClick);
     document.addEventListener("pointerenter", this.onPointerEnter, { capture: true, passive: true });
@@ -315,7 +317,7 @@ export class RouteCoordinator {
   private cacheCurrentPage(): void {
     const container = document.querySelector(this.containerSelector);
     if (!container) return;
-    this.setCache(this.toCacheKey(window.location.href), {
+    this.setCache(this.toCacheKey(this.currentUrl), {
       title: document.title,
       headNodes: this.extractHeadNodes(document),
       html: container.innerHTML,
@@ -352,7 +354,7 @@ export class RouteCoordinator {
     entry: CachedPageEntry,
     options: { replace?: boolean; fromPopState?: boolean }
   ): void {
-    const tempContainer = document.createElement("div");
+    const tempContainer = context.container.cloneNode(false) as Element;
     tempContainer.innerHTML = entry.html;
     morphNode(context.container, tempContainer);
 
@@ -365,6 +367,7 @@ export class RouteCoordinator {
         window.history.pushState(null, "", url.toString());
       }
     }
+    this.currentUrl = window.location.href;
   }
 
   private createCacheEntry(nextDocument: Document, nextContainer: Element): CachedPageEntry {
