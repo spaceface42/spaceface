@@ -1,4 +1,5 @@
 import type { Logger } from "./logger.js";
+import { morphElement } from "./morph.js";
 
 export interface RouteSwapContext {
   url: URL;
@@ -48,6 +49,7 @@ export class RouteCoordinator {
   private currentAbort?: AbortController;
   private navToken = 0;
   private started = false;
+  private currentUrl = window.location.href;
 
   constructor(options: RouteCoordinatorOptions) {
     this.containerSelector = options.containerSelector;
@@ -59,6 +61,7 @@ export class RouteCoordinator {
   start(): void {
     if (this.started) return;
     this.started = true;
+    this.currentUrl = window.location.href;
     this.cacheCurrentPage();
     document.addEventListener("click", this.onDocumentClick);
     document.addEventListener("pointerenter", this.onPointerEnter, { capture: true, passive: true });
@@ -77,7 +80,7 @@ export class RouteCoordinator {
 
   async navigate(input: string | URL, options: { replace?: boolean; fromPopState?: boolean } = {}): Promise<void> {
     const url = new URL(input.toString(), window.location.href);
-    const current = new URL(window.location.href);
+    const current = new URL(this.currentUrl);
 
     if (url.origin !== window.location.origin) {
       window.location.href = url.toString();
@@ -85,6 +88,7 @@ export class RouteCoordinator {
     }
     const sameDocument = url.pathname === current.pathname && url.search === current.search;
     if (sameDocument && url.hash !== current.hash) {
+      this.currentUrl = url.toString();
       if (!options.fromPopState) {
         if (options.replace) {
           window.history.replaceState(null, "", url.toString());
@@ -94,7 +98,7 @@ export class RouteCoordinator {
       }
       return;
     }
-    if (sameDocument && url.hash === current.hash && !options.fromPopState) return;
+    if (sameDocument && url.hash === current.hash) return;
 
     const token = ++this.navToken;
     this.currentAbort?.abort();
@@ -314,7 +318,7 @@ export class RouteCoordinator {
   private cacheCurrentPage(): void {
     const container = document.querySelector(this.containerSelector);
     if (!container) return;
-    this.setCache(this.toCacheKey(window.location.href), {
+    this.setCache(this.toCacheKey(this.currentUrl), {
       title: document.title,
       headNodes: this.extractHeadNodes(document),
       html: container.innerHTML,
@@ -351,7 +355,7 @@ export class RouteCoordinator {
     entry: CachedPageEntry,
     options: { replace?: boolean; fromPopState?: boolean }
   ): void {
-    context.container.innerHTML = entry.html;
+    morphElement(context.container, context.nextContainer);
     document.title = entry.title;
     this.applyDocumentAttributes(entry);
     if (!options.fromPopState) {
@@ -361,6 +365,7 @@ export class RouteCoordinator {
         window.history.pushState(null, "", url.toString());
       }
     }
+    this.currentUrl = url.toString();
   }
 
   private createCacheEntry(nextDocument: Document, nextContainer: Element): CachedPageEntry {

@@ -2,11 +2,13 @@
 
 The following are ideas to structurally evolve and restructure Spaceface as it grows into a larger framework or application runtime.
 
-## 1. Smarter Route Swapping (Native DOM Morphing)
+## 1. Smarter Route Swapping (Native DOM Morphing) (IMPLEMENTED)
+*(Implemented in `RouteCoordinator` using a custom, recursive DOM morphing algorithm (`morphElement`) that seamlessly diffs elements instead of performing a hard swap via `innerHTML`.)*
 Currently, `RouteCoordinator` completely destroys `[data-route-container]` and replaces it using `innerHTML = cached.html`.
 * **The Limitation:** If there is an `<audio>` player playing music, a `<video>` tag, or an expensive WebGL canvas inside the route container, it is completely destroyed and recreated on every page navigation.
 * **The Evolution:** Instead of a hard swap, you could write a small, custom DOM-diffing function (often called "morphing") to traverse the newly fetched HTML and only update the CSS classes or text nodes that have actually changed on the existing DOM elements.
 * *Note: Writing a robust morphing algorithm from scratch is complex (handling focus states, cursor positions in inputs, etc.), so the current `innerHTML` approach remains the fastest and safest zero-dependency method unless you specifically need to preserve playing `<video>` elements across page loads!*
+
 
 ## 2. Preloading & Prefetching (IMPLEMENTED)
 *(Implemented in v2.0.3 using `pointerenter` tracking to aggressively pre-cache valid navigation targets instantly on hover)*
