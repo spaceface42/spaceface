@@ -1,6 +1,6 @@
 {
     "name": "spaceface",
-    "version": "2.0.4",
+    "version": "2.0.5",
     "type": "module",
     "devDependencies": {
         "@eslint/js": "^9.39.3",
