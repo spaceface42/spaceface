@@ -8,6 +8,7 @@
         "esbuild": "^0.27.2",
         "eslint": "^9.39.3",
         "jsdom": "^28.1.0",
+        "puppeteer": "^24.38.0",
         "typescript": "^5.2.0",
         "typescript-eslint": "^8.56.1"
     },

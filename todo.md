@@ -5,6 +5,7 @@ The following are ideas to structurally evolve and restructure Spaceface as it g
 ## 1. Smarter Route Swapping (Native DOM Morphing) (IMPLEMENTED)
 *(Implemented using a custom `morphNode` utility in `morphdom.ts`. `RouteCoordinator` now morphs the newly fetched HTML into the existing container, preserving elements like playing `<video>` or `<audio>` across page navigation.)*
 
+
 ## 2. Preloading & Prefetching (IMPLEMENTED)
 *(Implemented in v2.0.3 using `pointerenter` tracking to aggressively pre-cache valid navigation targets instantly on hover)*
 

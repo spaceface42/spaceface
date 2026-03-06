@@ -80,7 +80,7 @@ export class RouteCoordinator {
 
   async navigate(input: string | URL, options: { replace?: boolean; fromPopState?: boolean } = {}): Promise<void> {
     const url = new URL(input.toString(), window.location.href);
-    const current = new URL(window.location.href);
+    const current = new URL(this.currentUrl);
 
     if (url.origin !== window.location.origin) {
       window.location.href = url.toString();
@@ -88,6 +88,7 @@ export class RouteCoordinator {
     }
     const sameDocument = url.pathname === current.pathname && url.search === current.search;
     if (sameDocument && url.hash !== current.hash) {
+      this.currentUrl = url.toString();
       if (!options.fromPopState) {
         if (options.replace) {
           window.history.replaceState(null, "", url.toString());
@@ -97,7 +98,7 @@ export class RouteCoordinator {
       }
       return;
     }
-    if (sameDocument && url.hash === current.hash && !options.fromPopState) return;
+    if (sameDocument && url.hash === current.hash) return;
 
     const token = ++this.navToken;
     this.currentAbort?.abort();
