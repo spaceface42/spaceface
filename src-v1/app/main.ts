@@ -4,7 +4,7 @@ import { FeatureRegistry } from "../core/registry.js";
 import { StartupPipeline } from "../core/startup.js";
 import { attachConsoleLogSink, createLogger } from "../core/logger.js";
 import { RouteCoordinator } from "../core/router.js";
-import { animationScheduler } from "../core/animation.js";
+import { animationScheduler } from "../features/shared/animation.js";
 import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
 import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.js";
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";

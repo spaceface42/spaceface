@@ -1,8 +1,9 @@
-// src/features/floating-images/FloatingImagesFeature.ts
-import type { Feature } from "../../core/feature.js";
-import { globalScheduler } from "../../core/scheduler.js";
+import type { Feature, StartupContext } from "../../core/lifecycle.js";
+import type { UnsubscribeFn } from "../../core/events.js";
+import { animationScheduler } from "../shared/animation.js";
+import type { AnimationFrameContext } from "../shared/animation.js";
 import { waitForImagesReady } from "../shared/images.js";
-import { clamp, distance, gaussianRandom, randomBetween } from "../shared/mathUtils.js";
+import { rebindOnRoute } from "../../core/rebindOnRoute.js";
 
 interface MotionItem {
   el: HTMLElement;
@@ -13,7 +14,6 @@ interface MotionItem {
   width: number;
   height: number;
   speedMultiplier: number;
-  // Track rendered state to avoid redundant DOM writes
   renderedX: number;
   renderedY: number;
 }
@@ -22,6 +22,7 @@ export interface FloatingImagesFeatureOptions {
   containerSelector?: string;
   itemSelector?: string;
   baseSpeed?: number;
+  pauseOnScreensaver?: boolean;
   hoverBehavior?: "none" | "slow" | "pause";
   hoverSlowMultiplier?: number;
   initialDistribution?: "gaussian" | "random";
@@ -29,68 +30,104 @@ export interface FloatingImagesFeatureOptions {
 
 export class FloatingImagesFeature implements Feature {
   readonly name = "floating-images";
-  static selector = "floating-images";
-  // In a more advanced setup, options could be injected or read from data-* attributes
+  readonly domBound = true;
 
-  private options: Required<FloatingImagesFeatureOptions>;
+  private readonly options: Required<FloatingImagesFeatureOptions>;
   private container: HTMLElement | null = null;
   private items: MotionItem[] = [];
+  private running = false;
+  private pausedByScreensaver = false;
   private inViewport = true;
+  private initRunId = 0;
   private hoveredItem: HTMLElement | null = null;
   private bounds = { width: 0, height: 0 };
   private resizeRafId: number | null = null;
   private intersectionObserver?: IntersectionObserver;
-  private unsubScheduler?: () => void;
-  private destroyed = false;
+  private unsubAnimation?: UnsubscribeFn;
+  private unsubScreensaverShown?: UnsubscribeFn;
+  private unsubScreensaverHidden?: UnsubscribeFn;
 
   constructor(options: FloatingImagesFeatureOptions = {}) {
     this.options = {
       containerSelector: options.containerSelector ?? "[data-floating-images]",
       itemSelector: options.itemSelector ?? "[data-floating-item], .floating-image",
       baseSpeed: options.baseSpeed ?? 46,
+      pauseOnScreensaver: options.pauseOnScreensaver ?? true,
       hoverBehavior: options.hoverBehavior ?? "none",
       hoverSlowMultiplier: options.hoverSlowMultiplier ?? 0.2,
       initialDistribution: options.initialDistribution ?? "gaussian",
     };
   }
 
-  async mount(el: HTMLElement): Promise<void> {
-    this.container = el;
-    this.destroyed = false;
+  async init(ctx: StartupContext): Promise<void> {
+    const runId = ++this.initRunId;
+    this.container = document.querySelector<HTMLElement>(this.options.containerSelector);
+    if (!this.container) {
+      ctx.logger.debug("floating-images skipped: container missing", {
+        selector: this.options.containerSelector,
+      });
+      return;
+    }
 
     await waitForImagesReady(this.container, {
       selector: this.options.itemSelector,
       timeoutMs: 5000,
     });
-    if (this.destroyed) return;
+    if (runId !== this.initRunId) return;
 
     this.items = this.collectItems(this.container);
-    if (this.items.length === 0) return;
+    if (this.items.length === 0) {
+      ctx.logger.debug("floating-images skipped: no items", {
+        selector: this.options.itemSelector,
+      });
+      return;
+    }
 
-    // Ensure valid initial layout
+    // Ensure valid initial layout even if animation is paused or first RAF tick is delayed.
     for (const item of this.items) {
       this.renderItem(item);
     }
 
+    this.running = true;
+    this.pausedByScreensaver = false;
     this.bounds = this.readBounds();
     window.addEventListener("resize", this.onResize, { passive: true });
     this.attachViewportObserver();
+    if (this.options.pauseOnScreensaver) {
+      this.unsubScreensaverShown = ctx.events.on("screensaver:shown", () => {
+        this.pausedByScreensaver = true;
+        this.updateAnimationState();
+      });
+      this.unsubScreensaverHidden = ctx.events.on("screensaver:hidden", () => {
+        this.pausedByScreensaver = false;
+        this.updateAnimationState();
+      });
+    }
     this.updateAnimationState();
+
+    ctx.logger.info("floating-images initialized", {
+      items: this.items.length,
+      selector: this.options.containerSelector,
+      initialDistribution: this.options.initialDistribution,
+    });
   }
 
   destroy(): void {
-    this.destroyed = true;
-    this.unsubScheduler?.();
-    this.unsubScheduler = undefined;
-
+    this.initRunId += 1;
+    this.running = false;
+    this.unsubAnimation?.();
+    this.unsubAnimation = undefined;
     if (this.resizeRafId !== null) {
       cancelAnimationFrame(this.resizeRafId);
       this.resizeRafId = null;
     }
-
     window.removeEventListener("resize", this.onResize);
     this.intersectionObserver?.disconnect();
     this.intersectionObserver = undefined;
+    this.unsubScreensaverShown?.();
+    this.unsubScreensaverHidden?.();
+    this.unsubScreensaverShown = undefined;
+    this.unsubScreensaverHidden = undefined;
 
     for (const item of this.items) {
       item.el.removeEventListener("pointerenter", this.onItemPointerEnter);
@@ -104,90 +141,21 @@ export class FloatingImagesFeature implements Feature {
 
     this.items = [];
     this.container = null;
+    this.pausedByScreensaver = false;
     this.inViewport = true;
     this.hoveredItem = null;
   }
 
-  private updateAnimationState(): void {
-    if (this.destroyed) return;
-    const shouldRun = this.inViewport;
-
-    if (!shouldRun) {
-      if (this.unsubScheduler) {
-        this.unsubScheduler();
-        this.unsubScheduler = undefined;
-      }
-      return;
-    }
-
-    if (!this.unsubScheduler) {
-      this.unsubScheduler = globalScheduler.add({
-        update: this.updateLogic,
-        render: this.renderDOM,
-      });
-    }
-  }
-
-  // --- vNext Unified Loop: Phase 1: Update (Read DOM/Math only) ---
-  private readonly updateLogic = (dt: number): void => {
-    if (!this.container) return;
-    const bounds = this.bounds;
-
-    for (const item of this.items) {
-      const targetSpeedMultiplier = this.getItemSpeedMultiplier(item.el);
-      const lerp = Math.min(1, dt * 10);
-      item.speedMultiplier += (targetSpeedMultiplier - item.speedMultiplier) * lerp;
-      item.x += item.vx * dt * item.speedMultiplier;
-      item.y += item.vy * dt * item.speedMultiplier;
-
-      const maxX = Math.max(0, bounds.width - item.width);
-      const maxY = Math.max(0, bounds.height - item.height);
-
-      if (maxX <= 0 && maxY <= 0) {
-        item.x = 0;
-        item.y = 0;
-      } else {
-        if (maxX <= 0) {
-          item.x = 0;
-        } else {
-          if (item.x <= 0) {
-            item.x = 0;
-            item.vx = Math.abs(item.vx);
-          } else if (item.x >= maxX) {
-            item.x = maxX;
-            item.vx = -Math.abs(item.vx);
-          }
-        }
-
-        if (maxY <= 0) {
-          item.y = 0;
-        } else {
-          if (item.y <= 0) {
-            item.y = 0;
-            item.vy = Math.abs(item.vy);
-          } else if (item.y >= maxY) {
-            item.y = maxY;
-            item.vy = -Math.abs(item.vy);
-          }
-        }
-      }
-    }
-  };
-
-  // --- vNext Unified Loop: Phase 2: Render (Write DOM only) ---
-  private readonly renderDOM = (): void => {
-    for (const item of this.items) {
-      this.renderItem(item);
-    }
-  };
-
-  private renderItem(item: MotionItem): void {
-    const rx = Math.round(item.x);
-    const ry = Math.round(item.y);
-    if (rx === item.renderedX && ry === item.renderedY) return;
-    item.renderedX = rx;
-    item.renderedY = ry;
-    item.el.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
+  onRouteChange(_nextRoute: string, ctx: StartupContext): void {
+    this.container = rebindOnRoute<HTMLElement>({
+      getNextBinding: () => document.querySelector<HTMLElement>(this.options.containerSelector),
+      currentBinding: this.container,
+      hasActiveState: this.items.length > 0,
+      onInit: () => {
+        void this.init(ctx);
+      },
+      onDestroy: () => this.destroy(),
+    });
   }
 
   private collectItems(container: HTMLElement): MotionItem[] {
@@ -218,6 +186,7 @@ export class FloatingImagesFeature implements Feature {
         x = clamp(centerX + gaussianRandom() * spread, 0, maxX);
         y = clamp(centerY + gaussianRandom() * spread, 0, maxY);
 
+        // Try a few candidates and pick one that avoids excessive initial overlap.
         for (let i = 0; i < 18; i += 1) {
           const candidateX = clamp(centerX + gaussianRandom() * spread, 0, maxX);
           const candidateY = clamp(centerY + gaussianRandom() * spread, 0, maxY);
@@ -244,7 +213,6 @@ export class FloatingImagesFeature implements Feature {
       el.style.left = "0";
       el.style.top = "0";
       el.style.willChange = "transform";
-
       if (this.options.hoverBehavior !== "none") {
         el.addEventListener("pointerenter", this.onItemPointerEnter, { passive: true });
         el.addEventListener("pointerleave", this.onItemPointerLeave, { passive: true });
@@ -280,10 +248,92 @@ export class FloatingImagesFeature implements Feature {
         item.height = Math.max(28, Math.round(item.el.getBoundingClientRect().height || item.height));
         item.x = clamp(item.x, 0, Math.max(0, this.bounds.width - item.width));
         item.y = clamp(item.y, 0, Math.max(0, this.bounds.height - item.height));
-        this.renderItem(item); // safe DOM write during RAF
+        this.renderItem(item);
       }
     });
   };
+
+  private readonly tick = (frame: AnimationFrameContext): void => {
+    if (!this.running || !this.container) return;
+    if (frame.overloaded && frame.frame % 2 === 1) return;
+
+    const dt = Math.min(frame.deltaMs / 1000, 0.05);
+    const bounds = this.bounds;
+
+    for (const item of this.items) {
+      const targetSpeedMultiplier = this.getItemSpeedMultiplier(item.el);
+      const lerp = Math.min(1, dt * 10);
+      item.speedMultiplier += (targetSpeedMultiplier - item.speedMultiplier) * lerp;
+      item.x += item.vx * dt * item.speedMultiplier;
+      item.y += item.vy * dt * item.speedMultiplier;
+
+      const maxX = Math.max(0, bounds.width - item.width);
+      const maxY = Math.max(0, bounds.height - item.height);
+
+      if (maxX <= 0 && maxY <= 0) {
+        // If container is smaller than item, stop moving to prevent jitter
+        item.x = 0;
+        item.y = 0;
+      } else {
+        if (maxX <= 0) {
+          item.x = 0;
+        } else {
+          if (item.x <= 0) {
+            item.x = 0;
+            item.vx = Math.abs(item.vx);
+          } else if (item.x >= maxX) {
+            item.x = maxX;
+            item.vx = -Math.abs(item.vx);
+          }
+        }
+
+        if (maxY <= 0) {
+          item.y = 0;
+        } else {
+          if (item.y <= 0) {
+            item.y = 0;
+            item.vy = Math.abs(item.vy);
+          } else if (item.y >= maxY) {
+            item.y = maxY;
+            item.vy = -Math.abs(item.vy);
+          }
+        }
+      }
+
+      this.renderItem(item);
+    }
+  };
+
+  private updateAnimationState(): void {
+    if (!this.running) return;
+    const shouldRun = !this.pausedByScreensaver && this.inViewport;
+
+    // If the animation scheduler is paused (e.g., due to reduced motion), we still need to
+    // run at least one tick so the items aren't stuck at 0,0.
+    if (!shouldRun || animationScheduler.isPaused()) {
+      if (this.unsubAnimation) {
+        this.unsubAnimation();
+        this.unsubAnimation = undefined;
+      }
+
+      if (shouldRun && animationScheduler.isPaused()) {
+        const perf = animationScheduler.getStats();
+        this.tick({
+          now: performance.now(),
+          deltaMs: 16.7,
+          frame: perf.frame,
+          overloaded: false,
+          fps: perf.fps,
+          performanceLevel: perf.performanceLevel,
+        });
+      }
+      return;
+    }
+
+    if (!this.unsubAnimation) {
+      this.unsubAnimation = animationScheduler.add(this.tick);
+    }
+  }
 
   private readBounds(): { width: number; height: number } {
     if (!this.container) return { width: 0, height: 0 };
@@ -291,6 +341,15 @@ export class FloatingImagesFeature implements Feature {
       width: this.container.clientWidth,
       height: this.container.clientHeight,
     };
+  }
+
+  private renderItem(item: MotionItem): void {
+    const rx = Math.round(item.x);
+    const ry = Math.round(item.y);
+    if (rx === item.renderedX && ry === item.renderedY) return;
+    item.renderedX = rx;
+    item.renderedY = ry;
+    item.el.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
   }
 
   private getItemSpeedMultiplier(el: HTMLElement): number {
@@ -332,3 +391,5 @@ export class FloatingImagesFeature implements Feature {
     this.intersectionObserver.observe(this.container);
   }
 }
+
+import { clamp, distance, gaussianRandom, randomBetween } from "../shared/mathUtils.js";

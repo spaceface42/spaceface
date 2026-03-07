@@ -1,4 +1,4 @@
-import { PerformanceMonitor, type PerformanceLevel } from "./performance.js";
+import { PerformanceMonitor, type PerformanceLevel } from "../../core/performance.js";
 
 export interface AnimationFrameContext {
   now: number;

@@ -1,58 +1,133 @@
-<!doctype html>
-<html lang="en" data-mode="dev">
+<!DOCTYPE html>
+<html lang="en">
 
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>spaceface demo</title>
-        <link rel="stylesheet" href="./resources/spacesuit/defaults.css" />
-        <link rel="stylesheet" href="./resources/spacesuit/styles.css" />
-        <link rel="stylesheet" href="./resources/spacesuit/features.css" />
-    </head>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spaceface vNext Playground</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #1a1a1a;
+        color: white;
+        font-family: sans-serif;
+        overflow: hidden;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
 
-    <body data-page="index">
+      h1 {
+        margin-bottom: 0.5rem;
+      }
 
-        <header>
-            <link rel="partial" href="./resources/partials/nav.html" />
-        </header>
+      p {
+        color: #888;
+      }
 
-        <main data-route-container>
-            <link rel="partial" href="./resources/partials/demo-notice.html" />
-            <section class="card">
-                <h1>spaceface demo</h1>
-                <p class="muted">
-                    Slideshow supports button controls. Screensaver appears after inactivity.
-                </p>
-                <p class="muted">
-                    <a href="./slideplayer.html">Go to slideplayer page (route swap)</a>
-                </p>
-            </section>
+      /* Floating item CSS (from v1) */
+      .floating-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        font-size: 2rem;
+        font-weight: bold;
+        color: #555;
+        user-select: none;
+        pointer-events: none;
+      }
 
-            <section class="card" data-slideshow>
-                <div class="row controls">
-                    <button type="button" data-slide-prev>Prev</button>
-                    <button type="button" data-slide-next>Next</button>
-                </div>
-                <article data-slide>Slide 1: Core startup pipeline + feature registry</article>
-                <article data-slide hidden>Slide 2: Typed event bus with feature contracts</article>
-                <article data-slide hidden>Slide 3: Isolated feature lifecycle and teardown</article>
-            </section>
+      /* Screensaver CSS wrapper */
+      .screensaver-wrapper {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-            <section class="card">
-                <h2>Floating Images (ported feature)</h2>
-                <p class="muted">Lifecycle-managed animation that deactivates when route swap removes this container.
-                </p>
-                <div data-floating-images>
-                    <img data-floating-item src="./content/floatingimages/a.svg" alt="Floating A" />
-                    <img data-floating-item src="./content/floatingimages/b.svg" alt="Floating B" />
-                    <img data-floating-item src="./content/floatingimages/c.svg" alt="Floating C" />
-                    <img data-floating-item src="./content/floatingimages/d.svg" alt="Floating D" />
-                </div>
-            </section>
-            <link rel="partial" href="./resources/partials/footer.html" />
-    </main>
+      .screensaver-wrapper.is-active {
+        opacity: 1;
+        pointer-events: auto;
+      }
 
-        <script type="module" src="./dist/main.js"></script>
-    </body>
+      .screensaver-content {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* Mock Slideshow CSS */
+      .slideshow-container {
+        width: 80%;
+        max-width: 600px;
+        height: 300px;
+        position: relative;
+        background: #222;
+        border: 2px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        transition: opacity 0.3s ease;
+      }
+
+      .slide[hidden] {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .slide:not([hidden]) {
+        opacity: 1;
+      }
+
+      .slide-1 {
+        background-color: #530000;
+      }
+
+      .slide-2 {
+        background-color: #004d00;
+      }
+
+      .slide-3 {
+        background-color: #00004d;
+      }
+    </style>
+    <script type="module" src="/dist/main.js" defer></script>
+  </head>
+
+  <body>
+
+    <h1>Spaceface vNext</h1>
+    <p>Wait 3 seconds to see the robust MutationObserver screensaver in action!</p>
+
+    <!-- Mock Slideshow -->
+    <div data-feature="slideshow" class="slideshow-container" style="margin-bottom: 2rem;">
+      <div data-slide class="slide slide-1">Slide A</div>
+      <div data-slide class="slide slide-2" hidden>Slide B</div>
+      <div data-slide class="slide slide-3" hidden>Slide C</div>
+    </div>
+
+    <!-- Notice how we simply drop this in the DOM and vNext wires it up -->
+    <div data-feature="screensaver" class="screensaver-wrapper">
+      <!-- It will load the partial into this mount -->
+    </div>
+
+  </body>
 
 </html>

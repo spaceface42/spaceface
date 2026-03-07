@@ -10,15 +10,16 @@
         "jsdom": "^28.1.0",
         "puppeteer": "^24.38.0",
         "typescript": "^5.2.0",
-        "typescript-eslint": "^8.56.1"
+        "typescript-eslint": "^8.56.1",
+        "vitest": "^4.0.18"
     },
     "scripts": {
         "build": "npm run build:prod",
         "build:dev": "npm run build:html && npm run build:js:dev",
         "build:prod:pjax": "npm run build:prod",
         "build:prod": "npm run build:html && npm run build:js:prod",
-        "build:js:dev": "esbuild ./src/app/main.ts --bundle --format=esm --target=es2022 --sourcemap --outfile=./docs/dist/main.js",
-        "build:js:prod": "esbuild ./src/app/main.ts --bundle --format=esm --target=es2022 --minify --outfile=./docs/dist/main.js",
+        "build:js:dev": "esbuild ./src/main.ts --bundle --format=esm --target=es2022 --sourcemap --outfile=./docs/dist/main.js",
+        "build:js:prod": "esbuild ./src/main.ts --bundle --format=esm --target=es2022 --minify --outfile=./docs/dist/main.js",
         "build:html": "node ./bin/build-public-html.mjs",
         "build:docs": "npm run build:dev",
         "build:docs:prod": "npm run build:prod",
@@ -35,6 +36,8 @@
         "demo:docs": "npm run build:dev && npm run serve:docs",
         "typecheck": "tsc --noEmit",
         "lint": "node ./bin/lint.mjs",
-        "lint:fix": "node ./bin/lint.mjs --fix"
+        "lint:fix": "node ./bin/lint.mjs --fix",
+        "test": "vitest run",
+        "test:watch": "vitest"
     }
 }
