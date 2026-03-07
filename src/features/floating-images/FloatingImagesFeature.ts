@@ -58,6 +58,13 @@ export class FloatingImagesFeature implements Feature {
     this.container = el;
     this.destroyed = false;
 
+    // Instantly hide items to prevent flickering before images load and math is calculated
+    const initialNodes = Array.from(this.container.querySelectorAll<HTMLElement>(this.options.itemSelector));
+    for (const node of initialNodes) {
+      node.style.position = "absolute";
+      node.style.visibility = "hidden";
+    }
+
     await waitForImagesReady(this.container, {
       selector: this.options.itemSelector,
       timeoutMs: 5000,
@@ -244,6 +251,7 @@ export class FloatingImagesFeature implements Feature {
       el.style.left = "0";
       el.style.top = "0";
       el.style.willChange = "transform";
+      el.style.visibility = "visible";
 
       if (this.options.hoverBehavior !== "none") {
         el.addEventListener("pointerenter", this.onItemPointerEnter, { passive: true });

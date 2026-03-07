@@ -20,7 +20,6 @@ export function createSignal<T>(initialValue: T): Signal<T> {
     get value() {
       if (activeSubscriber) {
         subscribers.add(activeSubscriber);
-        console.log("Signal: added subscriber", activeSubscriber);
       }
       return currentValue;
     },
