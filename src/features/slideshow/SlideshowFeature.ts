@@ -1,7 +1,6 @@
 // src/features/slideshow/SlideshowFeature.ts
 import type { Feature } from "../../core/feature.js";
 import { createEffect } from "../../core/signals.js";
-import { globalScheduler } from "../../core/scheduler.js";
 import { screensaverActiveSignal } from "../shared/screensaverState.js";
 
 export interface SlideshowFeatureOptions {
@@ -147,7 +146,6 @@ export class SlideshowFeature implements Feature {
       if (this.autoplayTimer !== null) {
         const elapsed = Date.now() - this.autoplayStartTime;
         this.autoplayRemainingMs = Math.max(0, this.autoplayRemainingMs - elapsed);
-        console.log(`[Slideshow] Paused by screensaver. Remaining MS saved: ${this.autoplayRemainingMs}`);
         this.clearAutoplay();
       }
       return;
@@ -155,7 +153,6 @@ export class SlideshowFeature implements Feature {
 
     // Resume timer using remaining time
     if (this.autoplayTimer !== null) return;
-    console.log(`[Slideshow] Autoplay resuming for ${this.autoplayRemainingMs}ms`);
     this.scheduleNextAutoplay(this.autoplayRemainingMs > 0 ? this.autoplayRemainingMs : this.options.autoplayMs);
   }
 

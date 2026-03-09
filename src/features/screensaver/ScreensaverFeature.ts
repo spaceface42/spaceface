@@ -50,10 +50,8 @@ export class ScreensaverFeature implements Feature {
       }
 
       this.timer = window.setTimeout(() => {
-        console.log("Screensaver timer fired! idleMs:", this.options.idleMs);
         this.showScreensaver();
       }, this.options.idleMs);
-      console.log("Screensaver timer reset for", this.options.idleMs);
     });
   }
 
@@ -85,7 +83,6 @@ export class ScreensaverFeature implements Feature {
   }
 
   private async showScreensaver(): Promise<void> {
-    console.log("ScreensaverFeature: showScreensaver() called");
     if (!this.target) return;
     this.isShowing = true;
     screensaverActiveSignal.value = true;
@@ -151,8 +148,8 @@ export class ScreensaverFeature implements Feature {
       mount.innerHTML = html;
 
       this.partialLoaded = true;
-    } catch (e) {
-      console.warn("Screensaver partial load failed", e);
+    } catch {
+      // Keep screensaver behavior resilient if the partial cannot be loaded.
     }
   }
 

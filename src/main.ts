@@ -9,8 +9,6 @@ import { FloatingImagesFeature } from "./features/floating-images/FloatingImages
 import { SlideshowFeature } from "./features/slideshow/SlideshowFeature.js";
 
 async function main() {
-  console.log("[Spaceface vNext] Booting...");
-
   // 1. Initialize Global Shared Signals/Activity
   initActivityTracking();
 
@@ -45,9 +43,11 @@ async function main() {
 
   // 5. Start DOM Observation
   registry.start();
-
-  console.log("[Spaceface vNext] Ready. Waiting for DOM mutations...");
 }
 
 // Boot
-main().catch(console.error);
+main().catch((error) => {
+  setTimeout(() => {
+    throw error;
+  }, 0);
+});

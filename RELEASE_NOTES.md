@@ -1,5 +1,17 @@
 # Release Notes
 
+## 2026-03-09
+
+### vNext Stability And Lifecycle Hardening
+
+- **Signal Dependency Cleanup**: Fixed `createEffect` subscription lifecycle in `src/core/signals.ts` so dependencies are removed on rerun/destroy, preventing stale reactive subscribers and memory growth.
+- **Feature Registry Reconciliation**: Upgraded `src/core/feature.ts` to reconcile `data-feature` attribute changes (not just node add/remove), so feature mount/unmount now correctly follows runtime attribute toggles.
+- **Duplicate Mount Prevention (First Screensaver Run Flicker)**: Reworked active-instance tracking to a per-node/per-feature-id map, eliminating duplicate feature mounts that caused first-run screensaver floating-item flicker.
+- **Selector Contract Alignment**: Standardized `ScreensaverFeature.selector` to `"screensaver"` to match the `data-feature="..."` registry contract.
+- **Runtime Logging Hygiene**: Removed direct `console.*` calls from feature runtime paths (`slideshow`, `screensaver`, `main`) and kept console output centralized through `src/core/logger.ts`.
+- **Logger Typecheck Fix**: Removed stale `./events.js` dependency from `src/core/logger.ts` and replaced it with a local typed sink dispatcher, restoring `npm run typecheck:docs` pass status on vNext.
+- **Startup Error Visibility**: Replaced silent startup catch in `src/main.ts` with rethrow-on-microtask behavior so boot failures are surfaced instead of swallowed.
+
 ## 2026-03-05
 
 ### Architectural Edge-Case Resolutions (v2.0.2)

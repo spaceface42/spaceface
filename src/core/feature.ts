@@ -28,7 +28,7 @@ export interface FeatureConstructor extends Constructor<Feature> {
  */
 export class FeatureRegistry {
   private featureConstructors = new Map<string, FeatureConstructor>();
-  private activeInstances = new Map<HTMLElement, Feature[]>();
+  private activeInstances = new Map<HTMLElement, Map<string, Feature>>();
   private observer: MutationObserver | null = null;
 
   constructor(private container: Container) {}
@@ -56,6 +56,13 @@ export class FeatureRegistry {
     // Watch for future DOM insertions/removals
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
+        if (mutation.type === "attributes") {
+          const target = mutation.target;
+          if (target instanceof HTMLElement) {
+            this.reconcileNodeFeatures(target);
+          }
+          continue;
+        }
         // Handle removals first to cleanup
         for (const node of mutation.removedNodes) {
           if (node instanceof HTMLElement) {
@@ -74,6 +81,8 @@ export class FeatureRegistry {
     this.observer.observe(document.body, {
       childList: true,
       subtree: true,
+      attributes: true,
+      attributeFilter: ["data-feature"],
     });
   }
 
@@ -91,27 +100,37 @@ export class FeatureRegistry {
 
   private scanAndMount(root: HTMLElement): void {
     // Check root
-    this.maybeMountNode(root);
+    this.reconcileNodeFeatures(root);
     // Check children
     const elements = root.querySelectorAll<HTMLElement>("[data-feature]");
     for (const el of elements) {
-      this.maybeMountNode(el);
+      this.reconcileNodeFeatures(el);
     }
   }
 
-  private maybeMountNode(node: HTMLElement): void {
-    const featureIds = node.getAttribute("data-feature")?.split(" ") || [];
-    if (featureIds.length === 0) return;
+  private reconcileNodeFeatures(node: HTMLElement): void {
+    const featureIds = parseFeatureIds(node.getAttribute("data-feature"));
+    const desiredIds = new Set(featureIds);
+    const nodeInstances = this.activeInstances.get(node);
+
+    if (nodeInstances) {
+      for (const [id, instance] of nodeInstances.entries()) {
+        if (desiredIds.has(id)) continue;
+        instance.destroy?.();
+        nodeInstances.delete(id);
+      }
+      if (nodeInstances.size === 0) {
+        this.activeInstances.delete(node);
+      }
+    }
 
     for (const id of featureIds) {
       const FeatureClass = this.featureConstructors.get(id);
       if (!FeatureClass) continue;
-      const existingInstances = this.activeInstances.get(node);
-      if (existingInstances?.some((instance) => instance.name === id)) {
-        continue;
-      }
 
-      // Instantiate
+      let nextNodeInstances = this.activeInstances.get(node);
+      if (nextNodeInstances?.has(id)) continue;
+
       let instance: Feature;
       if (FeatureClass.inject) {
         const deps = FeatureClass.inject.map(tok => this.container.resolve(tok));
@@ -119,17 +138,13 @@ export class FeatureRegistry {
       } else {
         instance = new FeatureClass();
       }
-
-      // Track
-      let nodeInstances = this.activeInstances.get(node);
-      if (!nodeInstances) {
-        nodeInstances = [];
-        this.activeInstances.set(node, nodeInstances);
-      }
-      nodeInstances.push(instance);
-
-      // Mount
       instance.mount?.(node);
+
+      if (!nextNodeInstances) {
+        nextNodeInstances = new Map<string, Feature>();
+        this.activeInstances.set(node, nextNodeInstances);
+      }
+      nextNodeInstances.set(id, instance);
     }
   }
 
@@ -147,9 +162,21 @@ export class FeatureRegistry {
     const instances = this.activeInstances.get(node);
     if (!instances) return;
 
-    for (const instance of instances) {
+    for (const instance of instances.values()) {
       instance.destroy?.();
     }
     this.activeInstances.delete(node);
   }
+}
+
+function parseFeatureIds(raw: string | null): string[] {
+  if (!raw) return [];
+  const uniqueIds = new Set<string>();
+  const parts = raw.split(/\s+/);
+  for (const part of parts) {
+    const id = part.trim();
+    if (!id) continue;
+    uniqueIds.add(id);
+  }
+  return Array.from(uniqueIds);
 }
