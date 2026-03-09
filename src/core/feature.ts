@@ -106,6 +106,10 @@ export class FeatureRegistry {
     for (const id of featureIds) {
       const FeatureClass = this.featureConstructors.get(id);
       if (!FeatureClass) continue;
+      const existingInstances = this.activeInstances.get(node);
+      if (existingInstances?.some((instance) => instance.name === id)) {
+        continue;
+      }
 
       // Instantiate
       let instance: Feature;

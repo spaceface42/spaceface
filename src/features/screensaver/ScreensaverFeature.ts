@@ -15,7 +15,7 @@ export interface ScreensaverFeatureOptions {
 
 export class ScreensaverFeature implements Feature {
   readonly name = "screensaver";
-  static selector = "[data-screensaver]";
+  static selector = "screensaver";
 
   private options: Required<ScreensaverFeatureOptions>;
   private target: HTMLElement | null = null;

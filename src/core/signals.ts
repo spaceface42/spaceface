@@ -9,17 +9,22 @@ export interface Signal<T> {
   subscribe(fn: (value: T) => void): () => void;
 }
 
-type Subscriber = () => void;
-let activeSubscriber: Subscriber | null = null;
+interface EffectSubscriber {
+  notify: () => void;
+  deps: Set<Set<EffectSubscriber>>;
+}
+
+let activeSubscriber: EffectSubscriber | null = null;
 
 export function createSignal<T>(initialValue: T): Signal<T> {
   let currentValue = initialValue;
-  const subscribers = new Set<Subscriber>();
+  const subscribers = new Set<EffectSubscriber>();
 
   return {
     get value() {
       if (activeSubscriber) {
         subscribers.add(activeSubscriber);
+        activeSubscriber.deps.add(subscribers);
       }
       return currentValue;
     },
@@ -29,13 +34,16 @@ export function createSignal<T>(initialValue: T): Signal<T> {
         // Copy subscribers to prevent infinite loops if they mutate state
         const currentSubscribers = Array.from(subscribers);
         for (const sub of currentSubscribers) {
-          sub();
+          sub.notify();
         }
       }
     },
     // Manual subscribe for raw listeners without effects
     subscribe(fn: (value: T) => void) {
-      const sub = () => fn(this.value);
+      const sub: EffectSubscriber = {
+        notify: () => fn(currentValue),
+        deps: new Set(),
+      };
       subscribers.add(sub);
       return () => {
         subscribers.delete(sub);
@@ -50,14 +58,26 @@ export function createSignal<T>(initialValue: T): Signal<T> {
  */
 export function createEffect(fn: () => void | (() => void)): () => void {
   const cleanups = new Set<() => void>();
+  const effectSubscriber: EffectSubscriber = {
+    notify: () => execute(),
+    deps: new Set(),
+  };
+
+  const cleanupDependencies = () => {
+    for (const dep of effectSubscriber.deps) {
+      dep.delete(effectSubscriber);
+    }
+    effectSubscriber.deps.clear();
+  };
 
   const execute = () => {
     // Run previous cleanups (e.g., from an old render pass)
     for (const cleanup of cleanups) cleanup();
     cleanups.clear();
+    cleanupDependencies();
 
     const previousSubscriber = activeSubscriber;
-    activeSubscriber = execute;
+    activeSubscriber = effectSubscriber;
 
     const cleanupFn = fn();
     if (typeof cleanupFn === "function") {
@@ -71,5 +91,6 @@ export function createEffect(fn: () => void | (() => void)): () => void {
   return () => {
     for (const cleanup of cleanups) cleanup();
     cleanups.clear();
+    cleanupDependencies();
   };
 }
