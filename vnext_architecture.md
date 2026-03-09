@@ -101,3 +101,6 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 - The View Transitions Router (`RouteCoordinator`)
 - Global UI Shell / Navigation Lifecycle
 - Content partials and remaining slideshow logic.
+
+**❓Open Question (Later Decision)**
+- Logging architecture: keep the current typed sink dispatcher in `src/core/logger.ts`, or formalize it into a dedicated `LogBus`/message channel module with pluggable sinks (console, telemetry, UI debug panel) while preserving the same `createLogger(...)` API.
