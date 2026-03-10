@@ -99,7 +99,8 @@ body[data-page="floatingimages"] [data-feature="floating-images"] {
     inset: 0;
     display: grid;
     place-items: center;
-    background: rgba(255, 255, 255, 0.25);
+    /* background: rgba(0, 0, 0, 0.3); */
+    background: url('/resources/spacesuit/layer.svg') 0 0 / 16px 16px repeat;
     color: #fff;
     font-size: 24px;
     letter-spacing: 0.04em;
