@@ -59,6 +59,9 @@ try {
   testFeatureRegistryAttributeToggling(runtime);
   testSlideshowScreensaverPause(runtime);
   testSlidePlayerScreensaverPause(runtime);
+  testSlidePlayerKeyboardNavigation(runtime);
+  testSlidePlayerSwipeNavigation(runtime);
+  testSlidePlayerTouchSwipeNavigation(runtime);
   await testFloatingImagesScreensaverPause(runtime);
   await testFloatingImagesAsyncDestroy(runtime);
   console.log("[vnext regressions] OK");
@@ -110,6 +113,8 @@ function testFeatureRegistryAttributeToggling(runtime) {
 
 function testSlideshowScreensaverPause(runtime) {
   const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
   const root = new FakeElement("section");
   root.append(new FakeElement("button", { "data-slide-prev": "" }));
   root.append(new FakeElement("button", { "data-slide-next": "" }));
@@ -136,10 +141,13 @@ function testSlideshowScreensaverPause(runtime) {
   feature.destroy();
   runtime.screensaverActiveSignal.value = false;
   clock.restore();
+  restoreDomGlobals();
 }
 
 function testSlidePlayerScreensaverPause(runtime) {
   const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
   const root = new FakeElement("section");
   root.append(new FakeElement("button", { "data-slideplayer-prev": "" }));
   root.append(new FakeElement("button", { "data-slideplayer-next": "" }));
@@ -175,6 +183,101 @@ function testSlidePlayerScreensaverPause(runtime) {
   feature.destroy();
   runtime.screensaverActiveSignal.value = false;
   clock.restore();
+  restoreDomGlobals();
+}
+
+function testSlidePlayerKeyboardNavigation(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createSlidePlayerRoot();
+  body.append(root);
+
+  runtime.screensaverActiveSignal.value = false;
+  const feature = new runtime.SlidePlayerFeature({ autoplayMs: 0 });
+  feature.mount(root);
+
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "slideplayer keyboard test should start on the first slide");
+
+  dispatchDocumentEvent("keydown", {
+    key: "ArrowRight",
+    target: body,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+  });
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 1, "ArrowRight should advance the slideplayer");
+
+  dispatchDocumentEvent("keydown", {
+    key: "ArrowLeft",
+    target: body,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+  });
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "ArrowLeft should move the slideplayer backward");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
+}
+
+function testSlidePlayerSwipeNavigation(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createSlidePlayerRoot();
+  body.append(root);
+
+  runtime.screensaverActiveSignal.value = false;
+  const feature = new runtime.SlidePlayerFeature({ autoplayMs: 0 });
+  feature.mount(root);
+
+  const stage = root.querySelector("[data-slideplayer-stage]");
+  dispatchElementEvent(stage, "pointerdown", { pointerId: 1, clientX: 120, clientY: 80, button: 0 });
+  dispatchElementEvent(stage, "pointerup", { pointerId: 1, clientX: 40, clientY: 84, button: 0 });
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 1, "left swipe should advance the slideplayer");
+
+  dispatchElementEvent(stage, "pointerdown", { pointerId: 2, clientX: 40, clientY: 80, button: 0 });
+  dispatchElementEvent(stage, "pointerup", { pointerId: 2, clientX: 120, clientY: 82, button: 0 });
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "right swipe should move the slideplayer backward");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
+}
+
+function testSlidePlayerTouchSwipeNavigation(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createSlidePlayerRoot();
+  body.append(root);
+
+  runtime.screensaverActiveSignal.value = false;
+  const feature = new runtime.SlidePlayerFeature({ autoplayMs: 0 });
+  feature.mount(root);
+
+  const stage = root.querySelector("[data-slideplayer-stage]");
+  dispatchElementEvent(stage, "touchstart", {
+    changedTouches: [{ clientX: 120, clientY: 80 }],
+  });
+  dispatchElementEvent(stage, "touchend", {
+    changedTouches: [{ clientX: 40, clientY: 83 }],
+  });
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 1, "left touch swipe should advance the slideplayer");
+
+  dispatchElementEvent(stage, "touchstart", {
+    changedTouches: [{ clientX: 40, clientY: 80 }],
+  });
+  dispatchElementEvent(stage, "touchend", {
+    changedTouches: [{ clientX: 120, clientY: 82 }],
+  });
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "right touch swipe should move the slideplayer backward");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
 }
 
 async function testFloatingImagesScreensaverPause(runtime) {
@@ -285,17 +388,34 @@ function installMutationObserverStub() {
 
 let originalDocument;
 let originalHTMLElement;
+let documentListeners = new Map();
 
 function installDomGlobals(body) {
   originalDocument = globalThis.document;
   originalHTMLElement = globalThis.HTMLElement;
-  globalThis.document = { body };
+  documentListeners = new Map();
+  globalThis.document = {
+    body,
+    addEventListener(type, handler) {
+      const list = documentListeners.get(type) ?? [];
+      list.push(handler);
+      documentListeners.set(type, list);
+    },
+    removeEventListener(type, handler) {
+      const list = documentListeners.get(type) ?? [];
+      documentListeners.set(
+        type,
+        list.filter((entry) => entry !== handler),
+      );
+    },
+  };
   globalThis.HTMLElement = FakeElement;
 }
 
 function restoreDomGlobals() {
   globalThis.document = originalDocument;
   globalThis.HTMLElement = originalHTMLElement;
+  documentListeners = new Map();
 }
 
 let originalWindow;
@@ -396,6 +516,26 @@ function createFloatingRoot() {
   root.clientHeight = 240;
   root.append(new FakeElement("div", { "data-floating-item": "true" }, { width: 48, height: 48 }));
   root.append(new FakeElement("div", { "data-floating-item": "true" }, { width: 48, height: 48 }));
+  return root;
+}
+
+function createSlidePlayerRoot() {
+  const root = new FakeElement("section");
+  root.append(new FakeElement("button", { "data-slideplayer-prev": "" }));
+  root.append(new FakeElement("button", { "data-slideplayer-next": "" }));
+
+  const stage = new FakeElement("div", { "data-slideplayer-stage": "" });
+  stage.append(new FakeElement("img", { "data-slideplayer-slide": "" }));
+  stage.append(new FakeElement("img", { "data-slideplayer-slide": "" }, { hidden: true }));
+  stage.append(new FakeElement("img", { "data-slideplayer-slide": "" }, { hidden: true }));
+  root.append(stage);
+
+  const bullets = new FakeElement("div", { "data-slideplayer-bullets": "" });
+  bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
+  bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
+  bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
+  root.append(bullets);
+
   return root;
 }
 
@@ -535,6 +675,20 @@ class FakeElement {
       y: 0,
       toJSON: () => ({}),
     };
+  }
+}
+
+function dispatchDocumentEvent(type, event) {
+  const handlers = documentListeners.get(type) ?? [];
+  for (const handler of handlers) {
+    handler(event);
+  }
+}
+
+function dispatchElementEvent(node, type, event) {
+  const handlers = node.listeners.get(type) ?? [];
+  for (const handler of handlers) {
+    handler(event);
   }
 }
 

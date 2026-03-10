@@ -15,9 +15,12 @@ export interface SlidePlayerFeatureOptions {
 export class SlidePlayerFeature implements Feature {
   readonly name = "slideplayer";
   static selector = "slideplayer";
+  private static readonly SWIPE_THRESHOLD_PX = 36;
+  private static readonly SWIPE_OFF_AXIS_THRESHOLD_PX = 24;
 
   private options: Required<SlidePlayerFeatureOptions>;
   private root: HTMLElement | null = null;
+  private stage: HTMLElement | null = null;
   private slides: HTMLElement[] = [];
   private bullets: HTMLButtonElement[] = [];
   private index = 0;
@@ -29,6 +32,16 @@ export class SlidePlayerFeature implements Feature {
   private detachPrevClick?: () => void;
   private detachNextClick?: () => void;
   private detachBulletClicks: Array<() => void> = [];
+  private detachKeydown?: () => void;
+  private detachPointerDown?: () => void;
+  private detachPointerUp?: () => void;
+  private detachPointerCancel?: () => void;
+  private detachTouchStart?: () => void;
+  private detachTouchEnd?: () => void;
+  private detachTouchCancel?: () => void;
+  private swipePointerId: number | null = null;
+  private swipeStartX = 0;
+  private swipeStartY = 0;
 
   constructor(options: SlidePlayerFeatureOptions = {}) {
     this.options = {
@@ -45,6 +58,7 @@ export class SlidePlayerFeature implements Feature {
 
   mount(el: HTMLElement): void {
     this.root = el;
+    this.stage = this.root.querySelector<HTMLElement>("[data-slideplayer-stage]");
     this.slides = Array.from(this.root.querySelectorAll<HTMLElement>(this.options.slideSelector));
     this.bullets = this.collectBullets();
     this.index = this.readInitialIndex();
@@ -66,6 +80,20 @@ export class SlidePlayerFeature implements Feature {
     this.detachPrevClick = undefined;
     this.detachNextClick?.();
     this.detachNextClick = undefined;
+    this.detachKeydown?.();
+    this.detachKeydown = undefined;
+    this.detachPointerDown?.();
+    this.detachPointerDown = undefined;
+    this.detachPointerUp?.();
+    this.detachPointerUp = undefined;
+    this.detachPointerCancel?.();
+    this.detachPointerCancel = undefined;
+    this.detachTouchStart?.();
+    this.detachTouchStart = undefined;
+    this.detachTouchEnd?.();
+    this.detachTouchEnd = undefined;
+    this.detachTouchCancel?.();
+    this.detachTouchCancel = undefined;
 
     for (const detach of this.detachBulletClicks) {
       detach();
@@ -73,11 +101,15 @@ export class SlidePlayerFeature implements Feature {
     this.detachBulletClicks = [];
 
     this.root = null;
+    this.stage = null;
     this.slides = [];
     this.bullets = [];
     this.index = 0;
     this.pausedByScreensaver = false;
     this.autoplayRemainingMs = this.options.autoplayMs;
+    this.swipePointerId = null;
+    this.swipeStartX = 0;
+    this.swipeStartY = 0;
   }
 
   private collectBullets(): HTMLButtonElement[] {
@@ -117,6 +149,66 @@ export class SlidePlayerFeature implements Feature {
       button.addEventListener("click", onClick);
       return () => button.removeEventListener("click", onClick);
     });
+
+    const onKeydown = (event: KeyboardEvent) => {
+      if (this.pausedByScreensaver || this.slides.length <= 1 || shouldIgnoreKeydown(event)) {
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        this.prev(true);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        this.next(true);
+      }
+    };
+    document.addEventListener("keydown", onKeydown);
+    this.detachKeydown = () => document.removeEventListener("keydown", onKeydown);
+
+    if (this.stage) {
+      const onPointerDown = (event: PointerEvent) => {
+        if (this.pausedByScreensaver || this.slides.length <= 1) return;
+        if (typeof event.button === "number" && event.button !== 0) return;
+        this.swipePointerId = event.pointerId;
+        this.swipeStartX = event.clientX;
+        this.swipeStartY = event.clientY;
+      };
+      const onPointerUp = (event: PointerEvent) => {
+        if (this.swipePointerId === null || event.pointerId !== this.swipePointerId) return;
+        this.handleSwipeDelta(event.clientX - this.swipeStartX, event.clientY - this.swipeStartY);
+      };
+      const onPointerCancel = () => this.resetSwipeState();
+      const onTouchStart = (event: TouchEvent) => {
+        if (this.pausedByScreensaver || this.slides.length <= 1) return;
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+        this.swipePointerId = -1;
+        this.swipeStartX = touch.clientX;
+        this.swipeStartY = touch.clientY;
+      };
+      const onTouchEnd = (event: TouchEvent) => {
+        if (this.swipePointerId !== -1) return;
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+        this.handleSwipeDelta(touch.clientX - this.swipeStartX, touch.clientY - this.swipeStartY);
+      };
+      const onTouchCancel = () => this.resetSwipeState();
+
+      this.stage.addEventListener("pointerdown", onPointerDown);
+      this.stage.addEventListener("pointerup", onPointerUp);
+      this.stage.addEventListener("pointercancel", onPointerCancel);
+      this.stage.addEventListener("touchstart", onTouchStart, { passive: true });
+      this.stage.addEventListener("touchend", onTouchEnd, { passive: true });
+      this.stage.addEventListener("touchcancel", onTouchCancel, { passive: true });
+
+      this.detachPointerDown = () => this.stage?.removeEventListener("pointerdown", onPointerDown);
+      this.detachPointerUp = () => this.stage?.removeEventListener("pointerup", onPointerUp);
+      this.detachPointerCancel = () => this.stage?.removeEventListener("pointercancel", onPointerCancel);
+      this.detachTouchStart = () => this.stage?.removeEventListener("touchstart", onTouchStart);
+      this.detachTouchEnd = () => this.stage?.removeEventListener("touchend", onTouchEnd);
+      this.detachTouchCancel = () => this.stage?.removeEventListener("touchcancel", onTouchCancel);
+    }
   }
 
   private next(manual = false): void {
@@ -200,4 +292,36 @@ export class SlidePlayerFeature implements Feature {
     clearTimeout(this.autoplayTimer);
     this.autoplayTimer = null;
   }
+
+  private resetSwipeState(): void {
+    this.swipePointerId = null;
+    this.swipeStartX = 0;
+    this.swipeStartY = 0;
+  }
+
+  private handleSwipeDelta(deltaX: number, deltaY: number): void {
+    this.resetSwipeState();
+    if (Math.abs(deltaX) < SlidePlayerFeature.SWIPE_THRESHOLD_PX) return;
+    if (Math.abs(deltaY) > SlidePlayerFeature.SWIPE_OFF_AXIS_THRESHOLD_PX) return;
+    if (Math.abs(deltaY) > Math.abs(deltaX) * 0.7) return;
+
+    if (deltaX < 0) {
+      this.next(true);
+    } else {
+      this.prev(true);
+    }
+  }
+}
+
+function shouldIgnoreKeydown(event: KeyboardEvent): boolean {
+  if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+    return true;
+  }
+
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+
+  const tagName = target.tagName;
+  return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
 }
