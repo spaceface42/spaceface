@@ -56,6 +56,8 @@ export class ScreensaverFeature implements Feature {
   }
 
   destroy(): void {
+    this.isShowing = false;
+    this.partialLoaded = false;
     this.resetTimer();
     this.cleanupEffect?.();
     this.cleanupEffect = undefined;
@@ -73,6 +75,8 @@ export class ScreensaverFeature implements Feature {
       // The FeatureRegistry takes care of destroying child features automatically
       // if we remove them from the DOM, but for fade-outs, we just hide them.
     }
+
+    this.target = null;
   }
 
   private resetTimer(): void {
