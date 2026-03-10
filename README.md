@@ -52,6 +52,7 @@ npm run verify:docs
 - `SlidePlayerFeature` supports prev/next buttons, bullet navigation, left/right keyboard arrows, and horizontal swipe gestures.
 - page-level `FloatingImagesFeature` instances also pause during screensaver activity.
 - Runtime asset and partial paths are kept relative so the site works both locally and under GitHub Pages project subpaths.
+- Asset URLs inside injected partial HTML must also be page-relative, because they resolve against the document URL after insertion.
 
 ## Out Of Scope
 
