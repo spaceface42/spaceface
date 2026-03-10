@@ -1,6 +1,7 @@
 // src/app/main.ts
 import { Container } from "../core/container.js";
 import { FeatureRegistry } from "../core/feature.js";
+import { attachConsoleLogSink, createLogger, type LogLevel } from "../core/logger.js";
 import { initActivityTracking } from "../features/shared/activity.js";
 
 // Import our vNext Features
@@ -12,8 +13,15 @@ import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.j
 const DEFAULT_SCREENSAVER_IDLE_MS = 6000;
 const DEFAULT_SLIDESHOW_AUTOPLAY_MS = 5000;
 const DEFAULT_SCREENSAVER_PARTIAL_URL = "./resources/features/screensaver/index.html";
+const DEFAULT_LOG_LEVEL: LogLevel = getDefaultLogLevel();
+
+const logger = createLogger("MU/TH/UR", DEFAULT_LOG_LEVEL);
 
 async function main() {
+  attachConsoleLogSink(DEFAULT_LOG_LEVEL);
+  // logger.info("[MU/TH/UR] boot start", { mode: getDocumentMode() });
+  logger.info("boot start", { mode: getDocumentMode() });
+
   // 1. Initialize Global Shared Signals/Activity
   initActivityTracking();
 
@@ -57,11 +65,21 @@ async function main() {
 
   // 5. Start DOM Observation
   registry.start();
+  logger.info("boot complete");
 }
 
 // Boot
 main().catch((error) => {
+  logger.error("boot failed", error);
   setTimeout(() => {
     throw error;
   }, 0);
 });
+
+function getDocumentMode(): string {
+  return document.documentElement?.dataset.mode ?? "prod";
+}
+
+function getDefaultLogLevel(): LogLevel {
+  return getDocumentMode() === "dev" ? "debug" : "warn";
+}
