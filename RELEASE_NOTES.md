@@ -2,6 +2,13 @@
 
 ## 2026-03-10
 
+### Version Bump (v3.0.0b)
+
+- Updated the system version label to `v3.0.0b`.
+- Updated package metadata to the semver-safe prerelease `3.0.0-b`.
+
+## 2026-03-10
+
 ### vNext Frontend Contract Alignment And SlidePlayer Port
 
 - **Authored Source Rename**: Consolidated authored frontend sources under `docs.src/`, with generated output continuing to build into `docs/`.
