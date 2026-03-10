@@ -23,9 +23,9 @@ Before committing, if code or HTML changed any of the following:
 then update documentation in the same commit:
 
 - `README.md`
-- `src/app/documentation.md`
-- relevant feature docs in `src/features/**/documentation.md`
-- `tmp.md` when it is being used as the active implementation/reference note
+- `RELEASE_NOTES.md`
+- `ROADMAP.md` when roadmap or scope changes
+- `vnext_architecture.md` when architectural direction or contracts change
 
 ## Feature/CSS Organization
 
@@ -39,7 +39,7 @@ then update documentation in the same commit:
 
 ## Attribute Registry Rule
 
-- Any new `data-*` attribute introduced in code or HTML must be added to the registry section in `src/app/documentation.md` in the same commit.
+- Any new `data-*` attribute introduced in code or HTML must be reflected in the current contract docs (`README.md` and `vnext_architecture.md`) in the same commit.
 
 ## Route Rename Rule
 

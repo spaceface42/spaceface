@@ -1,6 +1,6 @@
-# Spaceface vNext: Clean Architecture Proposal
+# Spaceface vNext Architecture
 
-This document outlines the proposed architecture for a completely new, zero-dependency, vanilla TypeScript system. It serves as the blueprint when starting or continuing development of the next generation of the spaceface runtime. The current vNext composition root lives in `src/app/main.ts`.
+This document describes the current architectural direction of the active vNext runtime. It is not a historical record of the older router/PJAX system. The current composition root lives in `src/app/main.ts`.
 
 ## 1. The Core Paradigm: Container + Signals
 
@@ -60,10 +60,14 @@ class FloatingImagesFeature {
 ```
 The central scheduler runs all `update()` methods first, followed by all `render()` methods using `requestAnimationFrame`. This guarantees 60/120fps physics.
 
-## 4. Next-Gen Routing: View Transitions + Morphing
+## 4. Routing Status
 
-**The Evolution:** Wrap the existing DOM Morphing logic in the native **View Transitions API** (`document.startViewTransition`).
-This allows us to cross-fade between entirely different DOM structures, or morph elements seamlessly across pages, while still keeping the zero-flash, state-preserving benefits of morphdom underneath.
+The current vNext runtime does not include the old router/PJAX shell.
+
+If routing returns later, the intended direction is:
+- keep feature lifecycle decoupled from routing
+- mount features from DOM contracts, not router knowledge
+- prefer a future View Transitions based layer over reviving the old router as-is
 
 ## 5. Feature Implementation Examples
 
@@ -86,7 +90,7 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 
 ---
 
-## Current Porting Status (March 2026)
+## Current Status (March 2026)
 
 **✅ Completed Core Primitives (`src/core/`)**
 1. `signals.ts` - `createSignal`, `createEffect`
@@ -104,10 +108,16 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 6. `slideshow/SlideshowFeature.ts`
 7. `slideplayer/SlidePlayerFeature.ts`
 
-**⏳ Next Up For Porting**
-- The View Transitions Router (`RouteCoordinator`)
-- Global UI Shell / Navigation Lifecycle
-- Content partials and remaining slideshow logic.
+## What Is Intentionally Not In Scope Right Now
 
-**❓Open Question (Later Decision)**
+- the old router/PJAX shell
+- feature-to-feature injection
+- reviving legacy selector contracts
+
+## Near-Term Focus
+
+- harden tests around feature lifecycle and screensaver pause behavior
+- decide future logging bus direction
+- keep authored HTML/CSS aligned to `data-feature="..."`
+## Open Question
 - Logging architecture: keep the current typed sink dispatcher in `src/core/logger.ts`, or formalize it into a dedicated `LogBus`/message channel module with pluggable sinks (console, telemetry, UI debug panel) while preserving the same `createLogger(...)` API.
