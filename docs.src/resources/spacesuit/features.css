@@ -16,6 +16,8 @@
     position: relative;
     width: min(320px, 100%);
     aspect-ratio: 1 / 1;
+    touch-action: pan-y pinch-zoom;
+    user-select: none;
 }
 
 [data-slideplayer-stage] [data-slideplayer-slide] {
@@ -100,7 +102,7 @@ body[data-page="floatingimages"] [data-feature="floating-images"] {
     display: grid;
     place-items: center;
     /* background: rgba(0, 0, 0, 0.3); */
-    background: url('/resources/spacesuit/layer.svg') 0 0 / 16px 16px repeat;
+    background: url('./layer.svg') 0 0 / 16px 16px repeat;
     color: #fff;
     font-size: 24px;
     letter-spacing: 0.04em;

@@ -11,7 +11,7 @@ import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.j
 
 const DEFAULT_SCREENSAVER_IDLE_MS = 6000;
 const DEFAULT_SLIDESHOW_AUTOPLAY_MS = 5000;
-const DEFAULT_SCREENSAVER_PARTIAL_URL = "/resources/features/screensaver/index.html";
+const DEFAULT_SCREENSAVER_PARTIAL_URL = "./resources/features/screensaver/index.html";
 
 async function main() {
   // 1. Initialize Global Shared Signals/Activity

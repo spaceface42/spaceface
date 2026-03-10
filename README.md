@@ -49,7 +49,9 @@ npm run verify:docs
 - `FeatureRegistry` mounts and unmounts features from `data-feature="..."`.
 - `ScreensaverFeature` drives global idle state through `screensaverActiveSignal`.
 - `SlideshowFeature` and `SlidePlayerFeature` pause while the screensaver is active.
+- `SlidePlayerFeature` supports prev/next buttons, bullet navigation, left/right keyboard arrows, and horizontal swipe gestures.
 - page-level `FloatingImagesFeature` instances also pause during screensaver activity.
+- Runtime asset and partial paths are kept relative so the site works both locally and under GitHub Pages project subpaths.
 
 ## Out Of Scope
 
