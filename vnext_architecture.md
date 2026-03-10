@@ -5,19 +5,23 @@ This document outlines the proposed architecture for a completely new, zero-depe
 ## 1. The Core Paradigm: Container + Signals
 
 ### A. Lightweight Dependency Injection (IoC Container)
-Instead of forcing a global `EventBus`, the system provides a lightweight Context/Container. When a feature mounts, it can statically request references to other services or features.
+Instead of forcing a global `EventBus`, the system provides a lightweight Context/Container. When a feature mounts, it can statically request references to shared services.
 ```typescript
 class VideoPlayerFeature implements Feature {
   // Statically declare dependencies
-  static inject = [SlideshowFeature, AudioContextService];
+  static inject = [AudioContextService, MediaSessionService];
 
-  constructor(private slideshow: SlideshowFeature, private audio: AudioContextService) {}
+  constructor(private audio: AudioContextService, private mediaSession: MediaSessionService) {}
 
   onPlay() {
-    this.slideshow.pause(); // Direct, type-safe communication
+    this.mediaSession.setPlaying(true);
   }
 }
 ```
+
+Current port note:
+- Service/token injection is the intended direction.
+- Feature-to-feature injection is not enabled in the current vNext port yet; attempting it should be treated as unsupported until a real lifecycle-safe ownership model exists.
 
 ### B. Vanilla TS Signals (Reactivity without Frameworks)
 Instead of manually querying the DOM to check if the screensaver is active, we introduce a minimal Reactive Signal primitive (inspired by Solid.js, but minimal in size).

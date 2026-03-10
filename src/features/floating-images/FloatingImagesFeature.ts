@@ -42,6 +42,7 @@ export class FloatingImagesFeature implements Feature {
   private intersectionObserver?: IntersectionObserver;
   private unsubScheduler?: () => void;
   private destroyed = false;
+  private preparedNodes: HTMLElement[] = [];
 
   constructor(options: FloatingImagesFeatureOptions = {}) {
     this.options = {
@@ -59,8 +60,8 @@ export class FloatingImagesFeature implements Feature {
     this.destroyed = false;
 
     // Instantly hide items to prevent flickering before images load and math is calculated
-    const initialNodes = Array.from(this.container.querySelectorAll<HTMLElement>(this.options.itemSelector));
-    for (const node of initialNodes) {
+    this.preparedNodes = Array.from(this.container.querySelectorAll<HTMLElement>(this.options.itemSelector));
+    for (const node of this.preparedNodes) {
       node.style.position = "absolute";
       node.style.visibility = "hidden";
     }
@@ -99,17 +100,24 @@ export class FloatingImagesFeature implements Feature {
     this.intersectionObserver?.disconnect();
     this.intersectionObserver = undefined;
 
+    const nodesToRestore = new Set<HTMLElement>(this.preparedNodes);
     for (const item of this.items) {
-      item.el.removeEventListener("pointerenter", this.onItemPointerEnter);
-      item.el.removeEventListener("pointerleave", this.onItemPointerLeave);
-      item.el.style.transform = "";
-      item.el.style.willChange = "";
-      item.el.style.position = "";
-      item.el.style.left = "";
-      item.el.style.top = "";
+      nodesToRestore.add(item.el);
+    }
+
+    for (const node of nodesToRestore) {
+      node.removeEventListener("pointerenter", this.onItemPointerEnter);
+      node.removeEventListener("pointerleave", this.onItemPointerLeave);
+      node.style.transform = "";
+      node.style.willChange = "";
+      node.style.position = "";
+      node.style.left = "";
+      node.style.top = "";
+      node.style.visibility = "";
     }
 
     this.items = [];
+    this.preparedNodes = [];
     this.container = null;
     this.inViewport = true;
     this.hoveredItem = null;

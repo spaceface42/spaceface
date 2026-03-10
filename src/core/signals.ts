@@ -78,13 +78,14 @@ export function createEffect(fn: () => void | (() => void)): () => void {
 
     const previousSubscriber = activeSubscriber;
     activeSubscriber = effectSubscriber;
-
-    const cleanupFn = fn();
-    if (typeof cleanupFn === "function") {
-      cleanups.add(cleanupFn);
+    try {
+      const cleanupFn = fn();
+      if (typeof cleanupFn === "function") {
+        cleanups.add(cleanupFn);
+      }
+    } finally {
+      activeSubscriber = previousSubscriber;
     }
-
-    activeSubscriber = previousSubscriber;
   };
 
   execute();

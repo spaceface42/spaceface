@@ -8,6 +8,10 @@ import { ScreensaverFeature } from "./features/screensaver/ScreensaverFeature.js
 import { FloatingImagesFeature } from "./features/floating-images/FloatingImagesFeature.js";
 import { SlideshowFeature } from "./features/slideshow/SlideshowFeature.js";
 
+const DEFAULT_SCREENSAVER_IDLE_MS = 6000;
+const DEFAULT_SLIDESHOW_AUTOPLAY_MS = 5000;
+const DEFAULT_SCREENSAVER_PARTIAL_URL = "/screensaver_partial.html";
+
 async function main() {
   // 1. Initialize Global Shared Signals/Activity
   initActivityTracking();
@@ -26,8 +30,8 @@ async function main() {
     static selector = "screensaver";
     constructor() {
       super({
-        idleMs: 3000,
-        partialUrl: "/screensaver_partial.html"
+        idleMs: DEFAULT_SCREENSAVER_IDLE_MS,
+        partialUrl: DEFAULT_SCREENSAVER_PARTIAL_URL,
       });
     }
   });
@@ -36,7 +40,7 @@ async function main() {
     static selector = "slideshow";
     constructor() {
       super({
-        autoplayMs: 2000 // Very fast 2-second slides for easy testing
+        autoplayMs: DEFAULT_SLIDESHOW_AUTOPLAY_MS,
       });
     }
   });

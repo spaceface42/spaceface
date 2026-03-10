@@ -38,10 +38,9 @@ export class FeatureRegistry {
    */
   register(FeatureClass: FeatureConstructor): void {
     if (this.featureConstructors.has(FeatureClass.selector)) {
-        throw new Error(`Feature already registered for selector: ${FeatureClass.selector}`);
+      throw new Error(`Feature already registered for selector: ${FeatureClass.selector}`);
     }
     this.featureConstructors.set(FeatureClass.selector, FeatureClass);
-    this.container.provide(FeatureClass as Constructor<Feature>, null); // Register as type, instance managed per-node
   }
 
   /**
@@ -133,7 +132,7 @@ export class FeatureRegistry {
 
       let instance: Feature;
       if (FeatureClass.inject) {
-        const deps = FeatureClass.inject.map(tok => this.container.resolve(tok));
+        const deps = FeatureClass.inject.map((tok) => this.resolveDependency(tok));
         instance = new FeatureClass(...deps);
       } else {
         instance = new FeatureClass();
@@ -167,6 +166,15 @@ export class FeatureRegistry {
     }
     this.activeInstances.delete(node);
   }
+
+  private resolveDependency(token: Token<any> | Constructor<any>): unknown {
+    if (isFeatureConstructorToken(token)) {
+      throw new Error(
+        `Feature-to-feature injection is not supported yet: ${token.name}. Register shared services/tokens instead.`
+      );
+    }
+    return this.container.resolve(token);
+  }
 }
 
 function parseFeatureIds(raw: string | null): string[] {
@@ -179,4 +187,9 @@ function parseFeatureIds(raw: string | null): string[] {
     uniqueIds.add(id);
   }
   return Array.from(uniqueIds);
+}
+
+function isFeatureConstructorToken(value: Token<any> | Constructor<any>): value is FeatureConstructor {
+  if (typeof value !== "function") return false;
+  return typeof (value as Partial<FeatureConstructor>).selector === "string";
 }
