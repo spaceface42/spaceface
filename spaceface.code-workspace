@@ -8,8 +8,8 @@
             "path": "docs",
         },
         {
-            "name": "public.source",
-            "path": "public.src",
+            "name": "docs.src",
+            "path": "docs.src",
         },
         {
             "name": "src",

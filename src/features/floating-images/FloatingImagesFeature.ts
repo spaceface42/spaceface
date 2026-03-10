@@ -1,8 +1,10 @@
 // src/features/floating-images/FloatingImagesFeature.ts
 import type { Feature } from "../../core/feature.js";
+import { createEffect } from "../../core/signals.js";
 import { globalScheduler } from "../../core/scheduler.js";
 import { waitForImagesReady } from "../shared/images.js";
 import { clamp, distance, gaussianRandom, randomBetween } from "../shared/mathUtils.js";
+import { screensaverActiveSignal } from "../shared/screensaverState.js";
 
 interface MotionItem {
   el: HTMLElement;
@@ -41,13 +43,16 @@ export class FloatingImagesFeature implements Feature {
   private resizeRafId: number | null = null;
   private intersectionObserver?: IntersectionObserver;
   private unsubScheduler?: () => void;
+  private cleanupEffect?: () => void;
   private destroyed = false;
   private preparedNodes: HTMLElement[] = [];
+  private pausedByScreensaver = false;
+  private allowDuringScreensaver = false;
 
   constructor(options: FloatingImagesFeatureOptions = {}) {
     this.options = {
-      containerSelector: options.containerSelector ?? "[data-floating-images]",
-      itemSelector: options.itemSelector ?? "[data-floating-item], .floating-image",
+      containerSelector: options.containerSelector ?? ":scope",
+      itemSelector: options.itemSelector ?? "[data-floating-item]",
       baseSpeed: options.baseSpeed ?? 46,
       hoverBehavior: options.hoverBehavior ?? "none",
       hoverSlowMultiplier: options.hoverSlowMultiplier ?? 0.2,
@@ -56,8 +61,16 @@ export class FloatingImagesFeature implements Feature {
   }
 
   async mount(el: HTMLElement): Promise<void> {
-    this.container = el;
+    this.container = this.resolveContainer(el);
     this.destroyed = false;
+
+    if (!this.container) return;
+
+    this.allowDuringScreensaver = this.container.closest("[data-screensaver]") !== null;
+    this.cleanupEffect = createEffect(() => {
+      this.pausedByScreensaver = screensaverActiveSignal.value && !this.allowDuringScreensaver;
+      this.updateAnimationState();
+    });
 
     // Instantly hide items to prevent flickering before images load and math is calculated
     this.preparedNodes = Array.from(this.container.querySelectorAll<HTMLElement>(this.options.itemSelector));
@@ -90,6 +103,8 @@ export class FloatingImagesFeature implements Feature {
     this.destroyed = true;
     this.unsubScheduler?.();
     this.unsubScheduler = undefined;
+    this.cleanupEffect?.();
+    this.cleanupEffect = undefined;
 
     if (this.resizeRafId !== null) {
       cancelAnimationFrame(this.resizeRafId);
@@ -121,11 +136,13 @@ export class FloatingImagesFeature implements Feature {
     this.container = null;
     this.inViewport = true;
     this.hoveredItem = null;
+    this.pausedByScreensaver = false;
+    this.allowDuringScreensaver = false;
   }
 
   private updateAnimationState(): void {
     if (this.destroyed) return;
-    const shouldRun = this.inViewport;
+    const shouldRun = this.inViewport && !this.pausedByScreensaver;
 
     if (!shouldRun) {
       if (this.unsubScheduler) {
@@ -279,6 +296,15 @@ export class FloatingImagesFeature implements Feature {
         renderedY: Number.NaN,
       };
     });
+  }
+
+  private resolveContainer(root: HTMLElement): HTMLElement | null {
+    if (this.options.containerSelector === ":scope") {
+      return root;
+    }
+    return root.matches(this.options.containerSelector)
+      ? root
+      : root.querySelector<HTMLElement>(this.options.containerSelector);
   }
 
   private readonly onResize = (): void => {

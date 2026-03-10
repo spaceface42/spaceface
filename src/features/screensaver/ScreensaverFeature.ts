@@ -104,8 +104,8 @@ export class ScreensaverFeature implements Feature {
     this.target.setAttribute("aria-hidden", "false");
 
     // vNext Magic: We don't have to manually new FloatingImagesFeature().
-    // By loading the partial containing `[data-floating-images]`, the central
-    // MutationObserver completely handles instantiating those for us!
+    // By loading the partial containing `data-feature="floating-images"`, the
+    // central MutationObserver completely handles instantiating those for us.
   }
 
   private hideScreensaver(): void {
@@ -123,7 +123,7 @@ export class ScreensaverFeature implements Feature {
       this.target.hidden = true;
 
       // We can drop the floating images from the DOM entirely to destroy them
-      const floatingRoot = this.target.querySelector("[data-floating-images]");
+      const floatingRoot = this.target.querySelector('[data-feature="floating-images"]');
       if (floatingRoot) {
         floatingRoot.remove();
         // The MutationObserver will instantly see this removal and call `destroy()`
@@ -143,8 +143,8 @@ export class ScreensaverFeature implements Feature {
       const mount = this.getOrCreatePartialMount(target);
 
       // Modifying innerHTML triggers the global FeatureRegistry's MutationObserver.
-      // E.g. If the HTML contains `<div data-feature="floating-images"></div>`
-      // It will instantly instantiate a FloatingImagesFeature!
+      // If the HTML contains `<div data-feature="floating-images"></div>`, it
+      // will instantly instantiate a FloatingImagesFeature.
       mount.innerHTML = html;
 
       this.partialLoaded = true;

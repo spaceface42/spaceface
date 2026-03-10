@@ -1,8 +1,8 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const inputDir = path.resolve(process.cwd(), process.env.PUBLIC_IN_DIR ?? "./public.src");
-const outputDir = path.resolve(process.cwd(), process.env.PUBLIC_OUT_DIR ?? "./docs");
+const inputDir = path.resolve(process.cwd(), process.env.DOCS_SRC_DIR ?? process.env.PUBLIC_IN_DIR ?? "./docs.src");
+const outputDir = path.resolve(process.cwd(), process.env.DOCS_OUT_DIR ?? process.env.PUBLIC_OUT_DIR ?? "./docs");
 
 await fs.rm(outputDir, { recursive: true, force: true });
 await fs.mkdir(outputDir, { recursive: true });

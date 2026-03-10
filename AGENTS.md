@@ -6,8 +6,8 @@ These instructions apply to the whole repository.
 
 ## Working Rules
 
-- Use `public.src/` as source of truth for HTML/CSS.
-- Treat `public.src/resources/partials/` as source-of-truth partial location.
+- Use `docs.src/` as source of truth for HTML/CSS.
+- Treat `docs.src/` as the source-of-truth authored HTML tree.
 - Build output in `docs/` is generated; do not treat it as authored source.
 
 ## Pre-Commit Documentation Sync (Required)
@@ -29,13 +29,13 @@ then update documentation in the same commit:
 
 ## Feature/CSS Organization
 
-- Keep feature-specific CSS in `public.src/resources/spacesuit/features.css`.
-- Keep shared layout/base styles in `public.src/resources/spacesuit/styles.css`.
+- Keep feature-specific CSS in `docs.src/spacesuit/` when feature-specific styles are added.
+- Keep shared layout/base styles in `docs.src/spacesuit/` when shared styles are added.
 
 ## Markup/CSS/Script Hygiene
 
 - Avoid inline `<style>` and inline `<script>` in partials unless there is a documented technical reason.
-- Prefer centralized styles and runtime code in source files under `public.src/resources/spacesuit/` and `src/`.
+- Prefer centralized styles and runtime code in source files under `docs.src/` and `src/`.
 
 ## Attribute Registry Rule
 

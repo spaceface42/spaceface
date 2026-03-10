@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" data-mode="dev">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>spaceface demo slideplayer</title>
+    <link rel="stylesheet" href="./resources/spacesuit/defaults.css" />
+    <link rel="stylesheet" href="./resources/spacesuit/styles.css" />
+    <link rel="stylesheet" href="./resources/spacesuit/features.css" />
+  </head>
+  <body data-page="slideplayer">
+
+    <header>
+        <link rel="partial" href="./resources/partials/nav.html" />
+    </header>
+
+    <main>
+      <link rel="partial" href="./resources/partials/demo-notice.html" />
+      <section class="card">
+        <h1>SlidePlayer On vNext</h1>
+        <p>This page now uses a dedicated slideplayer feature with image stage controls, bullets, autoplay, and screensaver-aware pause.</p>
+        <p><a href="./index.html">Back to page 1</a></p>
+      </section>
+      <section class="card" data-feature="slideplayer">
+        <h2>Image SlidePlayer Demo</h2>
+        <div class="row controls">
+          <button type="button" data-slideplayer-prev>Prev</button>
+          <button type="button" data-slideplayer-next>Next</button>
+        </div>
+        <div data-slideplayer-stage>
+          <img data-slideplayer-slide src="./content/floatingimages/a.svg" alt="Slide A" />
+          <img data-slideplayer-slide src="./content/floatingimages/b.svg" alt="Slide B" hidden />
+          <img data-slideplayer-slide src="./content/floatingimages/c.svg" alt="Slide C" hidden />
+        </div>
+        <div data-slideplayer-bullets aria-label="Slide navigation">
+          <button type="button" data-slideplayer-bullet aria-label="Go to slide 1"></button>
+          <button type="button" data-slideplayer-bullet aria-label="Go to slide 2"></button>
+          <button type="button" data-slideplayer-bullet aria-label="Go to slide 3"></button>
+        </div>
+      </section>
+      <link rel="partial" href="./resources/partials/footer.html" />
+    </main>
+
+    <div data-feature="screensaver" data-screensaver hidden aria-hidden="true"></div>
+
+    <script type="module" src="./dist/main.js"></script>
+  </body>
+</html>

@@ -2,11 +2,10 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const publicDir = path.resolve(root, "public.src");
-const resourcesDir = path.resolve(publicDir, "resources");
+const docsSrcDir = path.resolve(root, "docs.src");
 
 const failures = [];
-const htmlFiles = await collectHtmlFiles(resourcesDir);
+const htmlFiles = await collectHtmlFiles(docsSrcDir);
 
 for (const filePath of htmlFiles) {
   const html = await fs.readFile(filePath, "utf8");
@@ -14,8 +13,8 @@ for (const filePath of htmlFiles) {
   for (const ref of refs) {
     if (isExternalOrSpecial(ref)) continue;
     const resolved = path.resolve(path.dirname(filePath), ref);
-    if (!resolved.startsWith(publicDir)) {
-      failures.push(`${rel(filePath)} -> ${ref} escapes public.src root`);
+    if (!resolved.startsWith(docsSrcDir)) {
+      failures.push(`${rel(filePath)} -> ${ref} escapes docs.src root`);
       continue;
     }
     if (!(await exists(resolved))) {
@@ -52,11 +51,19 @@ function extractAssetRefs(html) {
 }
 
 function isExternalOrSpecial(value) {
-  return /^(?:[a-z]+:|\/\/|#|data:)/i.test(value);
+  return (
+    value.startsWith("/") ||
+    value === "./dist/main.js" ||
+    value === "dist/main.js" ||
+    /^(?:[a-z]+:|\/\/|#|data:)/i.test(value)
+  );
 }
 
 async function collectHtmlFiles(dir) {
   const out = [];
+  if (!(await exists(dir))) {
+    return out;
+  }
   const entries = await fs.readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const entryPath = path.join(dir, entry.name);

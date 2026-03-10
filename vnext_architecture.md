@@ -1,6 +1,6 @@
 # Spaceface vNext: Clean Architecture Proposal
 
-This document outlines the proposed architecture for a completely new, zero-dependency, vanilla TypeScript system. It serves as the blueprint when starting or continuing development of the next generation of the spaceface runtime.
+This document outlines the proposed architecture for a completely new, zero-dependency, vanilla TypeScript system. It serves as the blueprint when starting or continuing development of the next generation of the spaceface runtime. The current vNext composition root lives in `src/app/main.ts`.
 
 ## 1. The Core Paradigm: Container + Signals
 
@@ -74,9 +74,11 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 * To communicate with other features (like pausing the slideshow), it writes to a decoupled `screensaverActiveSignal`. It never references the slideshow directly.
 
 ### The Slideshow (SlidePlayer)
-* Subscribes to the `screensaverActiveSignal` via `createEffect`.
-* When the screensaver appears, it clears its internal timer and caches the remaining milliseconds.
-* When the screensaver hides, it resumes the timer seamlessly.
+* `SlideshowFeature` remains the minimal generic rotator for simple `[data-slide]` content blocks.
+* `SlidePlayerFeature` is the image-first variant with dedicated prev/next controls and bullet navigation.
+* Both subscribe to the `screensaverActiveSignal` via `createEffect`.
+* When the screensaver appears, they clear internal timers and cache remaining milliseconds.
+* When the screensaver hides, they resume seamlessly.
 
 ### Floating Images & Pure Math
 * Pure math operations (Gaussian distribution, bounding box collision, jitter) are extracted entirely out into `mathUtils.ts`.
@@ -100,6 +102,7 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 4. `floating-images/FloatingImagesFeature.ts`
 5. `screensaver/ScreensaverFeature.ts`
 6. `slideshow/SlideshowFeature.ts`
+7. `slideplayer/SlidePlayerFeature.ts`
 
 **⏳ Next Up For Porting**
 - The View Transitions Router (`RouteCoordinator`)

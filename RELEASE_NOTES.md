@@ -1,5 +1,18 @@
 # Release Notes
 
+## 2026-03-10
+
+### vNext Frontend Contract Alignment And SlidePlayer Port
+
+- **Authored Source Rename**: Consolidated authored frontend sources under `docs.src/`, with generated output continuing to build into `docs/`.
+- **Build/Serve Script Refresh**: Replaced obsolete router-era validation and server scripts with the current vNext `verify:docs`, `serve:docs`, and core contract checks.
+- **App Entrypoint Move**: Moved the composition root to `src/app/main.ts` and aligned build tooling to bundle that entrypoint.
+- **Markup Contract Cleanup**: Removed legacy bridge selectors from authored HTML/CSS and standardized vNext feature mounting on `data-feature="..."`.
+- **Floating Images Contract Update**: `FloatingImagesFeature` now uses its feature mount root as the container and item selection is standardized on `data-floating-item`.
+- **Page Feature Pause On Screensaver**: Page-level `FloatingImagesFeature` instances now pause while the screensaver is active, while screensaver-owned floating images continue running.
+- **Dedicated SlidePlayer Port**: Added `SlidePlayerFeature` with `data-feature="slideplayer"`, dedicated `data-slideplayer-*` controls, bullet navigation, autoplay, and screensaver-aware pause/resume.
+- **Contract Documentation Refresh**: Updated README, architecture notes, smoke validation, and implementation notes to match the current vNext HTML/CSS/TypeScript contracts.
+
 ## 2026-03-09
 
 ### vNext Stability And Lifecycle Hardening
@@ -10,7 +23,7 @@
 - **Selector Contract Alignment**: Standardized `ScreensaverFeature.selector` to `"screensaver"` to match the `data-feature="..."` registry contract.
 - **Runtime Logging Hygiene**: Removed direct `console.*` calls from feature runtime paths (`slideshow`, `screensaver`, `main`) and kept console output centralized through `src/core/logger.ts`.
 - **Logger Typecheck Fix**: Removed stale `./events.js` dependency from `src/core/logger.ts` and replaced it with a local typed sink dispatcher, restoring `npm run typecheck:docs` pass status on vNext.
-- **Startup Error Visibility**: Replaced silent startup catch in `src/main.ts` with rethrow-on-microtask behavior so boot failures are surfaced instead of swallowed.
+- **Startup Error Visibility**: Replaced silent startup catch in `src/app/main.ts` with rethrow-on-microtask behavior so boot failures are surfaced instead of swallowed.
 
 ## 2026-03-05
 

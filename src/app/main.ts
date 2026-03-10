@@ -1,16 +1,17 @@
-// src/main.ts
-import { Container } from "./core/container.js";
-import { FeatureRegistry } from "./core/feature.js";
-import { initActivityTracking } from "./features/shared/activity.js";
+// src/app/main.ts
+import { Container } from "../core/container.js";
+import { FeatureRegistry } from "../core/feature.js";
+import { initActivityTracking } from "../features/shared/activity.js";
 
 // Import our vNext Features
-import { ScreensaverFeature } from "./features/screensaver/ScreensaverFeature.js";
-import { FloatingImagesFeature } from "./features/floating-images/FloatingImagesFeature.js";
-import { SlideshowFeature } from "./features/slideshow/SlideshowFeature.js";
+import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
+import { FloatingImagesFeature } from "../features/floating-images/FloatingImagesFeature.js";
+import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
+import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.js";
 
 const DEFAULT_SCREENSAVER_IDLE_MS = 6000;
 const DEFAULT_SLIDESHOW_AUTOPLAY_MS = 5000;
-const DEFAULT_SCREENSAVER_PARTIAL_URL = "/screensaver_partial.html";
+const DEFAULT_SCREENSAVER_PARTIAL_URL = "/resources/features/screensaver/index.html";
 
 async function main() {
   // 1. Initialize Global Shared Signals/Activity
@@ -38,6 +39,15 @@ async function main() {
 
   registry.register(class SlideshowVnext extends SlideshowFeature {
     static selector = "slideshow";
+    constructor() {
+      super({
+        autoplayMs: DEFAULT_SLIDESHOW_AUTOPLAY_MS,
+      });
+    }
+  });
+
+  registry.register(class SlidePlayerVnext extends SlidePlayerFeature {
+    static selector = "slideplayer";
     constructor() {
       super({
         autoplayMs: DEFAULT_SLIDESHOW_AUTOPLAY_MS,

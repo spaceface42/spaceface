@@ -2,22 +2,22 @@
 
 Source of truth:
 
-- `public.src/index.html`
-- `public.src/resources/spacesuit/features.css`
-- `public.src/resources/spacesuit/styles.css` (base/layout only)
+- `docs.src/index.html`
+- `docs.src/spacesuit/`
+- `docs.src/spacesuit/` (base/layout only)
 - `src/features/floating-images/FloatingImagesFeature.ts`
 
 ## Markup Contract
 
 Required:
 
-- Container: `data-floating-images`
-- Items: `data-floating-item` (or `.floating-image`)
+- Container: `data-feature="floating-images"`
+- Items: `data-floating-item`
 
 Default selectors from code:
 
-- container: `[data-floating-images]`
-- item: `[data-floating-item], .floating-image`
+- container: feature mount root (`:scope`)
+- item: `[data-floating-item]`
 
 ## HTML Fragment (Current)
 
@@ -28,47 +28,40 @@ Default selectors from code:
         Lifecycle-managed animation that deactivates when route swap removes
         this container.
     </p>
-    <div data-floating-images>
+    <div data-feature="floating-images">
         <img
             data-floating-item
             src="./content/floatingimages/a.svg"
-            class="floating-image"
             alt="floatingimage-1"
         />
         <img
             data-floating-item
             src="./content/floatingimages/b.svg"
-            class="floating-image"
             alt="floatingimage-1"
         />
         <img
             data-floating-item
             src="./content/floatingimages/c.svg"
-            class="floating-image"
             alt="floatingimage-1"
         />
         <img
             data-floating-item
             src="./content/floatingimages/d.svg"
-            class="floating-image"
             alt="floatingimage-1"
         />
         <img
             data-floating-item
             src="./content/floatingimages/e.svg"
-            class="floating-image"
             alt="floatingimage-1"
         />
         <img
             data-floating-item
             src="./content/floatingimages/a.svg"
-            class="floating-image"
             alt="floatingimage-1"
         />
         <img
             data-floating-item
             src="./content/floatingimages/c.svg"
-            class="floating-image"
             alt="floatingimage-1"
         />
     </div>
@@ -80,7 +73,7 @@ Default selectors from code:
 ```html
 <section>
     <h2>Floating Images</h2>
-    <div data-floating-images>
+    <div data-feature="floating-images">
         <img
             data-floating-item
             src="./content/floatingimages/a.svg"
@@ -115,7 +108,7 @@ Default selectors from code:
 
 ## Recent Changes
 
-- Created dedicated feature stylesheet: `public.src/resources/spacesuit/features.css`.
+- Created dedicated feature stylesheet under `docs.src/spacesuit/`.
 - Moved feature-specific CSS out of `styles.css` into `features.css`:
     - Slideshow rules
     - SlidePlayer rules
@@ -123,9 +116,15 @@ Default selectors from code:
     - Screensaver rules
 - `styles.css` now holds shared/base page styles only.
 - Pages now load `features.css` explicitly:
-    - `public.src/index.html`
-    - `public.src/slideplayer.html`
-- Removed inline screensaver `<style>` from `public.src/resources/features/screensaver/index.html`; styling now comes from `features.css`.
+    - `docs.src/index.html`
+    - `docs.src/`
+- Removed inline screensaver `<style>` from the authored screensaver source; styling now comes from the shared source stylesheet.
+- Added a dedicated `SlidePlayerFeature` for `docs.src/slideplayer.html`:
+    - selector: `data-feature="slideplayer"`
+    - controls: `data-slideplayer-prev`, `data-slideplayer-next`
+    - slides: `data-slideplayer-slide`
+    - bullets: `data-slideplayer-bullets`, `data-slideplayer-bullet`
+    - autoplay pauses while `screensaverActiveSignal` is true
 
 #D8D8D8 light neutral background
 #C4C4C4 mid gray

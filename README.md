@@ -8,7 +8,7 @@ The core philosophy is simple: write static HTML, sprinkle in declarative `data-
 
 ## 🚀 Quick Start
 
-**Prerequisites:** Node (version in `.nvmrc`) and PHP (for the local dev server).
+**Prerequisites:** Node (version in `.nvmrc`).
 
 ### Installation & Development
 ```bash
@@ -27,9 +27,8 @@ npm run build:prod
 
 ### Quality Checks
 ```bash
-npm run typecheck
-npm run lint
-npm run verify:docs  # Runs all strict lifecycle and smoke tests
+npm run typecheck:docs
+npm run verify:docs
 ```
 
 ---
@@ -38,48 +37,48 @@ npm run verify:docs  # Runs all strict lifecycle and smoke tests
 
 Spaceface completely separates the **Source of Truth** from the **Build Output**:
 
-- **Source Code**: Lives in `src/` (TypeScript logic) and `public.src/` (HTML/CSS/assets).
+- **Source Code**: Lives in `src/` (TypeScript logic) and `docs.src/` (HTML/CSS/assets).
 - **Build Output**: Everything compiles into the `docs/` folder. The `docs/` folder is totally generated and can be rebuilt at any time.
 
 ### The Runtime Lifecycle
-1. `main.ts` resolves the runtime config via the `<html data-mode="dev|prod">` attribute.
-2. The **FeatureRegistry** scans the DOM and activates features based on specific CSS selectors.
-3. The **StartupPipeline** initializes all active features, isolating failures so one broken feature doesn't crash the page.
-4. The **RouteCoordinator** intercepts same-origin link clicks, fetches the next page in the background, swaps the `[data-route-container]` content, and updates the SEO `<meta>` tags.
-5. As the DOM changes, features are intelligently reconciled (torn down or initialized).
+1. `src/app/main.ts` boots shared signals and the feature registry.
+2. The **FeatureRegistry** watches `data-feature="..."` nodes with a global `MutationObserver`.
+3. Features mount when matching nodes appear and destroy when nodes or feature ids disappear.
+4. Shared cross-feature state flows through signals such as `userActivitySignal` and `screensaverActiveSignal`.
+5. Animated features use the unified `FrameScheduler` for read/write frame phases.
 
 ---
 
 ## 📁 Project Layout
 
-- `src/core/`: Framework primitives (event bus, router, lifecycle, logger, animation scheduler).
+- `src/core/`: Framework primitives (signals, feature registry, container, logger, scheduler, partial loader).
 - `src/features/`: The actual interactive modules.
 - `src/app/main.ts`: The composition root that wires everything together.
-- `public.src/`: The raw HTML/CSS and build-time partials (e.g., `<link rel="partial" href="...">`).
+- `docs.src/`: The authored HTML and static assets.
 - `docs/`: The generated static site output (served to users).
-- `bin/`: Build scripts, validators, and the local PHP server.
+- `bin/`: Build scripts, validators, and the local Node docs server.
 
 ---
 
 ## ✨ Features
 
-Spaceface ships with several built-in interactive features triggered by DOM attributes:
+Spaceface vNext ships with interactive features triggered by `data-feature="..."`:
 
 ### `SlideshowFeature`
-- **Trigger**: `[data-slideshow]`
-- **Description**: A basic controlled slideshow. Listens to global `slideshow:next` / `slideshow:prev` events.
+- **Trigger**: `data-feature="slideshow"`
+- **Description**: A signal-aware slideshow that pauses and resumes based on screensaver state.
 
 ### `SlidePlayerFeature`
-- **Trigger**: `[data-slideplayer]`
-- **Description**: An advanced auto-playing slideshow. Displays `[data-slideplayer-image]` elements. Includes support for local next/prev/bullet controls and automatically pauses when the screensaver activates.
+- **Trigger**: `data-feature="slideplayer"`
+- **Description**: An image-first player with prev/next controls, bullet navigation, autoplay, and screensaver-aware pause.
 
 ### `FloatingImagesFeature`
-- **Trigger**: `[data-floating-images]`
-- **Description**: Creates bouncing DVD-logo-style floating elements from `[data-floating-item]`. Highly optimized using `requestAnimationFrame` and `IntersectionObserver`.
+- **Trigger**: `data-feature="floating-images"`
+- **Description**: Creates bouncing floating elements from `[data-floating-item]` using the shared frame scheduler.
 
 ### `ScreensaverFeature`
-- **Trigger**: `[data-screensaver]` (auto-created if missing).
-- **Description**: Activates after user inactivity. Can load dynamic HTML partials at runtime. Automatically manages its own scoped `FloatingImagesFeature` instance.
+- **Trigger**: `data-feature="screensaver"`
+- **Description**: Activates after inactivity, loads `resources/features/screensaver/index.html`, and exposes its visibility through `screensaverActiveSignal`.
 
 ---
 
@@ -92,6 +91,6 @@ Spaceface ships with several built-in interactive features triggered by DOM attr
 
 ## 💡 Important Notes
 
-- **Partials**: Build-time partials in `public.src` use `<link rel="partial" href="..." />`.
-- **Scripts**: Route swaps update HTML and `<meta>` tags, but `<script>` tags in swapped markup are **not** auto-executed.
-- **Production Mode**: Set `data-mode="prod"` on your `<html>` tag to silence development logging.
+- **Build Output**: `npm run build:dev` writes HTML to `docs/` and bundles `src/app/main.ts` to `docs/dist/main.js`.
+- **Dev Server**: `npm run serve:docs` serves the generated `docs/` folder with a Node static server.
+- **Current Scope**: The active vNext branch is focused on the feature-registry runtime rather than the older router-based PJAX shell.

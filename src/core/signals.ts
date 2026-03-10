@@ -78,12 +78,17 @@ export function createEffect(fn: () => void | (() => void)): () => void {
 
     const previousSubscriber = activeSubscriber;
     activeSubscriber = effectSubscriber;
+    let completed = false;
     try {
       const cleanupFn = fn();
       if (typeof cleanupFn === "function") {
         cleanups.add(cleanupFn);
       }
+      completed = true;
     } finally {
+      if (!completed) {
+        cleanupDependencies();
+      }
       activeSubscriber = previousSubscriber;
     }
   };
