@@ -19,7 +19,7 @@ export interface FeatureConstructor extends Constructor<Feature> {
   /** The value of the `data-feature` attribute that triggers this feature */
   readonly selector: string;
   /** Static dependencies to inject when the feature is instantiated */
-  readonly inject?: Array<Token<any> | Constructor<any>>;
+  readonly inject?: Array<Token<unknown> | Constructor<unknown>>;
 }
 
 /**
@@ -133,7 +133,7 @@ export class FeatureRegistry {
       let instance: Feature;
       if (FeatureClass.inject) {
         const deps = FeatureClass.inject.map((tok) => this.resolveDependency(tok));
-        instance = new FeatureClass(...deps);
+        instance = new FeatureClass(...(deps as never[]));
       } else {
         instance = new FeatureClass();
       }
@@ -167,7 +167,7 @@ export class FeatureRegistry {
     this.activeInstances.delete(node);
   }
 
-  private resolveDependency(token: Token<any> | Constructor<any>): unknown {
+  private resolveDependency(token: Token<unknown> | Constructor<unknown>): unknown {
     if (isFeatureConstructorToken(token)) {
       throw new Error(
         `Feature-to-feature injection is not supported yet: ${token.name}. Register shared services/tokens instead.`
@@ -189,7 +189,7 @@ function parseFeatureIds(raw: string | null): string[] {
   return Array.from(uniqueIds);
 }
 
-function isFeatureConstructorToken(value: Token<any> | Constructor<any>): value is FeatureConstructor {
+function isFeatureConstructorToken(value: Token<unknown> | Constructor<unknown>): value is FeatureConstructor {
   if (typeof value !== "function") return false;
   return typeof (value as Partial<FeatureConstructor>).selector === "string";
 }

@@ -63,34 +63,32 @@ export class FrameScheduler {
     const dt = Math.min(deltaMs / 1000, this.maxDelta);
     const tasks = Array.from(this.tasks);
 
-    try {
-      // Phase 1: Read/Compute (DOM reads are safe here, DOM writes are forbidden)
-      for (const task of tasks) {
-        if (!this.tasks.has(task)) continue;
-        try {
-          task.update?.(dt);
-        } catch (error) {
-          this.handleTaskError(task, error);
-        }
+    // Phase 1: Read/Compute (DOM reads are safe here, DOM writes are forbidden)
+    for (const task of tasks) {
+      if (!this.tasks.has(task)) continue;
+      try {
+        task.update?.(dt);
+      } catch (error) {
+        this.handleTaskError(task, error);
       }
-
-      // Phase 2: Render/Mutate (DOM mutations only here, reads are forbidden to avoid layout thrashing)
-      for (const task of tasks) {
-        if (!this.tasks.has(task)) continue;
-        try {
-          task.render?.();
-        } catch (error) {
-          this.handleTaskError(task, error);
-        }
-      }
-    } finally {
-      if (!this.running) return;
-      if (this.tasks.size === 0) {
-        this.stop();
-        return;
-      }
-      this.rafId = requestAnimationFrame(this.tick);
     }
+
+    // Phase 2: Render/Mutate (DOM mutations only here, reads are forbidden to avoid layout thrashing)
+    for (const task of tasks) {
+      if (!this.tasks.has(task)) continue;
+      try {
+        task.render?.();
+      } catch (error) {
+        this.handleTaskError(task, error);
+      }
+    }
+
+    if (!this.running) return;
+    if (this.tasks.size === 0) {
+      this.stop();
+      return;
+    }
+    this.rafId = requestAnimationFrame(this.tick);
   };
 
   private handleTaskError(task: ScheduledTask, error: unknown): void {
