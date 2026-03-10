@@ -11,6 +11,7 @@
 - **Floating Images Contract Update**: `FloatingImagesFeature` now uses its feature mount root as the container and item selection is standardized on `data-floating-item`.
 - **Page Feature Pause On Screensaver**: Page-level `FloatingImagesFeature` instances now pause while the screensaver is active, while screensaver-owned floating images continue running.
 - **Dedicated SlidePlayer Port**: Added `SlidePlayerFeature` with `data-feature="slideplayer"`, dedicated `data-slideplayer-*` controls, bullet navigation, autoplay, and screensaver-aware pause/resume.
+- **Regression Coverage Added**: Added `bin/vnext-regression-check.mjs` and wired it into `verify:docs` to cover `data-feature` attribute toggling, screensaver pause behavior, and interrupted async floating-images mounts.
 - **Contract Documentation Refresh**: Updated README, architecture notes, smoke validation, and implementation notes to match the current vNext HTML/CSS/TypeScript contracts.
 
 ## 2026-03-09

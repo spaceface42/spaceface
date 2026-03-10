@@ -2,8 +2,8 @@
 import type { Feature } from "../../core/feature.js";
 import { createEffect } from "../../core/signals.js";
 import { globalScheduler } from "../../core/scheduler.js";
-import { waitForImagesReady } from "../shared/images.js";
-import { clamp, distance, gaussianRandom, randomBetween } from "../shared/mathUtils.js";
+import { waitForImagesReady } from "../../core/utils/images.js";
+import { clamp, distance, gaussianRandom, randomBetween } from "../../core/utils/math-utils.js";
 import { screensaverActiveSignal } from "../shared/screensaverState.js";
 
 interface MotionItem {

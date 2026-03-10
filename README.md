@@ -4,6 +4,8 @@ Spaceface is a lightweight TypeScript runtime for building fast, interactive sta
 
 The core philosophy is simple: write static HTML, sprinkle in declarative `data-` attributes, and let the runtime wire up features (like slideshows, floating images, and screensavers) without the overhead of a heavy Virtual DOM framework.
 
+This repository now treats the current `src/` + `docs.src/` system as the baseline architecture.
+
 ## Current Structure
 
 - Authored source: `docs.src/`
@@ -49,8 +51,14 @@ npm run verify:docs
 - `SlideshowFeature` and `SlidePlayerFeature` pause while the screensaver is active.
 - page-level `FloatingImagesFeature` instances also pause during screensaver activity.
 
+## Out Of Scope
+
+- the old router/PJAX shell
+- feature-to-feature injection
+- legacy root selector contracts for feature activation
+
 ## Project Docs
 
-- [`vnext_architecture.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/vnext_architecture.md): architecture direction and current system model
+- [`architecture.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/architecture.md): architecture direction and current system model
 - [`RELEASE_NOTES.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/RELEASE_NOTES.md): what changed
 - [`ROADMAP.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/ROADMAP.md): what is next

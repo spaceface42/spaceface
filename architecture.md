@@ -1,11 +1,25 @@
-# Spaceface vNext Architecture
+# Spaceface Architecture
 
-This document describes the current architectural direction of the active vNext runtime. It is not a historical record of the older router/PJAX system. The current composition root lives in `src/app/main.ts`.
+This document defines the current architecture of the active runtime. It is the baseline for ongoing work, not a proposal for reviving older router/PJAX systems. The current composition root lives in `src/app/main.ts`.
 
-## 1. The Core Paradigm: Container + Signals
+## 0. System Boundary
+
+This system is:
+- a static-page runtime
+- driven by authored HTML in `docs.src/`
+- activated by `data-feature="..."`
+- implemented by a small TypeScript runtime under `src/`
+
+This system is not:
+- a router framework
+- a general-purpose component framework
+- a feature-to-feature DI graph
+- a legacy selector compatibility layer
+
+## 1. Core Runtime
 
 ### A. Lightweight Dependency Injection (IoC Container)
-Instead of forcing a global `EventBus`, the system provides a lightweight Context/Container. When a feature mounts, it can statically request references to shared services.
+The runtime provides a lightweight `Container` for shared services/tokens.
 ```typescript
 class VideoPlayerFeature implements Feature {
   // Statically declare dependencies
@@ -20,11 +34,11 @@ class VideoPlayerFeature implements Feature {
 ```
 
 Current port note:
-- Service/token injection is the intended direction.
-- Feature-to-feature injection is not enabled in the current vNext port yet; attempting it should be treated as unsupported until a real lifecycle-safe ownership model exists.
+- Service/token injection is allowed.
+- Feature-to-feature injection is intentionally unsupported.
 
 ### B. Vanilla TS Signals (Reactivity without Frameworks)
-Instead of manually querying the DOM to check if the screensaver is active, we introduce a minimal Reactive Signal primitive (inspired by Solid.js, but minimal in size).
+The runtime uses a minimal signal primitive for shared reactive state.
 ```typescript
 const isIdle = createSignal(false);
 
@@ -35,16 +49,20 @@ createEffect(() => {
 });
 ```
 
-## 2. Decoupled Lifecycle via `MutationObserver`
+## 2. Feature Lifecycle
 
-**The Evolution:** Use a single, global `MutationObserver` attached to `document.body` that watches for `data-feature="..."` attributes entering or leaving the DOM.
-* If `<div data-feature="floating-images">` is parsed and mounted (whether by the router, or a user clicking a button that injects HTML), the central Registry instantly instantiates the feature and calls `mount()`.
+Use a single global `MutationObserver` attached to `document.body` that watches `data-feature="..."`.
+* If `<div data-feature="floating-images">` is parsed or activated, the central registry instantiates the feature and calls `mount()`.
 * When the node is removed from the DOM, the observer instantly calls `destroy()`.
-* **Benefit:** The Router no longer needs to know what features exist. Full separation of concerns.
+* Attribute toggles on existing nodes are also reconciled.
 
-## 3. The Unified Physics & Render Loop
+Root contract:
+- feature roots use `data-feature="..."`
+- feature internals use feature-specific `data-*` only where structure needs to be explicit
 
-**The Evolution:** A unified `FrameScheduler` that forces a strict Read-then-Write execution order across *all* active features, avoiding layout thrashing.
+## 3. Animation And Render Loop
+
+A unified `FrameScheduler` forces strict read-then-write execution across active animated features.
 ```typescript
 class FloatingImagesFeature {
   update(dt: number) {
@@ -58,18 +76,18 @@ class FloatingImagesFeature {
   }
 }
 ```
-The central scheduler runs all `update()` methods first, followed by all `render()` methods using `requestAnimationFrame`. This guarantees 60/120fps physics.
+The scheduler runs all `update()` methods first, followed by all `render()` methods inside `requestAnimationFrame`.
 
 ## 4. Routing Status
 
-The current vNext runtime does not include the old router/PJAX shell.
+The current runtime does not include the old router/PJAX shell.
 
-If routing returns later, the intended direction is:
-- keep feature lifecycle decoupled from routing
-- mount features from DOM contracts, not router knowledge
-- prefer a future View Transitions based layer over reviving the old router as-is
+If routing returns later:
+- feature lifecycle must remain decoupled from routing
+- routing must not own feature instantiation
+- a future View Transitions based layer is preferred over reviving the old router as-is
 
-## 5. Feature Implementation Examples
+## 5. Feature Roles
 
 ### The Screensaver & Decoupled State
 Instead of managing its own hidden visual state, the Screensaver becomes a pure function reacting to a global `userActivitySignal`.
@@ -77,7 +95,7 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 * When the idle time is reached, it mounts the screensaver HTML partial dynamically.
 * To communicate with other features (like pausing the slideshow), it writes to a decoupled `screensaverActiveSignal`. It never references the slideshow directly.
 
-### The Slideshow (SlidePlayer)
+### Slideshow And SlidePlayer
 * `SlideshowFeature` remains the minimal generic rotator for simple `[data-slide]` content blocks.
 * `SlidePlayerFeature` is the image-first variant with dedicated prev/next controls and bullet navigation.
 * Both subscribe to the `screensaverActiveSignal` via `createEffect`.
@@ -85,7 +103,7 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 * When the screensaver hides, they resume seamlessly.
 
 ### Floating Images & Pure Math
-* Pure math operations (Gaussian distribution, bounding box collision, jitter) are extracted entirely out into `mathUtils.ts`.
+* Pure math operations (Gaussian distribution, bounding box collision, jitter) are extracted into `src/core/utils/math-utils.ts`.
 * The `FloatingImagesFeature` only manages the `MotionItem` state array and the `requestAnimationFrame` hooks via the `globalScheduler`.
 
 ---
@@ -102,7 +120,7 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 **✅ Ported Features (`src/features/`)**
 1. `shared/activity.ts` - `userActivitySignal`
 2. `shared/screensaverState.ts` - `screensaverActiveSignal`
-3. `shared/mathUtils.ts`
+3. `core/utils/math-utils.ts`
 4. `floating-images/FloatingImagesFeature.ts`
 5. `screensaver/ScreensaverFeature.ts`
 6. `slideshow/SlideshowFeature.ts`
@@ -113,11 +131,12 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 - the old router/PJAX shell
 - feature-to-feature injection
 - reviving legacy selector contracts
+- framework-managed component state outside DOM feature roots
 
 ## Near-Term Focus
 
-- harden tests around feature lifecycle and screensaver pause behavior
 - decide future logging bus direction
 - keep authored HTML/CSS aligned to `data-feature="..."`
+
 ## Open Question
 - Logging architecture: keep the current typed sink dispatcher in `src/core/logger.ts`, or formalize it into a dedicated `LogBus`/message channel module with pluggable sinks (console, telemetry, UI debug panel) while preserving the same `createLogger(...)` API.

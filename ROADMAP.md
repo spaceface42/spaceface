@@ -1,17 +1,14 @@
 # Roadmap
 
-This file is the forward-looking planning document for the active vNext runtime.
+This file is the forward-looking planning document for the active runtime.
 
 ## Current Priorities
 
-1. Add regression tests for:
-   - screensaver pause/resume interactions
-   - `data-feature` attribute toggling
-   - first-mount / destroy-during-async feature lifecycles
-2. Decide whether logging should stay as the current typed sink dispatcher or become a dedicated `LogBus`.
-3. Keep authored frontend contracts stable:
+1. Decide whether logging should stay as the current typed sink dispatcher or become a dedicated `LogBus`.
+2. Keep authored frontend contracts stable:
    - feature roots use `data-feature="..."`
    - feature internals use feature-specific `data-*` only where structure needs to be explicit
+3. Expand regression coverage only when new lifecycle-sensitive features are added.
 
 ## Later Work
 
@@ -23,3 +20,4 @@ This file is the forward-looking planning document for the active vNext runtime.
 
 1. Bringing back the old PJAX/router architecture as-is.
 2. Restoring legacy feature activation attributes such as one-off per-feature root selectors.
+3. Turning the runtime into a general-purpose component framework.

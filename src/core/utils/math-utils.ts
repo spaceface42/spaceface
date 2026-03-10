@@ -1,4 +1,4 @@
-// src/features/shared/mathUtils.ts
+// src/core/utils/math-utils.ts
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));

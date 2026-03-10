@@ -25,7 +25,7 @@ then update documentation in the same commit:
 - `README.md`
 - `RELEASE_NOTES.md`
 - `ROADMAP.md` when roadmap or scope changes
-- `vnext_architecture.md` when architectural direction or contracts change
+- `architecture.md` when architectural direction or contracts change
 
 ## Feature/CSS Organization
 
@@ -39,15 +39,15 @@ then update documentation in the same commit:
 
 ## Attribute Registry Rule
 
-- Any new `data-*` attribute introduced in code or HTML must be reflected in the current contract docs (`README.md` and `vnext_architecture.md`) in the same commit.
+- Any new `data-*` attribute introduced in code or HTML must be reflected in the current contract docs (`README.md` and `architecture.md`) in the same commit.
 
 ## Route Rename Rule
 
 - If route files, route names, or primary links are renamed, update `bin/smoke-check.mjs` in the same commit.
 
-## Route-Swap Feature Rule
+## Lifecycle Rule
 
-- Features that keep DOM references must implement/verify `onRouteChange` identity handling to avoid stale references after route swaps.
+- Features that keep DOM references must clean up safely when feature roots are removed, replaced, or deactivated through `data-feature` changes.
 
 ## Pre-Commit Minimum Validation
 
