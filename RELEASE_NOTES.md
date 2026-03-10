@@ -6,6 +6,7 @@
 
 - Updated the system version label to `v3.0.0b`.
 - Updated package metadata to the semver-safe prerelease `3.0.0-b`.
+- Added keyboard arrow and horizontal swipe navigation to `SlidePlayerFeature`.
 
 ## 2026-03-10
 
