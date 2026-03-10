@@ -1,179 +1,67 @@
-import { resolveConfig } from "../core/config.js";
-import { eventBus } from "../core/events.js";
-import { FeatureRegistry } from "../core/registry.js";
-import { StartupPipeline } from "../core/startup.js";
-import { attachConsoleLogSink, createLogger } from "../core/logger.js";
-import { RouteCoordinator } from "../core/router.js";
-import { animationScheduler } from "../core/animation.js";
-import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
-import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.js";
+// src/app/main.ts
+import { Container } from "../core/container.js";
+import { FeatureRegistry } from "../core/feature.js";
+import { initActivityTracking } from "../features/shared/activity.js";
+
+// Import our vNext Features
 import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
 import { FloatingImagesFeature } from "../features/floating-images/FloatingImagesFeature.js";
+import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
+import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.js";
 
-async function main(): Promise<void> {
-  const config = resolveConfig({
-    mode: readModeFromDom(),
-    screensaverIdleMs: 6000,
-  });
+const DEFAULT_SCREENSAVER_IDLE_MS = 6000;
+const DEFAULT_SLIDESHOW_AUTOPLAY_MS = 5000;
+const DEFAULT_SCREENSAVER_PARTIAL_URL = "/resources/features/screensaver/index.html";
 
-  setupGlobalErrorTelemetry();
+async function main() {
+  // 1. Initialize Global Shared Signals/Activity
+  initActivityTracking();
 
-  const startup = new StartupPipeline(config);
-  const registry = new FeatureRegistry();
-  const detachConsoleSink = maybeAttachConsoleSink(config.mode, config.logLevel);
-  const detachEventSink = maybeAttachEventSink(config.mode);
-  const detachAnimationMetrics = maybeAttachAnimationMetrics(config.mode);
+  // 2. Initialize Dependency Injection Container
+  const container = new Container();
 
-  registry.register(new SlideshowFeature({ autoplayMs: 5000, pauseOnScreensaver: true }), {
-    requiredSelector: "[data-slideshow]",
-    mode: "any",
-  });
+  // 3. Initialize Global Feature Registry
+  const registry = new FeatureRegistry(container);
 
-  registry.register(new SlidePlayerFeature({ autoplayMs: 5000, pauseOnScreensaver: true }), {
-    requiredSelector: "[data-slideplayer]",
-    mode: "any",
-  });
-
-  registry.register(new FloatingImagesFeature({ hoverBehavior: "pause", hoverSlowMultiplier: 0.2, initialDistribution: "gaussian" }), {
-    requiredSelector: "[data-floating-images]",
-    mode: "any",
-  });
-
-  registry.register(
-    new ScreensaverFeature({
-      idleMs: config.screensaverIdleMs,
-      partialUrl: "./resources/features/screensaver/index.html",
-    }),
-    {
-      mode: "any",
+  // 4. Register Features
+  // Just by registering these, any `<div data-feature="floating-images">` or
+  // `<div data-feature="screensaver">` in the DOM will instantly come alive!
+  registry.register(FloatingImagesFeature);
+  registry.register(class ScreensaverVnext extends ScreensaverFeature {
+    static selector = "screensaver";
+    constructor() {
+      super({
+        idleMs: DEFAULT_SCREENSAVER_IDLE_MS,
+        partialUrl: DEFAULT_SCREENSAVER_PARTIAL_URL,
+      });
     }
-  );
-
-  const ctxForResolve = {
-    config,
-    events: eventBus,
-    logger: createLogger("registry", config.logLevel),
-    route: window.location.pathname,
-  };
-
-  const activeFeatures = registry.resolve(ctxForResolve);
-  await startup.init(activeFeatures);
-  updateNavActiveLink();
-
-  const routeCoordinator = new RouteCoordinator({
-    containerSelector: "[data-route-container]",
-    logger: createLogger("router", config.logLevel),
-    hooks: {
-      onAfterSwap: async ({ url, isCurrentNavigation }) => {
-        if (!isCurrentNavigation()) return;
-        const nextCtx = {
-          ...ctxForResolve,
-          route: url.pathname,
-        };
-        const nextFeatures = registry.resolve(nextCtx);
-        await startup.reconcileFeatures(nextFeatures, url.pathname);
-        if (!isCurrentNavigation()) return;
-        updateNavActiveLink();
-      },
-    },
-  });
-  routeCoordinator.start();
-  bindLifecycleHooks(startup, routeCoordinator, detachConsoleSink, detachEventSink, detachAnimationMetrics);
-}
-
-function readModeFromDom(): "dev" | "prod" {
-  const value = document.documentElement.getAttribute("data-mode");
-  return value === "prod" ? "prod" : "dev";
-}
-
-function setupGlobalErrorTelemetry(): void {
-  window.addEventListener("error", (event) => {
-    eventBus.emit("log:entry", {
-      scope: "global:sync",
-      level: "error",
-      message: event.message || "Uncaught Error",
-      data: { filename: event.filename, lineno: event.lineno, colno: event.colno, error: event.error },
-      time: Date.now(),
-    });
   });
 
-  window.addEventListener("unhandledrejection", (event) => {
-    eventBus.emit("log:entry", {
-      scope: "global:async",
-      level: "error",
-      message: "Unhandled Promise Rejection",
-      data: { reason: event.reason },
-      time: Date.now(),
-    });
-  });
-}
-
-function bindLifecycleHooks(
-  startup: StartupPipeline,
-  routeCoordinator: RouteCoordinator,
-  detachConsoleSink: (() => void) | undefined,
-  detachEventSink: (() => void) | undefined,
-  detachAnimationMetrics: (() => void) | undefined
-): void {
-  window.addEventListener("beforeunload", () => {
-    routeCoordinator.destroy();
-    detachConsoleSink?.();
-    detachEventSink?.();
-    detachAnimationMetrics?.();
-    void startup.destroy("beforeunload");
-  });
-}
-
-function maybeAttachConsoleSink(mode: "dev" | "prod", logLevel: "debug" | "info" | "warn" | "error"): (() => void) | undefined {
-  const sinkAttr = document.documentElement.getAttribute("data-log-sink");
-  if (sinkAttr === "none") return undefined;
-
-  if (mode === "prod") {
-    if (sinkAttr === "force") {
-      return attachConsoleLogSink("warn");
+  registry.register(class SlideshowVnext extends SlideshowFeature {
+    static selector = "slideshow";
+    constructor() {
+      super({
+        autoplayMs: DEFAULT_SLIDESHOW_AUTOPLAY_MS,
+      });
     }
-    return undefined;
-  }
-
-  if (sinkAttr === "console" || sinkAttr === "force") {
-    return attachConsoleLogSink(logLevel);
-  }
-
-  return attachConsoleLogSink(logLevel);
-}
-
-function maybeAttachEventSink(mode: "dev" | "prod"): (() => void) | undefined {
-  if (mode !== "dev") return undefined;
-  const attr = document.documentElement.getAttribute("data-event-log");
-  if (attr !== "on") return undefined;
-
-  return eventBus.onAny((eventName, payload) => {
-    console.log("[event]", eventName, payload);
   });
+
+  registry.register(class SlidePlayerVnext extends SlidePlayerFeature {
+    static selector = "slideplayer";
+    constructor() {
+      super({
+        autoplayMs: DEFAULT_SLIDESHOW_AUTOPLAY_MS,
+      });
+    }
+  });
+
+  // 5. Start DOM Observation
+  registry.start();
 }
 
-function maybeAttachAnimationMetrics(mode: "dev" | "prod"): (() => void) | undefined {
-  if (mode !== "dev") return undefined;
-  const metricsAttr = document.documentElement.getAttribute("data-animation-metrics");
-  if (metricsAttr !== "on") return undefined;
-
-  const timer = window.setInterval(() => {
-    const stats = animationScheduler.getStats();
-    console.log("[animation] [METRICS]", stats);
-  }, 2000);
-
-  return () => window.clearInterval(timer);
-}
-
-function updateNavActiveLink(): void {
-  const page = document.body.getAttribute("data-page");
-  const links = Array.from(document.querySelectorAll<HTMLElement>("[data-nav-link]"));
-  for (const link of links) {
-    link.removeAttribute("aria-current");
-  }
-  if (!page) return;
-  const active = document.querySelector<HTMLElement>(`[data-nav-link="${page}"]`);
-  active?.setAttribute("aria-current", "page");
-}
-
-void main();
+// Boot
+main().catch((error) => {
+  setTimeout(() => {
+    throw error;
+  }, 0);
+});

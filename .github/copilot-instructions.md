@@ -1,28 +1,28 @@
 # Copilot Instructions for Spaceface
 
-This repository has one active code line:
+Active source of truth:
 
-1. Active app source: `src/`.
+- runtime code: `src/`
+- authored frontend: `docs.src/`
+- generated output: `docs/`
 
-## Active Architecture
+Current runtime shape:
 
-- `src/core/*`: startup pipeline, router, event bus, logger, config, shared animation scheduler.
-- `src/features/*`: lifecycle-managed feature controllers.
-- `src/app/main.ts`: composition root.
-- `public.src/*`: source demo pages/assets.
-- `bin/smoke-check.mjs`: smoke verification script.
+- `src/core/*`: runtime primitives and shared infrastructure
+- `src/core/utils/*`: generic utilities
+- `src/features/*`: feature implementations
+- `src/features/shared/*`: feature-domain shared state
+- `src/app/main.ts`: composition root
 
-## Build and Verify
+Build and verify:
 
-- Build active app (dev): `npm run build:docs`
-- Build active app (prod): `npm run build:docs:prod`
-- Verify active app: `npm run verify:docs`
-- Run local demo server: `npm run start:docs`
+- dev build: `npm run build:dev`
+- prod build: `npm run build:prod`
+- verify: `npm run verify:docs`
+- local server: `npm run serve:docs`
 
-Compatibility aliases may still exist under `*newworlddream*` names.
+Conventions:
 
-## Conventions
-
-- Keep root `src/` as source of truth for active development.
-- Keep generated output (`docs/dist/`) out of source edits.
-- Prefer event-driven logging (`logger -> event bus -> sink`) over direct console writes in feature code.
+- feature roots mount via `data-feature="..."`
+- generated `docs/` output is not authored source
+- use `src/core/logger.ts` through `createLogger(...)` instead of direct logging in feature code

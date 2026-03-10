@@ -1,322 +1,203 @@
-import type { Feature, StartupContext } from "../../core/lifecycle.js";
-import type { UnsubscribeFn } from "../../core/events.js";
-import { rebindOnRoute } from "../../core/rebindOnRoute.js";
-
-interface PlayerState {
-  root: HTMLElement;
-  slides: HTMLElement[];
-  bullets: Array<{ el: HTMLElement; index: number }>;
-  stage: HTMLElement | null;
-  bulletsRoot: HTMLElement | null;
-  index: number;
-  autoplayTimer: number | null;
-  autoplayStartTime: number;
-  autoplayRemainingMs: number;
-  detachControls: Array<() => void>;
-}
+import type { Feature } from "../../core/feature.js";
+import { createEffect } from "../../core/signals.js";
+import { screensaverActiveSignal } from "../shared/screensaverState.js";
 
 export interface SlidePlayerFeatureOptions {
-  rootSelector?: string;
+  autoplayMs?: number;
   slideSelector?: string;
   prevSelector?: string;
   nextSelector?: string;
   bulletsSelector?: string;
-  autoplayMs?: number;
-  pauseOnScreensaver?: boolean;
+  bulletSelector?: string;
+  activeClass?: string;
 }
 
 export class SlidePlayerFeature implements Feature {
   readonly name = "slideplayer";
-  readonly domBound = true;
+  static selector = "slideplayer";
 
-  private readonly options: Required<SlidePlayerFeatureOptions>;
-  private players: PlayerState[] = [];
-  private boundRoots: HTMLElement[] = [];
+  private options: Required<SlidePlayerFeatureOptions>;
+  private root: HTMLElement | null = null;
+  private slides: HTMLElement[] = [];
+  private bullets: HTMLButtonElement[] = [];
+  private index = 0;
+  private autoplayTimer: number | null = null;
+  private autoplayStartTime = 0;
+  private autoplayRemainingMs = 0;
   private pausedByScreensaver = false;
-  private unsubscribeScreensaverShown?: UnsubscribeFn;
-  private unsubscribeScreensaverHidden?: UnsubscribeFn;
-  private onKeydown?: (event: KeyboardEvent) => void;
+  private cleanupEffect?: () => void;
+  private detachPrevClick?: () => void;
+  private detachNextClick?: () => void;
+  private detachBulletClicks: Array<() => void> = [];
 
   constructor(options: SlidePlayerFeatureOptions = {}) {
     this.options = {
-      rootSelector: options.rootSelector ?? "[data-slideplayer]",
-      slideSelector: options.slideSelector ?? "[data-slideplayer-image]",
+      autoplayMs: options.autoplayMs ?? 5000,
+      slideSelector: options.slideSelector ?? "[data-slideplayer-slide]",
       prevSelector: options.prevSelector ?? "[data-slideplayer-prev]",
       nextSelector: options.nextSelector ?? "[data-slideplayer-next]",
-      bulletsSelector: options.bulletsSelector ?? "[data-slideplayer-bullet]",
-      autoplayMs: options.autoplayMs ?? 5000,
-      pauseOnScreensaver: options.pauseOnScreensaver ?? true,
+      bulletsSelector: options.bulletsSelector ?? "[data-slideplayer-bullets]",
+      bulletSelector: options.bulletSelector ?? "[data-slideplayer-bullet]",
+      activeClass: options.activeClass ?? "active",
     };
+    this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
-  init(ctx: StartupContext): void {
-    const roots = Array.from(document.querySelectorAll<HTMLElement>(this.options.rootSelector));
-    if (roots.length === 0) {
-      ctx.logger.debug("slideplayer skipped: missing containers", { selector: this.options.rootSelector });
-      return;
-    }
-    this.boundRoots = roots;
+  mount(el: HTMLElement): void {
+    this.root = el;
+    this.slides = Array.from(this.root.querySelectorAll<HTMLElement>(this.options.slideSelector));
+    this.bullets = this.collectBullets();
+    this.index = this.readInitialIndex();
 
-    this.players = roots
-      .map((root) => this.createPlayer(root))
-      .filter((player): player is PlayerState => Boolean(player));
+    this.render();
+    this.bindControls();
 
-    if (this.options.pauseOnScreensaver) {
-      this.unsubscribeScreensaverShown = ctx.events.on("screensaver:shown", () => {
-        this.pausedByScreensaver = true;
-        this.updateAutoplay();
-      });
-      this.unsubscribeScreensaverHidden = ctx.events.on("screensaver:hidden", () => {
-        this.pausedByScreensaver = false;
-        this.updateAutoplay();
-      });
-    }
-
-    this.bindKeyboardNavigation();
-    this.updateAutoplay();
-    ctx.logger.info("slideplayer initialized", {
-      players: this.players.length,
-      selector: this.options.rootSelector,
-      autoplayMs: this.options.autoplayMs,
+    this.cleanupEffect = createEffect(() => {
+      this.pausedByScreensaver = screensaverActiveSignal.value;
+      this.updateAutoplayState();
     });
   }
 
   destroy(): void {
     this.clearAutoplay();
-    this.unsubscribeScreensaverShown?.();
-    this.unsubscribeScreensaverHidden?.();
-    if (this.onKeydown) {
-      document.removeEventListener("keydown", this.onKeydown);
-      this.onKeydown = undefined;
-    }
-    this.unsubscribeScreensaverShown = undefined;
-    this.unsubscribeScreensaverHidden = undefined;
+    this.cleanupEffect?.();
+    this.cleanupEffect = undefined;
+    this.detachPrevClick?.();
+    this.detachPrevClick = undefined;
+    this.detachNextClick?.();
+    this.detachNextClick = undefined;
 
-    for (const player of this.players) {
-      for (const detach of player.detachControls) detach();
-      for (const slide of player.slides) {
-        slide.hidden = false;
-        slide.classList.remove("is-active");
-        slide.removeAttribute("aria-hidden");
-      }
-      player.stage?.classList.remove("is-ready");
-      player.bulletsRoot?.classList.remove("is-ready");
-      player.detachControls = [];
+    for (const detach of this.detachBulletClicks) {
+      detach();
     }
+    this.detachBulletClicks = [];
 
-    this.players = [];
-    this.boundRoots = [];
+    this.root = null;
+    this.slides = [];
+    this.bullets = [];
+    this.index = 0;
     this.pausedByScreensaver = false;
+    this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
-  onRouteChange(_nextRoute: string, ctx: StartupContext): void {
-    const currentBinding = this.boundRoots.length > 0 ? this.boundRoots : null;
-    const nextBinding = rebindOnRoute<HTMLElement[]>({
-      getNextBinding: () => {
-        const roots = Array.from(document.querySelectorAll<HTMLElement>(this.options.rootSelector));
-        return roots.length > 0 ? roots : null;
-      },
-      currentBinding,
-      hasActiveState: this.players.length > 0,
-      onInit: () => this.init(ctx),
-      onDestroy: () => this.destroy(),
-      equals: sameElementArray,
-    });
-    this.boundRoots = nextBinding ?? [];
+  private collectBullets(): HTMLButtonElement[] {
+    if (!this.root) return [];
+    const bulletsRoot = this.root.querySelector<HTMLElement>(this.options.bulletsSelector);
+    if (!bulletsRoot) return [];
+    return Array.from(bulletsRoot.querySelectorAll<HTMLButtonElement>(this.options.bulletSelector));
   }
 
-  private createPlayer(root: HTMLElement): PlayerState | null {
-    const stage = root.querySelector<HTMLElement>("[data-slideplayer-stage]");
-    const bulletsRoot = root.querySelector<HTMLElement>("[data-slideplayer-bullets]");
-    const slides = Array.from(root.querySelectorAll<HTMLElement>(this.options.slideSelector));
-    if (slides.length === 0) return null;
-    let activeIndex = slides.findIndex(s => s.classList.contains("is-active") || s.getAttribute("aria-hidden") === "false");
-    if (activeIndex === -1) {
-      activeIndex = slides.findIndex(s => !s.hidden);
-    }
-    const startIndex = Math.max(0, activeIndex);
+  private readInitialIndex(): number {
+    const activeIndex = this.slides.findIndex((slide) => slide.getAttribute("aria-hidden") === "false");
+    if (activeIndex !== -1) return activeIndex;
 
-    for (const slide of slides) {
-      slide.hidden = false;
-      slide.removeAttribute("hidden");
-    }
+    const visibleIndex = this.slides.findIndex((slide) => !slide.hidden);
+    return Math.max(0, visibleIndex);
+  }
 
-    const player: PlayerState = {
-      root,
-      slides,
-      bullets: [],
-      stage,
-      bulletsRoot,
-      index: startIndex,
-      autoplayTimer: null,
-      autoplayStartTime: 0,
-      autoplayRemainingMs: this.options.autoplayMs,
-      detachControls: [],
-    };
+  private bindControls(): void {
+    if (!this.root) return;
 
-    const prevButton = root.querySelector<HTMLElement>(this.options.prevSelector);
+    const prevButton = this.root.querySelector<HTMLElement>(this.options.prevSelector);
     if (prevButton) {
-      const onPrev = () => this.prev(player, true);
+      const onPrev = () => this.prev(true);
       prevButton.addEventListener("click", onPrev);
-      player.detachControls.push(() => prevButton.removeEventListener("click", onPrev));
+      this.detachPrevClick = () => prevButton.removeEventListener("click", onPrev);
     }
 
-    const nextButton = root.querySelector<HTMLElement>(this.options.nextSelector);
+    const nextButton = this.root.querySelector<HTMLElement>(this.options.nextSelector);
     if (nextButton) {
-      const onNext = () => this.next(player, true);
+      const onNext = () => this.next(true);
       nextButton.addEventListener("click", onNext);
-      player.detachControls.push(() => nextButton.removeEventListener("click", onNext));
+      this.detachNextClick = () => nextButton.removeEventListener("click", onNext);
     }
 
-    const bullets = Array.from(root.querySelectorAll<HTMLElement>(this.options.bulletsSelector));
-    if (bullets.length > 0) {
-      for (let i = 0; i < bullets.length; i += 1) {
-        const bullet = bullets[i];
-        const datasetIndex = Number.parseInt(bullet.dataset.slideplayerBulletIndex ?? "", 10);
-        const targetIndex = Number.isInteger(datasetIndex) ? datasetIndex : i;
-        if (targetIndex < 0 || targetIndex >= slides.length) continue;
-        const onBullet = () => this.goTo(player, targetIndex, true);
-        bullet.addEventListener("click", onBullet);
-        player.detachControls.push(() => bullet.removeEventListener("click", onBullet));
-        player.bullets.push({ el: bullet, index: targetIndex });
-      }
+    this.detachBulletClicks = this.bullets.map((button, index) => {
+      const onClick = () => this.goTo(index, true);
+      button.addEventListener("click", onClick);
+      return () => button.removeEventListener("click", onClick);
+    });
+  }
+
+  private next(manual = false): void {
+    if (this.slides.length === 0) return;
+    this.index = (this.index + 1) % this.slides.length;
+    this.render();
+    if (manual) this.resetAutoplay();
+  }
+
+  private prev(manual = false): void {
+    if (this.slides.length === 0) return;
+    this.index = (this.index - 1 + this.slides.length) % this.slides.length;
+    this.render();
+    if (manual) this.resetAutoplay();
+  }
+
+  private goTo(index: number, manual = false): void {
+    if (this.slides.length === 0) return;
+    this.index = Math.max(0, Math.min(index, this.slides.length - 1));
+    this.render();
+    if (manual) this.resetAutoplay();
+  }
+
+  private render(): void {
+    for (let i = 0; i < this.slides.length; i += 1) {
+      const isActive = i === this.index;
+      const slide = this.slides[i];
+      slide.hidden = !isActive;
+      slide.setAttribute("aria-hidden", String(!isActive));
+      slide.classList.toggle("is-active", isActive);
     }
 
-    this.render(player);
-    player.stage?.classList.add("is-ready");
-    player.bulletsRoot?.classList.add("is-ready");
-    return player;
-  }
-
-  private bindKeyboardNavigation(): void {
-    if (this.onKeydown) return;
-    this.onKeydown = (event: KeyboardEvent) => {
-      if (this.players.length === 0) return;
-      if (this.isEditableTarget(event.target)) return;
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-
-      const player = this.resolveKeyboardPlayer(event.target) ?? this.players[0];
-      if (!player) return;
-
-      event.preventDefault();
-      if (event.key === "ArrowLeft") {
-        this.prev(player, true);
-        return;
-      }
-      this.next(player, true);
-    };
-    document.addEventListener("keydown", this.onKeydown);
-  }
-
-  private resolveKeyboardPlayer(target: EventTarget | null): PlayerState | null {
-    const el = target as Element | null;
-    if (!el) return null;
-    const root = el.closest(this.options.rootSelector);
-    if (!root) return null;
-    return this.players.find((player) => player.root === root) ?? null;
-  }
-
-  private isEditableTarget(target: EventTarget | null): boolean {
-    const el = target as HTMLElement | null;
-    if (!el) return false;
-    if (el instanceof HTMLInputElement) return true;
-    if (el instanceof HTMLTextAreaElement) return true;
-    if (el instanceof HTMLSelectElement) return true;
-    return Boolean(el.closest("[contenteditable='true']"));
-  }
-
-  private goTo(player: PlayerState, index: number, manual = false): void {
-    if (index < 0 || index >= player.slides.length || index === player.index) return;
-    player.index = index;
-    this.render(player);
-    if (manual) this.resetAutoplay(player);
-  }
-
-  private next(player: PlayerState, manual = false): void {
-    if (player.slides.length <= 1) return;
-    player.index = (player.index + 1) % player.slides.length;
-    this.render(player);
-    if (manual) this.resetAutoplay(player);
-  }
-
-  private prev(player: PlayerState, manual = false): void {
-    if (player.slides.length <= 1) return;
-    player.index = (player.index - 1 + player.slides.length) % player.slides.length;
-    this.render(player);
-    if (manual) this.resetAutoplay(player);
-  }
-
-  private render(player: PlayerState): void {
-    for (let i = 0; i < player.slides.length; i += 1) {
-      const visible = i === player.index;
-      player.slides[i].hidden = false;
-      player.slides[i].classList.toggle("is-active", visible);
-      player.slides[i].setAttribute("aria-hidden", String(!visible));
-    }
-
-    for (let i = 0; i < player.bullets.length; i += 1) {
-      const bullet = player.bullets[i];
-      const active = bullet.index === player.index;
-      bullet.el.classList.toggle("active", active);
-      bullet.el.setAttribute("aria-current", active ? "true" : "false");
+    for (let i = 0; i < this.bullets.length; i += 1) {
+      const isActive = i === this.index;
+      const bullet = this.bullets[i];
+      bullet.classList.toggle(this.options.activeClass, isActive);
+      bullet.setAttribute("aria-current", isActive ? "true" : "false");
     }
   }
 
-  private scheduleNextAutoplay(player: PlayerState, waitMs: number): void {
-    if (player.autoplayTimer !== null) {
-      clearTimeout(player.autoplayTimer);
+  private scheduleNextAutoplay(waitMs: number): void {
+    if (this.autoplayTimer !== null) {
+      clearTimeout(this.autoplayTimer);
     }
-    player.autoplayStartTime = Date.now();
-    player.autoplayRemainingMs = waitMs;
-    player.autoplayTimer = window.setTimeout(() => {
-      this.next(player, false);
-      this.scheduleNextAutoplay(player, this.options.autoplayMs);
+    this.autoplayStartTime = Date.now();
+    this.autoplayRemainingMs = waitMs;
+    this.autoplayTimer = window.setTimeout(() => {
+      this.next(false);
+      this.scheduleNextAutoplay(this.options.autoplayMs);
     }, waitMs);
   }
 
-  private resetAutoplay(player: PlayerState): void {
-    player.autoplayRemainingMs = this.options.autoplayMs;
-    if (player.autoplayTimer !== null && !this.pausedByScreensaver) {
-      this.scheduleNextAutoplay(player, this.options.autoplayMs);
+  private resetAutoplay(): void {
+    this.autoplayRemainingMs = this.options.autoplayMs;
+    if (this.autoplayTimer !== null && !this.pausedByScreensaver) {
+      this.scheduleNextAutoplay(this.options.autoplayMs);
     }
   }
 
-  private updateAutoplay(): void {
+  private updateAutoplayState(): void {
     if (this.options.autoplayMs <= 0) {
       this.clearAutoplay();
       return;
     }
-    if (this.pausedByScreensaver) {
-      for (const player of this.players) {
-        if (player.autoplayTimer !== null) {
-          const elapsed = Date.now() - player.autoplayStartTime;
-          player.autoplayRemainingMs = Math.max(0, player.autoplayRemainingMs - elapsed);
-          clearTimeout(player.autoplayTimer);
-          player.autoplayTimer = null;
-        }
+
+    if (!this.root || this.slides.length <= 1 || this.pausedByScreensaver) {
+      if (this.autoplayTimer !== null) {
+        const elapsed = Date.now() - this.autoplayStartTime;
+        this.autoplayRemainingMs = Math.max(0, this.autoplayRemainingMs - elapsed);
+        this.clearAutoplay();
       }
       return;
     }
 
-    for (const player of this.players) {
-      if (player.slides.length <= 1 || player.autoplayTimer !== null) continue;
-      this.scheduleNextAutoplay(player, player.autoplayRemainingMs > 0 ? player.autoplayRemainingMs : this.options.autoplayMs);
-    }
+    if (this.autoplayTimer !== null) return;
+    this.scheduleNextAutoplay(this.autoplayRemainingMs > 0 ? this.autoplayRemainingMs : this.options.autoplayMs);
   }
 
   private clearAutoplay(): void {
-    for (const player of this.players) {
-      if (player.autoplayTimer === null) continue;
-      clearTimeout(player.autoplayTimer);
-      player.autoplayTimer = null;
-    }
+    if (this.autoplayTimer === null) return;
+    clearTimeout(this.autoplayTimer);
+    this.autoplayTimer = null;
   }
-}
-
-function sameElementArray(a: HTMLElement[], b: HTMLElement[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i += 1) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
 }

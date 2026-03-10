@@ -1,52 +1,48 @@
-import type { Feature, StartupContext } from "../../core/lifecycle.js";
-import type { UnsubscribeFn } from "../../core/events.js";
-import { rebindOnRoute } from "../../core/rebindOnRoute.js";
+// src/features/slideshow/SlideshowFeature.ts
+import type { Feature } from "../../core/feature.js";
+import { createEffect } from "../../core/signals.js";
+import { screensaverActiveSignal } from "../shared/screensaverState.js";
 
 export interface SlideshowFeatureOptions {
   autoplayMs?: number;
-  pauseOnScreensaver?: boolean;
   prevSelector?: string;
   nextSelector?: string;
 }
 
 export class SlideshowFeature implements Feature {
   readonly name = "slideshow";
-  readonly domBound = true;
-  private readonly options: Required<SlideshowFeatureOptions>;
+  static selector = "slideshow";
+
+  private options: Required<SlideshowFeatureOptions>;
   private root: HTMLElement | null = null;
   private slides: HTMLElement[] = [];
+
+  // State
   private index = 0;
   private autoplayTimer: number | null = null;
   private autoplayStartTime = 0;
   private autoplayRemainingMs = 0;
   private pausedByScreensaver = false;
-  private unsubscribeNext?: UnsubscribeFn;
-  private unsubscribePrev?: UnsubscribeFn;
-  private unsubscribeScreensaverShown?: UnsubscribeFn;
-  private unsubscribeScreensaverHidden?: UnsubscribeFn;
+
+  // Cleanup references
+  private cleanupEffect?: () => void;
   private detachPrevClick?: () => void;
   private detachNextClick?: () => void;
 
   constructor(options: SlideshowFeatureOptions = {}) {
     this.options = {
       autoplayMs: options.autoplayMs ?? 5000,
-      pauseOnScreensaver: options.pauseOnScreensaver ?? true,
       prevSelector: options.prevSelector ?? "[data-slide-prev]",
       nextSelector: options.nextSelector ?? "[data-slide-next]",
     };
     this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
-  init(ctx: StartupContext): void {
-    this.root = document.querySelector<HTMLElement>("[data-slideshow]");
-    if (!this.root) {
-      ctx.logger.debug("slideshow skipped: missing [data-slideshow]");
-      return;
-    }
-
+  mount(el: HTMLElement): void {
+    this.root = el;
     this.slides = Array.from(this.root.querySelectorAll<HTMLElement>("[data-slide]"));
 
-    // Attempt to resume from the currently active slide if restoring from cache
+    // Attempt to resume from currently active slide if restoring from cache
     let activeIndex = this.slides.findIndex(s => s.getAttribute("aria-hidden") === "false");
     if (activeIndex === -1) {
       activeIndex = this.slides.findIndex(s => !s.hidden);
@@ -56,56 +52,28 @@ export class SlideshowFeature implements Feature {
     this.render();
     this.bindControls();
 
-    this.autoplayRemainingMs = this.options.autoplayMs;
-
-    this.unsubscribeNext = ctx.events.on("slideshow:next", () => this.next(true));
-    this.unsubscribePrev = ctx.events.on("slideshow:prev", () => this.prev(true));
-    if (this.options.pauseOnScreensaver) {
-      this.unsubscribeScreensaverShown = ctx.events.on("screensaver:shown", () => {
-        this.pausedByScreensaver = true;
-        this.updateAutoplayState();
-      });
-      this.unsubscribeScreensaverHidden = ctx.events.on("screensaver:hidden", () => {
-        this.pausedByScreensaver = false;
-        this.updateAutoplayState();
-      });
-    }
-    this.updateAutoplayState();
-
-    ctx.logger.info("slideshow initialized", {
-      slides: this.slides.length,
-      autoplayMs: this.options.autoplayMs,
+    // Listen to screensaver state reactively
+    this.cleanupEffect = createEffect(() => {
+      const isScreensaverActive = screensaverActiveSignal.value;
+      this.pausedByScreensaver = isScreensaverActive;
+      this.updateAutoplayState();
     });
   }
 
   destroy(): void {
     this.clearAutoplay();
-    this.unsubscribeNext?.();
-    this.unsubscribePrev?.();
-    this.unsubscribeScreensaverShown?.();
-    this.unsubscribeScreensaverHidden?.();
-    this.unsubscribeNext = undefined;
-    this.unsubscribePrev = undefined;
-    this.unsubscribeScreensaverShown = undefined;
-    this.unsubscribeScreensaverHidden = undefined;
+    this.cleanupEffect?.();
+    this.cleanupEffect = undefined;
+
     this.detachPrevClick?.();
     this.detachNextClick?.();
     this.detachPrevClick = undefined;
     this.detachNextClick = undefined;
+
     this.root = null;
     this.slides = [];
     this.pausedByScreensaver = false;
     this.autoplayRemainingMs = this.options.autoplayMs;
-  }
-
-  onRouteChange(_nextRoute: string, ctx: StartupContext): void {
-    this.root = rebindOnRoute<HTMLElement>({
-      getNextBinding: () => document.querySelector<HTMLElement>("[data-slideshow]"),
-      currentBinding: this.root,
-      hasActiveState: this.slides.length > 0,
-      onInit: () => this.init(ctx),
-      onDestroy: () => this.destroy(),
-    });
   }
 
   private bindControls(): void {
@@ -172,6 +140,8 @@ export class SlideshowFeature implements Feature {
       this.clearAutoplay();
       return;
     }
+
+    // If we're paused or don't have enough slides, stop the timer but save elapsed time
     if (!this.root || this.slides.length <= 1 || this.pausedByScreensaver) {
       if (this.autoplayTimer !== null) {
         const elapsed = Date.now() - this.autoplayStartTime;
@@ -180,6 +150,8 @@ export class SlideshowFeature implements Feature {
       }
       return;
     }
+
+    // Resume timer using remaining time
     if (this.autoplayTimer !== null) return;
     this.scheduleNextAutoplay(this.autoplayRemainingMs > 0 ? this.autoplayRemainingMs : this.options.autoplayMs);
   }
