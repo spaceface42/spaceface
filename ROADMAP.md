@@ -2,6 +2,10 @@
 
 This file is the forward-looking planning document for the active runtime.
 
+## Current State
+
+No mandatory architecture or cleanup work is currently required.
+
 ## Current Priorities
 
 1. Keep authored frontend contracts stable:
