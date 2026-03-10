@@ -65,9 +65,10 @@ export class FrameScheduler {
 
     // Phase 1: Read/Compute (DOM reads are safe here, DOM writes are forbidden)
     for (const task of tasks) {
+      if (!task.update) continue;
       if (!this.tasks.has(task)) continue;
       try {
-        task.update?.(dt);
+        task.update(dt);
       } catch (error) {
         this.handleTaskError(task, error);
       }
@@ -75,9 +76,10 @@ export class FrameScheduler {
 
     // Phase 2: Render/Mutate (DOM mutations only here, reads are forbidden to avoid layout thrashing)
     for (const task of tasks) {
+      if (!task.render) continue;
       if (!this.tasks.has(task)) continue;
       try {
-        task.render?.();
+        task.render();
       } catch (error) {
         this.handleTaskError(task, error);
       }

@@ -51,18 +51,26 @@ export function createLogger(scope: string, level: LogLevel): Logger {
 
 export function attachConsoleLogSink(minLevel: LogLevel = "debug"): UnsubscribeFn {
   const canLog = (candidate: LogLevel) => LEVEL_ORDER[candidate] >= LEVEL_ORDER[minLevel];
+  const write = (method: "log" | "warn" | "error", entry: LogEntry): void => {
+    const prefix = `[${entry.scope}] [${entry.level.toUpperCase()}]`;
+    if (entry.data === undefined) {
+      console[method](prefix, entry.message);
+      return;
+    }
+    console[method](prefix, entry.message, entry.data);
+  };
+
   const sink = (entry: LogEntry): void => {
     if (!canLog(entry.level)) return;
-    const prefix = `[${entry.scope}] [${entry.level.toUpperCase()}]`;
     if (entry.level === "error") {
-      console.error(prefix, entry.message, entry.data);
+      write("error", entry);
       return;
     }
     if (entry.level === "warn") {
-      console.warn(prefix, entry.message, entry.data);
+      write("warn", entry);
       return;
     }
-    console.log(prefix, entry.message, entry.data);
+    write("log", entry);
   };
   logSinks.add(sink);
   return () => {
