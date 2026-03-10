@@ -5,21 +5,24 @@
  */
 export interface Token<T> {
   name: string;
+  readonly _type?: T;
 }
 
 export function createToken<T>(name: string): Token<T> {
   return { name };
 }
 
-export type Constructor<T> = new (...args: any[]) => T;
+export type Constructor<T> = new (...args: never[]) => T;
+
+type DependencyKey<T> = Token<T> | Constructor<T>;
 
 export class Container {
-  private instances = new Map<Token<any> | Constructor<any>, any>();
+  private instances = new Map<DependencyKey<unknown>, unknown>();
 
   /**
    * Registers a singleton instance in the container.
    */
-  provide<T>(key: Token<T> | Constructor<T>, instance: T): void {
+  provide<T>(key: DependencyKey<T>, instance: T): void {
     this.instances.set(key, instance);
   }
 
@@ -27,7 +30,7 @@ export class Container {
    * Resolves a dependency from the container.
    * Throws an error if the dependency was not registered.
    */
-  resolve<T>(key: Token<T> | Constructor<T>): T {
+  resolve<T>(key: DependencyKey<T>): T {
     if (!this.instances.has(key)) {
       const name = typeof key === "function" ? key.name : key.name;
       throw new Error(`Dependency not found: ${name}`);
