@@ -135,8 +135,16 @@ Instead of managing its own hidden visual state, the Screensaver becomes a pure 
 
 ## Near-Term Focus
 
-- decide future logging bus direction
 - keep authored HTML/CSS aligned to `data-feature="..."`
 
-## Open Question
-- Logging architecture: keep the current typed sink dispatcher in `src/core/logger.ts`, or formalize it into a dedicated `LogBus`/message channel module with pluggable sinks (console, telemetry, UI debug panel) while preserving the same `createLogger(...)` API.
+## Logging Decision
+
+Logging is finalized around the current typed sink dispatcher in `src/core/logger.ts`.
+
+Current rule:
+- features and runtime code use `createLogger(...)`
+- sinks are attached externally
+- console output remains centralized through sink attachment
+
+Future rule:
+- do not introduce a dedicated `LogBus` unless the system actually needs multiple real sinks beyond console/dev diagnostics

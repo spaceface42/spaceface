@@ -12,6 +12,7 @@
 - **Page Feature Pause On Screensaver**: Page-level `FloatingImagesFeature` instances now pause while the screensaver is active, while screensaver-owned floating images continue running.
 - **Dedicated SlidePlayer Port**: Added `SlidePlayerFeature` with `data-feature="slideplayer"`, dedicated `data-slideplayer-*` controls, bullet navigation, autoplay, and screensaver-aware pause/resume.
 - **Regression Coverage Added**: Added `bin/vnext-regression-check.mjs` and wired it into `verify:docs` to cover `data-feature` attribute toggling, screensaver pause behavior, and interrupted async floating-images mounts.
+- **Logging Decision Finalized**: Kept the current typed sink dispatcher in `src/core/logger.ts` as the official logging approach, with future `LogBus` work deferred unless a real multi-sink need appears.
 - **Contract Documentation Refresh**: Updated README, architecture notes, smoke validation, and implementation notes to match the current vNext HTML/CSS/TypeScript contracts.
 
 ## 2026-03-09

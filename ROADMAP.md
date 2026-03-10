@@ -4,11 +4,11 @@ This file is the forward-looking planning document for the active runtime.
 
 ## Current Priorities
 
-1. Decide whether logging should stay as the current typed sink dispatcher or become a dedicated `LogBus`.
-2. Keep authored frontend contracts stable:
+1. Keep authored frontend contracts stable:
    - feature roots use `data-feature="..."`
    - feature internals use feature-specific `data-*` only where structure needs to be explicit
-3. Expand regression coverage only when new lifecycle-sensitive features are added.
+2. Expand regression coverage only when new lifecycle-sensitive features are added.
+3. Keep logging on the current typed sink dispatcher unless a real multi-sink need appears.
 
 ## Later Work
 
