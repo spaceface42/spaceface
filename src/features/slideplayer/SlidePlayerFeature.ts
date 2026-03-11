@@ -13,8 +13,6 @@ export interface SlidePlayerFeatureOptions {
 }
 
 export class SlidePlayerFeature implements Feature {
-  readonly name = "slideplayer";
-  static selector = "slideplayer";
   private static readonly SWIPE_THRESHOLD_PX = 36;
   private static readonly SWIPE_OFF_AXIS_THRESHOLD_PX = 24;
 

@@ -13,7 +13,6 @@ try {
   await build({
     stdin: {
       contents: `
-        export { Container } from "./src/core/container.ts";
         export { FeatureRegistry } from "./src/core/feature.ts";
         export { SlideshowFeature } from "./src/features/slideshow/SlideshowFeature.ts";
         export { SlidePlayerFeature } from "./src/features/slideplayer/SlidePlayerFeature.ts";
@@ -79,6 +78,7 @@ try {
 
   const runtime = await import(pathToFileURL(bundlePath).href);
   testFeatureRegistryAttributeToggling(runtime);
+  testFeatureRegistryMountContext(runtime);
   await testFeatureRegistryAsyncMountFailure(runtime);
   await testFeatureRegistryAsyncMountAbort(runtime);
   testSlideshowScreensaverPause(runtime);
@@ -107,10 +107,8 @@ function testFeatureRegistryAttributeToggling(runtime) {
   installDomGlobals(body);
 
   class ProbeFeature {
-    static selector = "probe";
     static mounts = 0;
     static destroys = 0;
-    name = "probe";
     mount() {
       ProbeFeature.mounts += 1;
     }
@@ -119,8 +117,8 @@ function testFeatureRegistryAttributeToggling(runtime) {
     }
   }
 
-  const registry = new runtime.FeatureRegistry(new runtime.Container());
-  registry.register(ProbeFeature);
+  const registry = new runtime.FeatureRegistry();
+  registry.register(createDefinition("probe", () => new ProbeFeature()));
   registry.start();
 
   const host = new FakeElement("div");
@@ -138,6 +136,36 @@ function testFeatureRegistryAttributeToggling(runtime) {
   restoreDomGlobals();
 }
 
+function testFeatureRegistryMountContext(runtime) {
+  const observerState = installMutationObserverStub();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  let receivedContext = null;
+  class ContextProbeFeature {
+    mount(_el, context) {
+      receivedContext = context;
+    }
+  }
+
+  const registry = new runtime.FeatureRegistry();
+  registry.register(createDefinition("context-probe", () => new ContextProbeFeature()));
+  registry.start();
+
+  const host = new FakeElement("div");
+  body.append(host);
+
+  host.setAttribute("data-feature", "context-probe");
+  observerState.callback([{ type: "attributes", target: host }]);
+
+  assert.equal(receivedContext?.signal instanceof AbortSignal, true, "feature mounts should receive an abort signal");
+  assert.equal(typeof receivedContext?.logger?.warn, "function", "feature mounts should receive a scoped logger");
+  assert.equal(typeof receivedContext?.logger?.child, "function", "feature mounts should receive a composable logger");
+
+  registry.stop();
+  restoreDomGlobals();
+}
+
 async function testFeatureRegistryAsyncMountFailure(runtime) {
   const observerState = installMutationObserverStub();
   const body = new FakeElement("body");
@@ -150,10 +178,8 @@ async function testFeatureRegistryAsyncMountFailure(runtime) {
   };
 
   class AsyncProbeFeature {
-    static selector = "async-probe";
     static mounts = 0;
     static destroys = 0;
-    name = "async-probe";
     async mount() {
       AsyncProbeFeature.mounts += 1;
       throw new Error("async mount failed");
@@ -164,8 +190,8 @@ async function testFeatureRegistryAsyncMountFailure(runtime) {
   }
 
   try {
-    const registry = new runtime.FeatureRegistry(new runtime.Container());
-    registry.register(AsyncProbeFeature);
+    const registry = new runtime.FeatureRegistry();
+    registry.register(createDefinition("async-probe", () => new AsyncProbeFeature()));
     registry.start();
 
     const host = new FakeElement("div");
@@ -202,10 +228,8 @@ async function testFeatureRegistryAsyncMountAbort(runtime) {
   };
 
   class AbortProbeFeature {
-    static selector = "abort-probe";
     static destroys = 0;
     static aborts = 0;
-    name = "abort-probe";
     mount(_el, context) {
       return new Promise((_, reject) => {
         context?.signal.addEventListener(
@@ -226,8 +250,8 @@ async function testFeatureRegistryAsyncMountAbort(runtime) {
   }
 
   try {
-    const registry = new runtime.FeatureRegistry(new runtime.Container());
-    registry.register(AbortProbeFeature);
+    const registry = new runtime.FeatureRegistry();
+    registry.register(createDefinition("abort-probe", () => new AbortProbeFeature()));
     registry.start();
 
     const host = new FakeElement("div");
@@ -283,6 +307,10 @@ function testSlideshowScreensaverPause(runtime) {
   runtime.screensaverActiveSignal.value = false;
   clock.restore();
   restoreDomGlobals();
+}
+
+function createDefinition(selector, create) {
+  return { selector, create };
 }
 
 function testSlidePlayerScreensaverPause(runtime) {

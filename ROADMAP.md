@@ -13,7 +13,7 @@ This roadmap tracks only the current static-page runtime.
 1. Add direct coverage for partial asset rebasing at build time and runtime.
 2. Extend partial asset rebasing to cover `srcset` when responsive images are introduced.
 3. Add targeted tests for `math-utils.ts` and autoplay timing behavior.
-4. Decide whether `Container` needs real shared services or should stay dormant until a concrete use appears.
+4. Decide whether the contract manifest should eventually generate more than docs and smoke checks.
 
 ## Not Planned
 

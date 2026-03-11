@@ -10,6 +10,7 @@ interface LogEntry {
 }
 
 export interface Logger {
+  child(scope: string): Logger;
   debug(message: string, data?: unknown): void;
   info(message: string, data?: unknown): void;
   warn(message: string, data?: unknown): void;
@@ -27,26 +28,31 @@ const logSinks = new Set<(entry: LogEntry) => void>();
 export function createLogger(scope: string, level: LogLevel): Logger {
   const canLog = (candidate: LogLevel) => LEVEL_ORDER[candidate] >= LEVEL_ORDER[level];
 
-  const write = (candidate: LogLevel, message: string, data?: unknown) => {
-    if (!canLog(candidate)) return;
-    const entry: LogEntry = {
-      scope,
-      level: candidate,
-      message,
-      data,
-      time: Date.now(),
+  const createScopedLogger = (scopeName: string): Logger => {
+    const write = (candidate: LogLevel, message: string, data?: unknown) => {
+      if (!canLog(candidate)) return;
+      const entry: LogEntry = {
+        scope: scopeName,
+        level: candidate,
+        message,
+        data,
+        time: Date.now(),
+      };
+      for (const sink of logSinks) {
+        sink(entry);
+      }
     };
-    for (const sink of logSinks) {
-      sink(entry);
-    }
+
+    return {
+      child: (childScope) => createScopedLogger(`${scopeName}:${childScope}`),
+      debug: (message, data) => write("debug", message, data),
+      info: (message, data) => write("info", message, data),
+      warn: (message, data) => write("warn", message, data),
+      error: (message, data) => write("error", message, data),
+    };
   };
 
-  return {
-    debug: (message, data) => write("debug", message, data),
-    info: (message, data) => write("info", message, data),
-    warn: (message, data) => write("warn", message, data),
-    error: (message, data) => write("error", message, data),
-  };
+  return createScopedLogger(scope);
 }
 
 export function attachConsoleLogSink(minLevel: LogLevel = "debug"): UnsubscribeFn {

@@ -1,6 +1,6 @@
 // src/features/screensaver/ScreensaverFeature.ts
-import type { Feature } from "../../core/feature.js";
-import { createLogger } from "../../core/logger.js";
+import type { Feature, FeatureMountContext } from "../../core/feature.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 import { createEffect } from "../../core/signals.js";
 import { userActivitySignal } from "../shared/activity.js";
 import { screensaverActiveSignal } from "../shared/screensaverState.js";
@@ -9,17 +9,12 @@ import { loadPartialHtml } from "../../core/partials.js";
 // Instead, we just write the HTML. The FeatureRegistry will automatically see it
 // and spawn a FloatingImagesFeature for us! This is the core magic of vNext.
 
-const logger = createLogger("screensaver", "warn");
-
 export interface ScreensaverFeatureOptions {
   idleMs?: number;
   partialUrl?: string;
 }
 
 export class ScreensaverFeature implements Feature {
-  readonly name = "screensaver";
-  static selector = "screensaver";
-
   private options: Required<ScreensaverFeatureOptions>;
   private target: HTMLElement | null = null;
   private cleanupEffect?: () => void;
@@ -31,6 +26,7 @@ export class ScreensaverFeature implements Feature {
   private hideCleanupTimer: number | null = null;
   private showRequestId = 0;
   private partialLoadController: AbortController | null = null;
+  private logger: Logger = createLogger("screensaver", "warn");
 
   constructor(options: ScreensaverFeatureOptions = {}) {
     this.options = {
@@ -39,7 +35,8 @@ export class ScreensaverFeature implements Feature {
     };
   }
 
-  mount(el: HTMLElement): void {
+  mount(el: HTMLElement, context?: FeatureMountContext): void {
+    this.logger = context?.logger ?? this.logger;
     this.target = el;
     this.target.hidden = true;
     this.target.classList.remove("is-active");
@@ -180,7 +177,7 @@ export class ScreensaverFeature implements Feature {
       if (isAbortError(error)) {
         return false;
       }
-      logger.warn("failed to load screensaver partial", {
+      this.logger.warn("failed to load screensaver partial", {
         partialUrl: this.options.partialUrl,
         error,
       });

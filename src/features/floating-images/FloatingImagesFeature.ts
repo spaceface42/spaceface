@@ -30,9 +30,7 @@ export interface FloatingImagesFeatureOptions {
 }
 
 export class FloatingImagesFeature implements Feature {
-  readonly name = "floating-images";
-  static selector = "floating-images";
-  // In a more advanced setup, options could be injected or read from data-* attributes
+  // Options are runtime-owned rather than attribute-driven.
 
   private options: Required<FloatingImagesFeatureOptions>;
   private container: HTMLElement | null = null;

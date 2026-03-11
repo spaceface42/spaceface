@@ -1,6 +1,6 @@
 # Spaceface Architecture
 
-This document describes the current system only. It is not a proposal for reviving older router-era ideas.
+This document describes the current runtime, not the older router-era experiments.
 
 ## System Boundary
 
@@ -10,31 +10,31 @@ Spaceface is:
 - authored in `docs.src/`
 - generated into `docs/`
 - activated from `data-feature="..."`
-- implemented by a small TypeScript runtime in `src/`
+- driven by one app contract in `src/app/contract.ts`
 
 Spaceface is not:
 
 - a router framework
 - a component framework
-- a feature-to-feature dependency graph
+- a feature dependency graph
 - a legacy selector compatibility layer
 
 ## Boot Flow
 
-The composition root is [src/app/main.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/app/main.ts).
+The composition root is [`src/app/main.ts`](./src/app/main.ts).
 
 Startup does four things:
 
 1. attach the console log sink
-2. start shared activity tracking
-3. register feature constructors
-4. start the global feature registry
+2. apply current nav state
+3. start shared activity tracking
+4. register and start contract-defined features
 
 ## Core Runtime Pieces
 
 ### Feature Registry
 
-The registry in [src/core/feature.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/feature.ts) watches `document.body` with one `MutationObserver`.
+The registry in [`src/core/feature.ts`](./src/core/feature.ts) watches `document.body` with one `MutationObserver`.
 
 It handles:
 
@@ -45,21 +45,23 @@ It handles:
 - sync and async mount failures, with failed instances torn down before the error is surfaced
 - aborting in-flight async mounts during teardown
 
-That is the main lifecycle boundary for the whole runtime.
+Each mount receives:
+
+- `signal`
+- `logger`
 
 ### Signals
 
-The signal layer in [src/core/signals.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/signals.ts) is used only for small shared state:
+The signal layer in [`src/core/signals.ts`](./src/core/signals.ts) is only used for small shared runtime state:
 
 - `userActivitySignal`
 - `screensaverActiveSignal`
 
-It is intentionally minimal. There is no broader reactive application model on top of it.
-Current activity inputs are mouse move, wheel, keydown, pointer down, and visible-tab returns.
+There is no broader reactive application model on top of it.
 
 ### Scheduler
 
-Animated features use [src/core/scheduler.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/scheduler.ts).
+Animated features use [`src/core/scheduler.ts`](./src/core/scheduler.ts).
 
 Contract:
 
@@ -68,14 +70,15 @@ Contract:
 
 The scheduler isolates failing tasks and keeps healthy tasks running.
 
-### Container
+### Logging
 
-The container in [src/core/container.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/container.ts) exists for shared services or tokens.
+Logging lives in [`src/core/logger.ts`](./src/core/logger.ts).
 
-Current reality:
+Rules:
 
-- feature-to-feature injection is blocked
-- current shipped features do not depend on injected services yet
+- startup owns the base logger
+- mount context passes a feature-scoped child logger
+- failures should not be silently swallowed if they matter for debugging
 
 ## Partial Model
 
@@ -90,46 +93,33 @@ Asset path rule:
 - build-time includes rebase asset refs into the including file
 - runtime loads rebase asset refs against the fetched partial URL before insertion
 
-This keeps the same authored partial working on:
+## Contract Manifest
 
-- a local web server
-- a custom domain
-- a GitHub Pages project subpath
+<!-- CONTRACT:ARCH:START -->
+### Source Of Truth
+- Authored contract: [`src/app/contract.ts`](./src/app/contract.ts)
+- Runtime registration: [`src/app/runtime.ts`](./src/app/runtime.ts)
+- Doc sync command: `npm run sync:contracts`
 
-Current rebased attributes:
+### Routes
+- `index.html`: page id `index`; nav id `index`; required hooks `none`; features `slideshow`, `floating-images`, `screensaver`
+- `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; required hooks `[data-slideplayer-stage]`, `[data-slideplayer-bullets]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; features `slideplayer`, `screensaver`
+- `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; required hooks `none`; features `floating-images`, `screensaver`
 
-- `src`
-- `poster`
-- `data-src`
-- stylesheet `href`
+### Features
+- `slideshow`: root `data-feature="slideshow"`; internals `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
+- `slideplayer`: root `data-feature="slideplayer"`; internals `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; singleton note: One slideplayer per page is the intended authored pattern.
+- `floating-images`: root `data-feature="floating-images"`; internals `[data-floating-item]`
+- `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-partial]`
 
-Async mount contract:
+### Partials
+- `resources/features/screensaver/index.html`: host hook `[data-screensaver-partial]`; features `floating-images`; required hooks `[data-floating-item]`, `class="screensaver-floating"`
 
-- feature `mount(...)` may return a promise
-- the registry passes an abort signal into mount context
-- teardown aborts that signal before destroy so long-running setup can stop promptly
-
-## DOM Contract Surface
-
-Feature roots:
-
-- `data-feature="slideshow"`
-- `data-feature="slideplayer"`
-- `data-feature="floating-images"`
-- `data-feature="screensaver"`
-
-Feature internals:
-
-- slideshow: `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
-- slideplayer: `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`
-- floating images: `[data-floating-item]`
-- screensaver: `[data-screensaver]`, `[data-screensaver-partial]`
-
-Page and authored-markup hooks:
-
-- `html[data-mode]`
-- `body[data-page]`
-- `[data-nav-link]`
+### Shared Rules
+- Activity reset inputs: `mousemove`, `wheel`, `keydown`, `pointerdown`, `visibilitychange`
+- Rebased partial asset attributes: `src`, `poster`, `data-src`
+- Page hooks: `html[data-mode]`, `body[data-page]`, `[data-nav-link]`
+<!-- CONTRACT:ARCH:END -->
 
 ## Feature Notes
 
@@ -140,13 +130,9 @@ The screensaver:
 - listens to `userActivitySignal`
 - toggles `screensaverActiveSignal`
 - fetches and injects its partial on demand
-- logs a warning if the partial fails to load
+- aborts in-flight partial loads when activity resumes
 
 The screensaver does not directly instantiate child features. It relies on the registry to see injected `data-feature` markup.
-
-### Slideshow
-
-`SlideshowFeature` is the simpler rotator. It uses `[data-slide]` items and optional prev/next controls.
 
 ### SlidePlayer
 
@@ -167,18 +153,8 @@ It:
 - pauses on screensaver activity unless the instance lives inside the screensaver
 - restores temporary inline styles during teardown
 
-## Logging
-
-Logging lives in [src/core/logger.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/logger.ts).
-
-Rules:
-
-- runtime code logs through `createLogger(...)`
-- sink attachment happens at startup
-- failures should not be silently swallowed if they matter for debugging
-
 ## Non-Goals
 
 - restoring the old router or PJAX shell
 - broadening feature activation beyond `data-feature="..."`
-- adding more architecture before a concrete need appears
+- adding framework-shaped abstractions before a concrete product need appears

@@ -10,9 +10,6 @@ export interface SlideshowFeatureOptions {
 }
 
 export class SlideshowFeature implements Feature {
-  readonly name = "slideshow";
-  static selector = "slideshow";
-
   private options: Required<SlideshowFeatureOptions>;
   private root: HTMLElement | null = null;
   private slides: HTMLElement[] = [];

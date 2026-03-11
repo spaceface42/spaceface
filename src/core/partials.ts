@@ -1,6 +1,8 @@
+import { APP_CONTRACT } from "../app/contract.js";
+
 const partialCache = new Map<string, string>();
 const MAX_PARTIAL_CACHE_SIZE = 10;
-const ASSET_ATTR_PATTERN = /\b(?:src|poster|data-src)\s*=\s*(["'])([^"']+)\1/gi;
+const ASSET_ATTR_PATTERN = createAssetAttrPattern(APP_CONTRACT.partialAssetAttributes);
 const STYLESHEET_HREF_PATTERN = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=)(["'])([^"']+)\2/gi;
 
 export interface LoadPartialOptions {
@@ -69,4 +71,13 @@ function rebaseRelativeUrl(value: string, baseUrl: string): string {
 
 function isExternalOrSpecialUrl(value: string): boolean {
   return value.startsWith("/") || /^(?:[a-z]+:|\/\/|#|data:)/i.test(value);
+}
+
+function createAssetAttrPattern(attributeNames: string[]): RegExp {
+  const escapedNames = attributeNames.map(escapeRegExp).join("|");
+  return new RegExp(`\\b(?:${escapedNames})\\s*=\\s*(["'])([^"']+)\\1`, "gi");
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

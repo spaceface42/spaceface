@@ -1,8 +1,10 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { loadAppContract } from "./lib/load-app-contract.mjs";
 
 const root = process.cwd();
 const docsSrcDir = path.resolve(root, "docs.src");
+const appContract = await loadAppContract();
 
 const failures = [];
 const htmlFiles = await collectHtmlFiles(docsSrcDir);
@@ -36,7 +38,7 @@ console.log(`[partial-paths] OK (${htmlFiles.length} html files checked)`);
 function extractAssetRefs(html) {
   const refs = [];
 
-  const attrPattern = /\b(?:src|poster|data-src)\s*=\s*["']([^"']+)["']/gi;
+  const attrPattern = createAssetAttrPattern(appContract.partialAssetAttributes);
   let match;
   while ((match = attrPattern.exec(html)) !== null) {
     refs.push(match[1].trim());
@@ -89,4 +91,13 @@ async function exists(filePath) {
 
 function rel(filePath) {
   return path.relative(root, filePath);
+}
+
+function createAssetAttrPattern(attributeNames) {
+  const escapedNames = attributeNames.map(escapeRegExp).join("|");
+  return new RegExp(`\\b(?:${escapedNames})\\s*=\\s*["']([^"']+)["']`, "gi");
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

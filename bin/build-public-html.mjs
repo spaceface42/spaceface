@@ -1,9 +1,11 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { loadAppContract } from "./lib/load-app-contract.mjs";
 
 const inputDir = path.resolve(process.cwd(), process.env.DOCS_SRC_DIR ?? process.env.PUBLIC_IN_DIR ?? "./docs.src");
 const outputDir = path.resolve(process.cwd(), process.env.DOCS_OUT_DIR ?? process.env.PUBLIC_OUT_DIR ?? "./docs");
-const ASSET_ATTR_PATTERN = /\b(?:src|poster|data-src)\s*=\s*(["'])([^"']+)\1/gi;
+const appContract = await loadAppContract();
+const ASSET_ATTR_PATTERN = createAssetAttrPattern(appContract.partialAssetAttributes);
 const STYLESHEET_HREF_PATTERN = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=)(["'])([^"']+)\2/gi;
 
 await fs.rm(outputDir, { recursive: true, force: true });
@@ -124,4 +126,13 @@ function rebaseRelativePath(value, fromDir, toDir) {
 
 function isExternalOrSpecialRef(value) {
   return value.startsWith("/") || /^(?:[a-z]+:|\/\/|#|data:)/i.test(value);
+}
+
+function createAssetAttrPattern(attributeNames) {
+  const escapedNames = attributeNames.map(escapeRegExp).join("|");
+  return new RegExp(`\\b(?:${escapedNames})\\s*=\\s*(["'])([^"']+)\\1`, "gi");
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

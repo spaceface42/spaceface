@@ -1,57 +1,66 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
+import { loadAppContract } from "./lib/load-app-contract.mjs";
 
 const root = process.cwd();
-const files = {
-  index: resolve(root, "docs/index.html"),
-  floatingImages: resolve(root, "docs/floatingimages.html"),
-  screensaverPartial: resolve(root, "docs/resources/features/screensaver/index.html"),
-  slideplayer: resolve(root, "docs/slideplayer.html"),
-  bundle: resolve(root, "docs/dist/main.js"),
-};
-
+const appContract = await loadAppContract();
+const bundlePath = resolve(root, appContract.outputDir, "dist/main.js");
+const routeFiles = new Map(appContract.routes.map((route) => [route.id, resolve(root, appContract.outputDir, route.file)]));
+const partialFiles = new Map(appContract.partials.map((partial) => [partial.id, resolve(root, appContract.outputDir, partial.file)]));
 const failures = [];
 
-for (const [name, filePath] of Object.entries(files)) {
+for (const [routeId, filePath] of routeFiles) {
   if (!existsSync(filePath)) {
-    failures.push(`Missing required file: ${name} -> ${filePath}`);
+    failures.push(`Missing required route: ${routeId} -> ${filePath}`);
   }
 }
 
+for (const [partialId, filePath] of partialFiles) {
+  if (!existsSync(filePath)) {
+    failures.push(`Missing required partial: ${partialId} -> ${filePath}`);
+  }
+}
+
+if (!existsSync(bundlePath)) {
+  failures.push(`Missing required bundle: ${bundlePath}`);
+}
+
 if (failures.length === 0) {
-  const indexHtml = readFileSync(files.index, "utf8");
-  const floatingImagesHtml = readFileSync(files.floatingImages, "utf8");
-  const partialHtml = readFileSync(files.screensaverPartial, "utf8");
-  const slideplayerHtml = readFileSync(files.slideplayer, "utf8");
-  const bundle = readFileSync(files.bundle, "utf8");
-  const bundleSize = statSync(files.bundle).size;
+  const bundle = readFileSync(bundlePath, "utf8");
+  const bundleSize = statSync(bundlePath).size;
+  const navRoutes = appContract.routes.filter((route) => route.navLabel);
 
-  assertContains(indexHtml, 'data-feature="slideshow"', "index must mount slideshow via data-feature");
-  assertContains(indexHtml, 'data-feature="screensaver"', "index must mount screensaver via data-feature");
-  assertContains(indexHtml, 'data-feature="floating-images"', "index must mount floating-images via data-feature");
-  assertContainsEither(indexHtml, ['src="/dist/main.js"', 'src="./dist/main.js"'], "index must load the vNext bundle");
-  assertContains(indexHtml, "spaceface demo", "index should preserve the legacy demo title");
+  for (const route of appContract.routes) {
+    const html = readFileSync(routeFiles.get(route.id), "utf8");
+    assertContains(html, `data-page="${route.page}"`, `${route.file} must declare body[data-page="${route.page}"]`);
+    for (const selector of route.featureSelectors) {
+      assertContains(html, `data-feature="${selector}"`, `${route.file} must mount ${selector} via data-feature`);
+    }
+    for (const hook of route.requiredHooks ?? []) {
+      assertContains(html, stripHookBrackets(hook), `${route.file} must expose ${hook}`);
+    }
+    for (const navRoute of navRoutes) {
+      assertContains(html, `href="./${navRoute.file}"`, `${route.file} must link to ${navRoute.file} in the primary nav`);
+      assertContains(html, `data-nav-link="${navRoute.id}"`, `${route.file} must preserve data-nav-link="${navRoute.id}"`);
+    }
+  }
 
-  assertContains(floatingImagesHtml, 'data-feature="floating-images"', "floatingimages page must mount floating-images via data-feature");
-  assertContains(floatingImagesHtml, 'data-feature="screensaver"', "floatingimages page must mount screensaver via data-feature");
-  assertContains(slideplayerHtml, 'data-feature="slideplayer"', "slideplayer page must mount slideplayer via data-feature");
-  assertContains(slideplayerHtml, 'data-slideplayer-stage', "slideplayer page must expose slideplayer stage markup");
-  assertContains(slideplayerHtml, 'data-slideplayer-bullets', "slideplayer page must expose slideplayer bullet markup");
-  assertContains(slideplayerHtml, 'data-slideplayer-prev', "slideplayer page must expose slideplayer prev control");
-  assertContains(slideplayerHtml, 'data-slideplayer-next', "slideplayer page must expose slideplayer next control");
-  assertContains(slideplayerHtml, 'data-slideplayer-slide', "slideplayer page must expose slideplayer slide items");
-
-  assertContains(partialHtml, 'data-feature="floating-images"', "screensaver partial must mount floating-images via data-feature");
-  assertContains(partialHtml, "data-floating-item", "screensaver partial must define floating items");
-  assertContains(partialHtml, 'class="screensaver-floating"', "screensaver partial must use the current screensaver floating markup");
+  for (const partial of appContract.partials) {
+    const html = readFileSync(partialFiles.get(partial.id), "utf8");
+    for (const selector of partial.featureSelectors) {
+      assertContains(html, `data-feature="${selector}"`, `${partial.file} must mount ${selector} via data-feature`);
+    }
+    for (const hook of partial.requiredHooks) {
+      assertContains(html, stripHookBrackets(hook), `${partial.file} must expose ${hook}`);
+    }
+  }
 
   assertContains(bundle, "FeatureRegistry", "bundle should include FeatureRegistry runtime");
-  assertContains(bundle, "resources/features/screensaver/index.html", "bundle should reference the screensaver partial");
+  assertContains(bundle, appContract.defaults.screensaverPartialUrl.replace(/^\.\//, ""), "bundle should reference the screensaver partial");
   assertContains(bundle, "src/app/main.ts", "bundle sourcemap path should reflect the app entrypoint");
-  assertContains(bundle, '"screensaver"', "bundle should include screensaver feature wiring");
-  assertContains(bundle, '"slideshow"', "bundle should include slideshow feature wiring");
-  assertContains(bundle, '"slideplayer"', "bundle should include slideplayer feature wiring");
-  assertContains(bundle, '"floating-images"', "bundle should include floating-images feature wiring");
+  for (const feature of appContract.features) {
+    assertContains(bundle, `"${feature.selector}"`, `bundle should include ${feature.selector} feature wiring`);
+  }
 
   if (bundleSize <= 0) {
     failures.push("bundle size must be > 0");
@@ -74,11 +83,9 @@ function assertContains(content, needle, message) {
   }
 }
 
-function assertContainsEither(content, needles, message) {
-  for (const needle of needles) {
-    if (content.includes(needle)) {
-      return;
-    }
+function stripHookBrackets(hook) {
+  if (hook.startsWith("[") && hook.endsWith("]")) {
+    return hook.slice(1, -1);
   }
-  failures.push(message);
+  return hook;
 }
