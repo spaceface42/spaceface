@@ -60,6 +60,9 @@ export class ScreensaverFeature implements Feature {
   }
 
   destroy(): void {
+    if (this.isShowing) {
+      this.logger.debug("screensaver stopped", { reason: "destroy" });
+    }
     this.isShowing = false;
     this.partialLoaded = false;
     this.showRequestId += 1;
@@ -114,6 +117,7 @@ export class ScreensaverFeature implements Feature {
     void this.target.offsetWidth;
     this.target.classList.add("is-active");
     this.target.setAttribute("aria-hidden", "false");
+    this.logger.debug("screensaver started", { partialLoaded: this.partialLoaded });
 
     // We don't have to manually instantiate FloatingImagesFeature.
     // By loading the partial containing `data-feature="floating-images"`, the
@@ -124,6 +128,7 @@ export class ScreensaverFeature implements Feature {
     if (!this.target || !this.isShowing) return;
     this.isShowing = false;
     screensaverActiveSignal.value = false;
+    this.logger.debug("screensaver stopped", { reason: "activity" });
 
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");

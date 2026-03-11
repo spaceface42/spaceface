@@ -133,6 +133,7 @@ export class FeatureRegistry {
         instance: definition.create(),
         mountToken: Symbol(id),
         mountController: new AbortController(),
+        mounted: false,
         logger: this.logger.child(definition.loggerScope ?? id),
       };
 
@@ -171,26 +172,32 @@ export class FeatureRegistry {
         logger: record.logger,
       });
       if (!isPromiseLike(mountResult)) {
+        this.markMounted(node, id, record);
         return;
       }
 
-      void mountResult.catch((error) => {
-        const activeRecord = this.activeInstances.get(node)?.get(id);
-        if (activeRecord?.mountToken !== record.mountToken) {
-          return;
-        }
+      void mountResult.then(
+        () => {
+          this.markMounted(node, id, record);
+        },
+        (error) => {
+          const activeRecord = this.activeInstances.get(node)?.get(id);
+          if (activeRecord?.mountToken !== record.mountToken) {
+            return;
+          }
 
-        if (record.mountController.signal.aborted && isAbortLikeError(error)) {
-          this.removeRecord(node, id, record);
-          return;
-        }
+          if (record.mountController.signal.aborted && isAbortLikeError(error)) {
+            this.removeRecord(node, id, record);
+            return;
+          }
 
-        record.logger.error("feature mount failed", { selector: id, error });
-        this.disposeRecord(node, id, record);
-        queueMicrotask(() => {
-          throw error;
-        });
-      });
+          record.logger.error("feature mount failed", { selector: id, error });
+          this.disposeRecord(node, id, record);
+          queueMicrotask(() => {
+            throw error;
+          });
+        }
+      );
     } catch (error) {
       this.disposeRecord(node, id, record);
       throw error;
@@ -198,12 +205,30 @@ export class FeatureRegistry {
   }
 
   private disposeRecord(node: HTMLElement, id: string, record: ActiveFeatureRecord): void {
+    if (record.mounted) {
+      record.logger.debug("feature stopped", { selector: id, node: describeNode(node) });
+      record.mounted = false;
+    }
     record.mountController.abort();
     try {
       record.instance.destroy?.();
     } finally {
       this.removeRecord(node, id, record);
     }
+  }
+
+  private markMounted(node: HTMLElement, id: string, record: ActiveFeatureRecord): void {
+    const activeRecord = this.activeInstances.get(node)?.get(id);
+    if (activeRecord?.mountToken !== record.mountToken) {
+      return;
+    }
+
+    if (record.mounted) {
+      return;
+    }
+
+    record.mounted = true;
+    record.logger.debug("feature started", { selector: id, node: describeNode(node) });
   }
 
   private removeRecord(node: HTMLElement, id: string, record: ActiveFeatureRecord): void {
@@ -227,6 +252,7 @@ interface ActiveFeatureRecord {
   instance: Feature;
   mountToken: symbol;
   mountController: AbortController;
+  mounted: boolean;
   logger: Logger;
 }
 
@@ -253,4 +279,14 @@ function isAbortLikeError(error: unknown): boolean {
     "name" in error &&
     (error as { name?: unknown }).name === "AbortError"
   );
+}
+
+function describeNode(node: HTMLElement): string {
+  const tag = node.tagName.toLowerCase();
+  const id = node.id ? `#${node.id}` : "";
+  const classNames =
+    typeof node.className === "string" && node.className.trim().length > 0
+      ? `.${node.className.trim().split(/\s+/).join(".")}`
+      : "";
+  return `${tag}${id}${classNames}`;
 }
