@@ -1,12 +1,12 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { APP_CONTRACT } from "../../src/app/contract-data.js";
+import { APP_CONTRACT } from "../../sites/spaceface/app/contract-data.js";
 
 const root = process.cwd();
-const docsSrcDir = path.resolve(root, "docs.src");
+const sourceDocsDir = path.resolve(root, APP_CONTRACT.sourceDir);
 
 const failures = [];
-const htmlFiles = await collectHtmlFiles(docsSrcDir);
+const htmlFiles = await collectHtmlFiles(sourceDocsDir);
 
 for (const filePath of htmlFiles) {
   const html = await fs.readFile(filePath, "utf8");
@@ -14,8 +14,8 @@ for (const filePath of htmlFiles) {
   for (const ref of refs) {
     if (isExternalOrSpecial(ref)) continue;
     const resolved = path.resolve(path.dirname(filePath), ref);
-    if (!resolved.startsWith(docsSrcDir)) {
-      failures.push(`${rel(filePath)} -> ${ref} escapes docs.src root`);
+    if (!resolved.startsWith(sourceDocsDir)) {
+      failures.push(`${rel(filePath)} -> ${ref} escapes source docs root`);
       continue;
     }
     if (!(await exists(resolved))) {

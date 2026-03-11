@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { APP_CONTRACT } from "../../src/app/contract-data.js";
+import { APP_CONTRACT } from "../../sites/spaceface/app/contract-data.js";
 
 const root = process.cwd();
 const bundlePath = resolve(root, APP_CONTRACT.outputDir, "bin/app.js");
@@ -56,7 +56,7 @@ if (failures.length === 0) {
 
   assertContains(bundle, "FeatureRegistry", "bundle should include FeatureRegistry runtime");
   assertContains(bundle, APP_CONTRACT.defaults.screensaverPartialUrl.replace(/^\.\//, ""), "bundle should reference the screensaver partial");
-  assertContains(bundle, "src/app/main.ts", "bundle sourcemap path should reflect the app entrypoint");
+  assertContains(bundle, "sites/spaceface/app/main.ts", "bundle sourcemap path should reflect the app entrypoint");
   for (const feature of APP_CONTRACT.features) {
     assertContains(bundle, `"${feature.selector}"`, `bundle should include ${feature.selector} feature wiring`);
   }

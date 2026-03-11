@@ -1,6 +1,6 @@
 export const APP_CONTRACT = {
   name: "Spaceface",
-  sourceDir: "docs.src",
+  sourceDir: "sites/spaceface/public",
   outputDir: "docs",
   defaults: {
     screensaverIdleMs: 6000,

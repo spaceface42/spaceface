@@ -3,7 +3,8 @@
 Active source of truth:
 
 - runtime code: `src/`
-- authored frontend: `docs.src/`
+- site app: `sites/spaceface/app/`
+- authored frontend: `sites/spaceface/public/`
 - generated output: `docs/`
 
 Current runtime shape:
@@ -12,7 +13,8 @@ Current runtime shape:
 - `src/core/utils/*`: generic utilities
 - `src/features/*`: feature implementations
 - `src/features/shared/*`: feature-domain shared state
-- `src/app/main.ts`: composition root
+- `src/spaceface.ts`: public runtime API
+- `sites/spaceface/app/main.ts`: composition root
 
 Build and verify:
 

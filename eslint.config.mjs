@@ -5,7 +5,7 @@ export default tseslint.config(
     js.configs.recommended,
     ...tseslint.configs.recommended,
     {
-        files: ['src/**/*.ts'],
+        files: ['src/**/*.ts', 'sites/**/*.ts'],
         rules: {
             'no-console': 'off',
             'prefer-const': 'warn',
@@ -17,6 +17,6 @@ export default tseslint.config(
         },
     },
     {
-        ignores: ['docs/**', 'docs.src/**', 'node_modules/**'],
+        ignores: ['docs/**', 'node_modules/**'],
     },
 );

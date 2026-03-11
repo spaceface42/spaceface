@@ -6,8 +6,8 @@ These instructions apply to the whole repository.
 
 ## Working Rules
 
-- Use `docs.src/` as source of truth for HTML/CSS.
-- Treat `docs.src/` as the source-of-truth authored HTML tree.
+- Use `sites/spaceface/public/` as source of truth for HTML/CSS.
+- Treat `sites/spaceface/public/` as the source-of-truth authored HTML tree.
 - Build output in `docs/` is generated; do not treat it as authored source.
 
 ## Pre-Commit Documentation Sync (Required)
@@ -29,13 +29,13 @@ then update documentation in the same commit:
 
 ## Feature/CSS Organization
 
-- Keep feature-specific CSS in `docs.src/spacesuit/` when feature-specific styles are added.
-- Keep shared layout/base styles in `docs.src/spacesuit/` when shared styles are added.
+- Keep feature-specific CSS in `sites/spaceface/public/resources/spacesuit/` when feature-specific styles are added.
+- Keep shared layout/base styles in `sites/spaceface/public/resources/spacesuit/` when shared styles are added.
 
 ## Markup/CSS/Script Hygiene
 
 - Avoid inline `<style>` and inline `<script>` in partials unless there is a documented technical reason.
-- Prefer centralized styles and runtime code in source files under `docs.src/` and `src/`.
+- Prefer centralized styles and runtime code in source files under `sites/spaceface/public/` and `src/`.
 
 ## Attribute Registry Rule
 
@@ -43,7 +43,7 @@ then update documentation in the same commit:
 
 ## Route Rename Rule
 
-- If route files, route names, or primary links are renamed, update `bin/smoke-check.mjs` in the same commit.
+- If route files, route names, or primary links are renamed, update `bin/checks/smoke-check.mjs` in the same commit.
 
 ## Lifecycle Rule
 

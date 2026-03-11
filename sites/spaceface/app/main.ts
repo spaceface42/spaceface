@@ -1,7 +1,11 @@
-// src/app/main.ts
-import { FeatureRegistry } from "../core/feature.js";
-import { attachConsoleLogSink, createLogger, type LogLevel } from "../core/logger.js";
-import { initActivityTracking } from "../features/shared/activity.js";
+// sites/spaceface/app/main.ts
+import {
+  FeatureRegistry,
+  attachConsoleLogSink,
+  createLogger,
+  initActivityTracking,
+  type LogLevel,
+} from "../../../src/spaceface.js";
 import { APP_CONTRACT, getDefaultLogLevel, getDocumentMode } from "./contract.js";
 import { createRuntimeFeatureDefinitions } from "./runtime.js";
 

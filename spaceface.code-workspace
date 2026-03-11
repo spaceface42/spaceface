@@ -1,15 +1,16 @@
 {
     "folders": [
         {
+            "name": "spaceface",
             "path": ".",
         },
         {
-            "name": "docs",
+            "name": "docs-generated",
             "path": "docs",
         },
         {
-            "name": "docs.src",
-            "path": "docs.src",
+            "name": "site",
+            "path": "sites/spaceface",
         },
         {
             "name": "src",

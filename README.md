@@ -1,6 +1,6 @@
 # Spaceface
 
-Spaceface is a small TypeScript runtime for static pages authored in `docs.src/` and generated into `docs/`.
+Spaceface is a small TypeScript runtime for static pages authored in `sites/spaceface/public/` and generated into `docs/`.
 
 The system stays deliberately narrow:
 
@@ -11,18 +11,21 @@ The system stays deliberately narrow:
 
 ## Source Layout
 
-- Authored pages and partials: `docs.src/`
+- Site source: `sites/spaceface/`
+- Authored pages and partials: `sites/spaceface/public/`
 - Generated site: `docs/`
-- Shared contract data: `src/app/contract-data.js`
-- TypeScript contract helpers: `src/app/contract.ts`
-- Runtime registration: `src/app/runtime.ts`
-- Runtime entrypoint: `src/app/main.ts`
+- Public runtime API: `src/spaceface.ts`
+- Shared contract data: `sites/spaceface/app/contract-data.js`
+- TypeScript contract helpers: `sites/spaceface/app/contract.ts`
+- Runtime registration: `sites/spaceface/app/runtime.ts`
+- Runtime entrypoint: `sites/spaceface/app/main.ts`
 - Core runtime primitives: `src/core/`
 - DOM features: `src/features/`
 
 ## Runtime Model
 
 - `FeatureRegistry` mounts and destroys features from `data-feature="..."`
+- `sites/spaceface/app/` imports runtime code through `src/spaceface.ts` instead of deep `src/` paths
 - Feature mounts may be async and receive one mount context with `signal` and `logger`
 - Failed async mounts are torn down before the error is surfaced
 - `userActivitySignal` tracks last interaction time

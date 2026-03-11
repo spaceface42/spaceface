@@ -1,4 +1,4 @@
-import { APP_CONTRACT } from "../app/contract.js";
+import { APP_CONTRACT } from "../../sites/spaceface/app/contract.js";
 
 const partialCache = new Map<string, string>();
 const MAX_PARTIAL_CACHE_SIZE = 10;

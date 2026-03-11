@@ -1,4 +1,4 @@
-import type { LogLevel } from "../core/logger.js";
+import type { LogLevel } from "../../../src/spaceface.js";
 import { APP_CONTRACT } from "./contract-data.js";
 
 export { APP_CONTRACT };

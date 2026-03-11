@@ -7,10 +7,11 @@ This document describes the current runtime, not the older router-era experiment
 Spaceface is:
 
 - a static-page runtime
-- authored in `docs.src/`
+- authored in `sites/spaceface/public/`
 - generated into `docs/`
 - activated from `data-feature="..."`
-- driven by shared contract data in `src/app/contract-data.js`
+- driven by shared contract data in `sites/spaceface/app/contract-data.js`
+- separated into a site app layer in `sites/spaceface/` and runtime internals in `src/`
 
 Spaceface is not:
 
@@ -21,7 +22,7 @@ Spaceface is not:
 
 ## Boot Flow
 
-The composition root is [`src/app/main.ts`](./src/app/main.ts).
+The composition root is [`sites/spaceface/app/main.ts`](./sites/spaceface/app/main.ts).
 
 Startup does four things:
 
@@ -29,6 +30,8 @@ Startup does four things:
 2. apply current nav state
 3. start shared activity tracking
 4. register and start contract-defined features
+
+`sites/spaceface/app/` reaches runtime code through the public API in [`src/spaceface.ts`](./src/spaceface.ts), not by importing deep internal paths.
 
 ## Core Runtime Pieces
 
@@ -97,9 +100,9 @@ Asset path rule:
 
 <!-- CONTRACT:ARCH:START -->
 ### Source Of Truth
-- Shared contract data: [`src/app/contract-data.js`](./src/app/contract-data.js)
-- TypeScript helpers: [`src/app/contract.ts`](./src/app/contract.ts)
-- Runtime registration: [`src/app/runtime.ts`](./src/app/runtime.ts)
+- Shared contract data: [`sites/spaceface/app/contract-data.js`](./sites/spaceface/app/contract-data.js)
+- TypeScript helpers: [`sites/spaceface/app/contract.ts`](./sites/spaceface/app/contract.ts)
+- Runtime registration: [`sites/spaceface/app/runtime.ts`](./sites/spaceface/app/runtime.ts)
 - Doc sync command: `npm run sync:contracts`
 
 ### Routes

@@ -4,7 +4,8 @@
 
 ### Baseline Cleanup
 
-- Rebuilt the runtime around a contract-first v4 shape centered on `src/app/contract-data.js`, `src/app/contract.ts`, and `src/app/runtime.ts`.
+- Rebuilt the runtime around a contract-first v4 shape centered on `sites/spaceface/app/contract-data.js`, `sites/spaceface/app/contract.ts`, and `sites/spaceface/app/runtime.ts`.
+- Added `src/spaceface.ts` as the public runtime API so `sites/spaceface/app/` no longer imports deep `src/` internals directly.
 - Removed the unused dependency injection container from the shipped runtime.
 - Changed feature registration from class statics to explicit `FeatureDefinition` entries.
 - Added feature-scoped loggers to mount context alongside abort signals.

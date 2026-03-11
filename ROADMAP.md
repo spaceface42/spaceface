@@ -4,7 +4,7 @@ This roadmap tracks only the current static-page runtime.
 
 ## Current Priorities
 
-1. Keep the `docs.src/` to `docs/` pipeline stable and explicit.
+1. Keep the `sites/spaceface/public/` to `docs/` pipeline stable and explicit.
 2. Keep DOM feature contracts small and documented.
 3. Add tests only where lifecycle, timing, or path rebasing logic can realistically regress.
 

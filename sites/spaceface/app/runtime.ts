@@ -1,8 +1,10 @@
-import type { FeatureDefinition } from "../core/feature.js";
-import { FloatingImagesFeature } from "../features/floating-images/FloatingImagesFeature.js";
-import { ScreensaverFeature } from "../features/screensaver/ScreensaverFeature.js";
-import { SlidePlayerFeature } from "../features/slideplayer/SlidePlayerFeature.js";
-import { SlideshowFeature } from "../features/slideshow/SlideshowFeature.js";
+import {
+  type FeatureDefinition,
+  FloatingImagesFeature,
+  ScreensaverFeature,
+  SlidePlayerFeature,
+  SlideshowFeature,
+} from "../../../src/spaceface.js";
 import { APP_CONTRACT, getFeatureContract } from "./contract.js";
 
 export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
