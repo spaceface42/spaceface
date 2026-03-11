@@ -1,11 +1,10 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { loadAppContract } from "./lib/load-app-contract.mjs";
+import { APP_CONTRACT } from "../src/app/contract-data.js";
 
 const inputDir = path.resolve(process.cwd(), process.env.DOCS_SRC_DIR ?? process.env.PUBLIC_IN_DIR ?? "./docs.src");
 const outputDir = path.resolve(process.cwd(), process.env.DOCS_OUT_DIR ?? process.env.PUBLIC_OUT_DIR ?? "./docs");
-const appContract = await loadAppContract();
-const ASSET_ATTR_PATTERN = createAssetAttrPattern(appContract.partialAssetAttributes);
+const ASSET_ATTR_PATTERN = createAssetAttrPattern(APP_CONTRACT.partialAssetAttributes);
 const STYLESHEET_HREF_PATTERN = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=)(["'])([^"']+)\2/gi;
 
 await fs.rm(outputDir, { recursive: true, force: true });

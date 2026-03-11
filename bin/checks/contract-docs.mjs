@@ -1,23 +1,22 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { loadAppContract } from "./lib/load-app-contract.mjs";
+import { APP_CONTRACT } from "../../src/app/contract-data.js";
 
 const root = process.cwd();
 const writeMode = process.argv.includes("--write");
-const appContract = await loadAppContract();
 
 const files = [
   {
     path: resolve(root, "README.md"),
     start: "<!-- CONTRACT:README:START -->",
     end: "<!-- CONTRACT:README:END -->",
-    content: renderReadmeContract(appContract),
+    content: renderReadmeContract(APP_CONTRACT),
   },
   {
     path: resolve(root, "architecture.md"),
     start: "<!-- CONTRACT:ARCH:START -->",
     end: "<!-- CONTRACT:ARCH:END -->",
-    content: renderArchitectureContract(appContract),
+    content: renderArchitectureContract(APP_CONTRACT),
   },
 ];
 
@@ -109,7 +108,8 @@ function renderArchitectureContract(contract) {
 
   return [
     "### Source Of Truth",
-    "- Authored contract: [`src/app/contract.ts`](./src/app/contract.ts)",
+    "- Shared contract data: [`src/app/contract-data.js`](./src/app/contract-data.js)",
+    "- TypeScript helpers: [`src/app/contract.ts`](./src/app/contract.ts)",
     "- Runtime registration: [`src/app/runtime.ts`](./src/app/runtime.ts)",
     "- Doc sync command: `npm run sync:contracts`",
     "",

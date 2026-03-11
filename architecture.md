@@ -10,7 +10,7 @@ Spaceface is:
 - authored in `docs.src/`
 - generated into `docs/`
 - activated from `data-feature="..."`
-- driven by one app contract in `src/app/contract.ts`
+- driven by shared contract data in `src/app/contract-data.js`
 
 Spaceface is not:
 
@@ -97,7 +97,8 @@ Asset path rule:
 
 <!-- CONTRACT:ARCH:START -->
 ### Source Of Truth
-- Authored contract: [`src/app/contract.ts`](./src/app/contract.ts)
+- Shared contract data: [`src/app/contract-data.js`](./src/app/contract-data.js)
+- TypeScript helpers: [`src/app/contract.ts`](./src/app/contract.ts)
 - Runtime registration: [`src/app/runtime.ts`](./src/app/runtime.ts)
 - Doc sync command: `npm run sync:contracts`
 

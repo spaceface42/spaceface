@@ -1,10 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { loadAppContract } from "./lib/load-app-contract.mjs";
+import { APP_CONTRACT } from "../../src/app/contract-data.js";
 
 const root = process.cwd();
 const docsSrcDir = path.resolve(root, "docs.src");
-const appContract = await loadAppContract();
 
 const failures = [];
 const htmlFiles = await collectHtmlFiles(docsSrcDir);
@@ -38,7 +37,7 @@ console.log(`[partial-paths] OK (${htmlFiles.length} html files checked)`);
 function extractAssetRefs(html) {
   const refs = [];
 
-  const attrPattern = createAssetAttrPattern(appContract.partialAssetAttributes);
+  const attrPattern = createAssetAttrPattern(APP_CONTRACT.partialAssetAttributes);
   let match;
   while ((match = attrPattern.exec(html)) !== null) {
     refs.push(match[1].trim());

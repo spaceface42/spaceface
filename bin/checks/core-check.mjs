@@ -1,43 +1,22 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { pathToFileURL } from "node:url";
-import { build } from "esbuild";
+import { runBundledCheck } from "./lib/run-bundled-check.mjs";
 
-const tempDir = mkdtempSync(join(tmpdir(), "spaceface-vnext-core-"));
-const bundlePath = join(tempDir, "vnext-core-harness.mjs");
-
-try {
-  await build({
-    stdin: {
-      contents: `
-        export { createSignal, createEffect } from "./src/core/signals.ts";
-        export { FrameScheduler } from "./src/core/scheduler.ts";
-      `,
-      loader: "ts",
-      resolveDir: process.cwd(),
-      sourcefile: "vnext-core-harness.ts",
-    },
-    bundle: true,
-    platform: "node",
-    format: "esm",
-    target: "node20",
-    outfile: bundlePath,
-    logLevel: "silent",
-  });
-
-  const runtime = await import(pathToFileURL(bundlePath).href);
+await runBundledCheck(
+  {
+    label: "core",
+    tempPrefix: "spaceface-core-check-",
+    bundleFile: "core-check-harness.mjs",
+    sourcefile: "core-check-harness.ts",
+    contents: `
+      export { createSignal, createEffect } from "./src/core/signals.ts";
+      export { FrameScheduler } from "./src/core/scheduler.ts";
+    `,
+  },
+  (runtime) => {
   testSignalRecovery(runtime.createSignal, runtime.createEffect);
   testSchedulerIsolation(runtime.FrameScheduler);
-  console.log("[vnext core] OK");
-} catch (error) {
-  console.error("[vnext core] FAILED");
-  console.error(error);
-  process.exitCode = 1;
-} finally {
-  rmSync(tempDir, { recursive: true, force: true });
-}
+  }
+);
 
 function testSignalRecovery(createSignal, createEffect) {
   const signalA = createSignal(0);

@@ -171,7 +171,7 @@ export class FloatingImagesFeature implements Feature {
     }
   }
 
-  // --- vNext Unified Loop: Phase 1: Update (Read DOM/Math only) ---
+  // Update phase: math and reads only.
   private readonly updateLogic = (dt: number): void => {
     if (!this.container) return;
     const bounds = this.bounds;
@@ -217,7 +217,7 @@ export class FloatingImagesFeature implements Feature {
     }
   };
 
-  // --- vNext Unified Loop: Phase 2: Render (Write DOM only) ---
+  // Render phase: DOM writes only.
   private readonly renderDOM = (): void => {
     for (const item of this.items) {
       this.renderItem(item);

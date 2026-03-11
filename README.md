@@ -13,7 +13,8 @@ The system stays deliberately narrow:
 
 - Authored pages and partials: `docs.src/`
 - Generated site: `docs/`
-- App contract: `src/app/contract.ts`
+- Shared contract data: `src/app/contract-data.js`
+- TypeScript contract helpers: `src/app/contract.ts`
 - Runtime registration: `src/app/runtime.ts`
 - Runtime entrypoint: `src/app/main.ts`
 - Core runtime primitives: `src/core/`

@@ -1,12 +1,11 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { loadAppContract } from "./lib/load-app-contract.mjs";
+import { APP_CONTRACT } from "../../src/app/contract-data.js";
 
 const root = process.cwd();
-const appContract = await loadAppContract();
-const bundlePath = resolve(root, appContract.outputDir, "dist/main.js");
-const routeFiles = new Map(appContract.routes.map((route) => [route.id, resolve(root, appContract.outputDir, route.file)]));
-const partialFiles = new Map(appContract.partials.map((partial) => [partial.id, resolve(root, appContract.outputDir, partial.file)]));
+const bundlePath = resolve(root, APP_CONTRACT.outputDir, "dist/main.js");
+const routeFiles = new Map(APP_CONTRACT.routes.map((route) => [route.id, resolve(root, APP_CONTRACT.outputDir, route.file)]));
+const partialFiles = new Map(APP_CONTRACT.partials.map((partial) => [partial.id, resolve(root, APP_CONTRACT.outputDir, partial.file)]));
 const failures = [];
 
 for (const [routeId, filePath] of routeFiles) {
@@ -28,9 +27,9 @@ if (!existsSync(bundlePath)) {
 if (failures.length === 0) {
   const bundle = readFileSync(bundlePath, "utf8");
   const bundleSize = statSync(bundlePath).size;
-  const navRoutes = appContract.routes.filter((route) => route.navLabel);
+  const navRoutes = APP_CONTRACT.routes.filter((route) => route.navLabel);
 
-  for (const route of appContract.routes) {
+  for (const route of APP_CONTRACT.routes) {
     const html = readFileSync(routeFiles.get(route.id), "utf8");
     assertContains(html, `data-page="${route.page}"`, `${route.file} must declare body[data-page="${route.page}"]`);
     for (const selector of route.featureSelectors) {
@@ -45,7 +44,7 @@ if (failures.length === 0) {
     }
   }
 
-  for (const partial of appContract.partials) {
+  for (const partial of APP_CONTRACT.partials) {
     const html = readFileSync(partialFiles.get(partial.id), "utf8");
     for (const selector of partial.featureSelectors) {
       assertContains(html, `data-feature="${selector}"`, `${partial.file} must mount ${selector} via data-feature`);
@@ -56,9 +55,9 @@ if (failures.length === 0) {
   }
 
   assertContains(bundle, "FeatureRegistry", "bundle should include FeatureRegistry runtime");
-  assertContains(bundle, appContract.defaults.screensaverPartialUrl.replace(/^\.\//, ""), "bundle should reference the screensaver partial");
+  assertContains(bundle, APP_CONTRACT.defaults.screensaverPartialUrl.replace(/^\.\//, ""), "bundle should reference the screensaver partial");
   assertContains(bundle, "src/app/main.ts", "bundle sourcemap path should reflect the app entrypoint");
-  for (const feature of appContract.features) {
+  for (const feature of APP_CONTRACT.features) {
     assertContains(bundle, `"${feature.selector}"`, `bundle should include ${feature.selector} feature wiring`);
   }
 

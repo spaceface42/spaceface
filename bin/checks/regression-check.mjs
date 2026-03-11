@@ -1,17 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { pathToFileURL } from "node:url";
-import { build } from "esbuild";
-
-const tempDir = mkdtempSync(join(tmpdir(), "spaceface-vnext-regression-"));
-const bundlePath = join(tempDir, "vnext-regression-harness.mjs");
+import { runBundledCheck } from "./lib/run-bundled-check.mjs";
 
 async function run() {
-try {
-  await build({
-    stdin: {
+  await runBundledCheck(
+    {
+      label: "regressions",
+      tempPrefix: "spaceface-regression-check-",
+      bundleFile: "regression-check-harness.mjs",
+      sourcefile: "regression-check-harness.ts",
       contents: `
         export { FeatureRegistry } from "./src/core/feature.ts";
         export { SlideshowFeature } from "./src/features/slideshow/SlideshowFeature.ts";
@@ -24,81 +20,64 @@ try {
         export { __setWaitForImagesReady } from "mock:images";
         export { __setLoadPartialHtml } from "mock:partials";
       `,
-      loader: "ts",
-      resolveDir: process.cwd(),
-      sourcefile: "vnext-regression-harness.ts",
+      plugins: [
+        {
+          name: "mock-images",
+          setup(buildApi) {
+            buildApi.onResolve({ filter: /^mock:images$/ }, () => ({ path: "mock:images", namespace: "mock-images" }));
+            buildApi.onResolve({ filter: /core\/utils\/images\.js$/ }, () => ({ path: "mock:images", namespace: "mock-images" }));
+            buildApi.onLoad({ filter: /.*/, namespace: "mock-images" }, () => ({
+              contents: `
+                let waitForImagesReadyImpl = async () => [];
+                export function __setWaitForImagesReady(fn) {
+                  waitForImagesReadyImpl = fn;
+                }
+                export async function waitForImagesReady(...args) {
+                  return waitForImagesReadyImpl(...args);
+                }
+              `,
+              loader: "js",
+            }));
+          },
+        },
+        {
+          name: "mock-partials",
+          setup(buildApi) {
+            buildApi.onResolve({ filter: /^mock:partials$/ }, () => ({ path: "mock:partials", namespace: "mock-partials" }));
+            buildApi.onResolve({ filter: /core\/partials\.js$/ }, () => ({ path: "mock:partials", namespace: "mock-partials" }));
+            buildApi.onLoad({ filter: /.*/, namespace: "mock-partials" }, () => ({
+              contents: `
+                let loadPartialHtmlImpl = async () => "";
+                export function __setLoadPartialHtml(fn) {
+                  loadPartialHtmlImpl = fn;
+                }
+                export async function loadPartialHtml(...args) {
+                  return loadPartialHtmlImpl(...args);
+                }
+              `,
+              loader: "js",
+            }));
+          },
+        },
+      ],
     },
-    bundle: true,
-    platform: "node",
-    format: "esm",
-    target: "node20",
-    outfile: bundlePath,
-    logLevel: "silent",
-    plugins: [
-      {
-        name: "mock-images",
-        setup(buildApi) {
-          buildApi.onResolve({ filter: /^mock:images$/ }, () => ({ path: "mock:images", namespace: "mock-images" }));
-          buildApi.onResolve({ filter: /core\/utils\/images\.js$/ }, () => ({ path: "mock:images", namespace: "mock-images" }));
-          buildApi.onLoad({ filter: /.*/, namespace: "mock-images" }, () => ({
-            contents: `
-              let waitForImagesReadyImpl = async () => [];
-              export function __setWaitForImagesReady(fn) {
-                waitForImagesReadyImpl = fn;
-              }
-              export async function waitForImagesReady(...args) {
-                return waitForImagesReadyImpl(...args);
-              }
-            `,
-            loader: "js",
-          }));
-        },
-      },
-      {
-        name: "mock-partials",
-        setup(buildApi) {
-          buildApi.onResolve({ filter: /^mock:partials$/ }, () => ({ path: "mock:partials", namespace: "mock-partials" }));
-          buildApi.onResolve({ filter: /core\/partials\.js$/ }, () => ({ path: "mock:partials", namespace: "mock-partials" }));
-          buildApi.onLoad({ filter: /.*/, namespace: "mock-partials" }, () => ({
-            contents: `
-              let loadPartialHtmlImpl = async () => "";
-              export function __setLoadPartialHtml(fn) {
-                loadPartialHtmlImpl = fn;
-              }
-              export async function loadPartialHtml(...args) {
-                return loadPartialHtmlImpl(...args);
-              }
-            `,
-            loader: "js",
-          }));
-        },
-      },
-    ],
-  });
-
-  const runtime = await import(pathToFileURL(bundlePath).href);
-  testFeatureRegistryAttributeToggling(runtime);
-  testFeatureRegistryMountContext(runtime);
-  await testFeatureRegistryAsyncMountFailure(runtime);
-  await testFeatureRegistryAsyncMountAbort(runtime);
-  testSlideshowScreensaverPause(runtime);
-  testSlidePlayerScreensaverPause(runtime);
-  testSlidePlayerKeyboardNavigation(runtime);
-  testSlidePlayerSwipeNavigation(runtime);
-  testSlidePlayerTouchSwipeNavigation(runtime);
-  await testActivityTracking(runtime);
-  await testScreensaverLoadFailure(runtime);
-  await testScreensaverLoadAbort(runtime);
-  await testFloatingImagesScreensaverPause(runtime);
-  await testFloatingImagesAsyncDestroy(runtime);
-  console.log("[vnext regressions] OK");
-} catch (error) {
-  console.error("[vnext regressions] FAILED");
-  console.error(error);
-  process.exitCode = 1;
-} finally {
-  rmSync(tempDir, { recursive: true, force: true });
-}
+    async (runtime) => {
+      testFeatureRegistryAttributeToggling(runtime);
+      testFeatureRegistryMountContext(runtime);
+      await testFeatureRegistryAsyncMountFailure(runtime);
+      await testFeatureRegistryAsyncMountAbort(runtime);
+      testSlideshowScreensaverPause(runtime);
+      testSlidePlayerScreensaverPause(runtime);
+      testSlidePlayerKeyboardNavigation(runtime);
+      testSlidePlayerSwipeNavigation(runtime);
+      testSlidePlayerTouchSwipeNavigation(runtime);
+      await testActivityTracking(runtime);
+      await testScreensaverLoadFailure(runtime);
+      await testScreensaverLoadAbort(runtime);
+      await testFloatingImagesScreensaverPause(runtime);
+      await testFloatingImagesAsyncDestroy(runtime);
+    }
+  );
 }
 
 function testFeatureRegistryAttributeToggling(runtime) {

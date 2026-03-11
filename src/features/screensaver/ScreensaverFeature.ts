@@ -7,7 +7,7 @@ import { screensaverActiveSignal } from "../shared/screensaverState.js";
 import { loadPartialHtml } from "../../core/partials.js";
 // We don't import or tightly couple to FloatingImagesFeature directly in the code logic.
 // Instead, we just write the HTML. The FeatureRegistry will automatically see it
-// and spawn a FloatingImagesFeature for us! This is the core magic of vNext.
+// and spawn a FloatingImagesFeature for us.
 
 export interface ScreensaverFeatureOptions {
   idleMs?: number;
@@ -115,9 +115,9 @@ export class ScreensaverFeature implements Feature {
     this.target.classList.add("is-active");
     this.target.setAttribute("aria-hidden", "false");
 
-    // vNext Magic: We don't have to manually new FloatingImagesFeature().
+    // We don't have to manually instantiate FloatingImagesFeature.
     // By loading the partial containing `data-feature="floating-images"`, the
-    // central MutationObserver completely handles instantiating those for us.
+    // central MutationObserver handles instantiating it.
   }
 
   private hideScreensaver(): void {
