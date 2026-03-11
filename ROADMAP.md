@@ -14,6 +14,7 @@ This roadmap tracks only the current static-page runtime.
 2. Extend partial asset rebasing to cover `srcset` when responsive images are introduced.
 3. Add targeted tests for `math-utils.ts` and autoplay timing behavior.
 4. Decide whether the contract manifest should eventually generate more than docs and smoke checks.
+5. Explore a screensaver-safe `terminal-saver` feature: terminal-style message playback with a typewriter effect, authored as a separate feature inside the screensaver partial rather than coupled into the screensaver runtime.
 
 ## Not Planned
 
