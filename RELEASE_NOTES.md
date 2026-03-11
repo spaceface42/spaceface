@@ -1,36 +1,17 @@
 # Release Notes
 
-## 2026-03-10
+## 2026-03-11
 
-### Version Bump (v3.0.0b)
+### Baseline Cleanup
 
-- Updated the system version label to `v3.0.0b`.
-- Updated package metadata to the semver-safe prerelease `3.0.0-b`.
-- Added keyboard arrow and horizontal swipe navigation to `SlidePlayerFeature`.
-
-## 2026-03-10
-
-### vNext Frontend Contract Alignment And SlidePlayer Port
-
-- **Authored Source Rename**: Consolidated authored frontend sources under `docs.src/`, with generated output continuing to build into `docs/`.
-- **Build/Serve Script Refresh**: Replaced obsolete router-era validation and server scripts with the current vNext `verify:docs`, `serve:docs`, and core contract checks.
-- **App Entrypoint Move**: Moved the composition root to `src/app/main.ts` and aligned build tooling to bundle that entrypoint.
-- **Markup Contract Cleanup**: Removed legacy bridge selectors from authored HTML/CSS and standardized vNext feature mounting on `data-feature="..."`.
-- **Floating Images Contract Update**: `FloatingImagesFeature` now uses its feature mount root as the container and item selection is standardized on `data-floating-item`.
-- **Page Feature Pause On Screensaver**: Page-level `FloatingImagesFeature` instances now pause while the screensaver is active, while screensaver-owned floating images continue running.
-- **Dedicated SlidePlayer Port**: Added `SlidePlayerFeature` with `data-feature="slideplayer"`, dedicated `data-slideplayer-*` controls, bullet navigation, autoplay, and screensaver-aware pause/resume.
-- **Regression Coverage Added**: Added `bin/vnext-regression-check.mjs` and wired it into `verify:docs` to cover `data-feature` attribute toggling, screensaver pause behavior, and interrupted async floating-images mounts.
-- **Logging Decision Finalized**: Kept the current typed sink dispatcher in `src/core/logger.ts` as the official logging approach, with future `LogBus` work deferred unless a real multi-sink need appears.
-- **Contract Documentation Refresh**: Updated README, architecture notes, smoke validation, and implementation notes to match the current vNext HTML/CSS/TypeScript contracts.
-
-## 2026-03-09
-
-### vNext Stability And Lifecycle Hardening
-
-- **Signal Dependency Cleanup**: Fixed `createEffect` subscription lifecycle in `src/core/signals.ts` so dependencies are removed on rerun/destroy, preventing stale reactive subscribers and memory growth.
-- **Feature Registry Reconciliation**: Upgraded `src/core/feature.ts` to reconcile `data-feature` attribute changes (not just node add/remove), so feature mount/unmount now correctly follows runtime attribute toggles.
-- **Duplicate Mount Prevention (First Screensaver Run Flicker)**: Reworked active-instance tracking to a per-node/per-feature-id map, eliminating duplicate feature mounts that caused first-run screensaver floating-item flicker.
-- **Selector Contract Alignment**: Standardized `ScreensaverFeature.selector` to `"screensaver"` to match the `data-feature="..."` registry contract.
-- **Runtime Logging Hygiene**: Removed direct `console.*` calls from feature runtime paths (`slideshow`, `screensaver`, `main`) and kept console output centralized through `src/core/logger.ts`.
-- **Logger Typecheck Fix**: Removed stale `./events.js` dependency from `src/core/logger.ts` and replaced it with a local typed sink dispatcher, restoring `npm run typecheck:docs` pass status on vNext.
-- **Startup Error Visibility**: Replaced silent startup catch in `src/app/main.ts` with rethrow-on-microtask behavior so boot failures are surfaced instead of swallowed.
+- Rewrote the project docs around the current static-page runtime instead of continuing the older vNext narrative.
+- Formalized the partial path rule: partial assets are authored relative to the partial file, then rebased when partial markup is included or injected.
+- Fixed the screensaver partial to use partial-relative asset paths.
+- Fixed `FloatingImagesFeature` cleanup so container inline `position` styles are restored on destroy.
+- Added warning-level logging when the screensaver partial fails to load instead of failing silently.
+- Prevented failed screensaver partial loads from activating the overlay or shared pause state.
+- Made feature mounting explicitly async-safe in the registry and added regression coverage for failed async mounts.
+- Added abort-signal support for async feature mounts so long-running mount work can cancel cleanly during teardown.
+- Added wheel and visible-tab activity handling to reduce false screensaver activations.
+- Added current-page nav highlighting and more robust pointer swipe capture handling.
+- Restored `npm run verify:docs` to a passing state by aligning validation with the runtime path model.

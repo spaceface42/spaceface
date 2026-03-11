@@ -1,5 +1,6 @@
 // src/features/screensaver/ScreensaverFeature.ts
 import type { Feature } from "../../core/feature.js";
+import { createLogger } from "../../core/logger.js";
 import { createEffect } from "../../core/signals.js";
 import { userActivitySignal } from "../shared/activity.js";
 import { screensaverActiveSignal } from "../shared/screensaverState.js";
@@ -7,6 +8,8 @@ import { loadPartialHtml } from "../../core/partials.js";
 // We don't import or tightly couple to FloatingImagesFeature directly in the code logic.
 // Instead, we just write the HTML. The FeatureRegistry will automatically see it
 // and spawn a FloatingImagesFeature for us! This is the core magic of vNext.
+
+const logger = createLogger("screensaver", "warn");
 
 export interface ScreensaverFeatureOptions {
   idleMs?: number;
@@ -26,6 +29,8 @@ export class ScreensaverFeature implements Feature {
 
   // For cleanup timings
   private hideCleanupTimer: number | null = null;
+  private showRequestId = 0;
+  private partialLoadController: AbortController | null = null;
 
   constructor(options: ScreensaverFeatureOptions = {}) {
     this.options = {
@@ -42,7 +47,9 @@ export class ScreensaverFeature implements Feature {
 
     // Start watching user activity via our shiny new Signal primitive
     this.cleanupEffect = createEffect(() => {
-      const lastActive = userActivitySignal.value;
+      void userActivitySignal.value;
+      const requestId = ++this.showRequestId;
+      this.cancelPendingPartialLoad();
       this.resetTimer();
 
       if (this.isShowing) {
@@ -50,7 +57,7 @@ export class ScreensaverFeature implements Feature {
       }
 
       this.timer = window.setTimeout(() => {
-        this.showScreensaver();
+        void this.showScreensaver(requestId);
       }, this.options.idleMs);
     });
   }
@@ -58,6 +65,8 @@ export class ScreensaverFeature implements Feature {
   destroy(): void {
     this.isShowing = false;
     this.partialLoaded = false;
+    this.showRequestId += 1;
+    this.cancelPendingPartialLoad();
     this.resetTimer();
     this.cleanupEffect?.();
     this.cleanupEffect = undefined;
@@ -86,21 +95,23 @@ export class ScreensaverFeature implements Feature {
     }
   }
 
-  private async showScreensaver(): Promise<void> {
+  private async showScreensaver(requestId: number): Promise<void> {
     if (!this.target) return;
-    this.isShowing = true;
-    screensaverActiveSignal.value = true;
+    if (requestId !== this.showRequestId) return;
 
     if (this.hideCleanupTimer !== null) {
       clearTimeout(this.hideCleanupTimer);
       this.hideCleanupTimer = null;
     }
 
-    await this.prepareScreensaverMarkup(this.target);
+    const ready = await this.prepareScreensaverMarkup(this.target, requestId);
+    if (!ready) return;
 
     // Check if we became active again during the async fetch
-    if (!this.isShowing || !this.target) return;
+    if (requestId !== this.showRequestId || !this.target) return;
 
+    this.isShowing = true;
+    screensaverActiveSignal.value = true;
     this.target.hidden = false;
     // We force a reflow before adding the active class so the fade-in CSS transitions trigger
     void this.target.offsetWidth;
@@ -137,12 +148,24 @@ export class ScreensaverFeature implements Feature {
     }, durationMs);
   }
 
-  private async prepareScreensaverMarkup(target: HTMLElement): Promise<void> {
-    if (!this.options.partialUrl || this.partialLoaded) return;
+  private async prepareScreensaverMarkup(target: HTMLElement, requestId: number): Promise<boolean> {
+    if (!this.options.partialUrl) {
+      return false;
+    }
+    if (this.partialLoaded) {
+      return true;
+    }
 
     try {
-      const html = await loadPartialHtml(this.options.partialUrl, { cache: true });
-      if (!this.isShowing || !this.target || this.target !== target) return;
+      const controller = new AbortController();
+      this.partialLoadController = controller;
+      const html = await loadPartialHtml(this.options.partialUrl, {
+        cache: true,
+        signal: controller.signal,
+      });
+      if (requestId !== this.showRequestId || !this.target || this.target !== target) {
+        return false;
+      }
 
       const mount = this.getOrCreatePartialMount(target);
 
@@ -152,9 +175,24 @@ export class ScreensaverFeature implements Feature {
       mount.innerHTML = html;
 
       this.partialLoaded = true;
-    } catch {
-      // Keep screensaver behavior resilient if the partial cannot be loaded.
+      return true;
+    } catch (error) {
+      if (isAbortError(error)) {
+        return false;
+      }
+      logger.warn("failed to load screensaver partial", {
+        partialUrl: this.options.partialUrl,
+        error,
+      });
+      return false;
+    } finally {
+      this.partialLoadController = null;
     }
+  }
+
+  private cancelPendingPartialLoad(): void {
+    this.partialLoadController?.abort();
+    this.partialLoadController = null;
   }
 
   private getOrCreatePartialMount(target: HTMLElement): HTMLElement {
@@ -175,4 +213,13 @@ export class ScreensaverFeature implements Feature {
     const maxDelay = Math.max(...duration.split(",").map((s) => parseFloat(s) * (s.includes("ms") ? 1 : 1000)));
     return isNaN(maxDelay) ? 360 : maxDelay;
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  return Boolean(
+    error &&
+    typeof error === "object" &&
+    "name" in error &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
 }

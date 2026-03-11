@@ -1,38 +1,66 @@
 # Spaceface
 
-Spaceface is a lightweight TypeScript runtime for building fast, interactive static pages.
+Spaceface is a small TypeScript runtime for static pages authored in `docs.src/`.
 
-The core philosophy is simple: write static HTML, sprinkle in declarative `data-` attributes, and let the runtime wire up features (like slideshows, floating images, and screensavers) without the overhead of a heavy Virtual DOM framework.
+The system is intentionally narrow:
 
-This repository now treats the current `src/` + `docs.src/` system as the baseline architecture.
+- author HTML first
+- mount behavior from `data-feature="..."`
+- keep runtime state small and local
+- generate `docs/` from `docs.src/`
 
-## Current Structure
+## Source Layout
 
-- Authored source: `docs.src/`
-- Generated output: `docs/`
+- Authored pages and partials: `docs.src/`
+- Generated site: `docs/`
 - Runtime entrypoint: `src/app/main.ts`
-- Core primitives: `src/core/`
-- Features: `src/features/`
+- Core runtime primitives: `src/core/`
+- DOM features: `src/features/`
 
-## Runtime Contract
+## Runtime Model
 
-Spaceface uses one generic feature activation scheme:
+- `FeatureRegistry` mounts and destroys features from `data-feature="..."`
+- the registry reconciles existing DOM, node removal, and `data-feature` attribute changes
+- feature mounts may be async; failed mounts are torn down and surfaced
+- async feature mounts receive an abort signal so teardown can cancel in-flight work
+- `userActivitySignal` tracks last interaction time
+- activity tracking currently listens to mouse move, wheel, keydown, pointer down, and visible-tab returns
+- `screensaverActiveSignal` pauses page features while the screensaver is active
+- `FrameScheduler` runs animated features in update-then-render order
 
-- feature roots: `data-feature="..."`
-- feature-internal parts: feature-specific `data-*` attributes when needed
+## DOM Contracts
 
-Current feature roots:
+Feature roots:
 
 - `data-feature="slideshow"`
 - `data-feature="slideplayer"`
 - `data-feature="floating-images"`
 - `data-feature="screensaver"`
 
-Current feature-internal selectors:
+Feature internals:
 
-- slideshow slides: `[data-slide]`
-- slideplayer controls/slides: `[data-slideplayer-*]`
-- floating images items: `[data-floating-item]`
+- slideshow: `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
+- slideplayer: `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`
+- floating images: `[data-floating-item]`
+- screensaver host: `[data-screensaver]`
+- screensaver partial mount: `[data-screensaver-partial]`
+
+Page and authored-markup hooks:
+
+- `html[data-mode]`
+- `body[data-page]`
+- `[data-nav-link]`
+
+## Partial Path Model
+
+Spaceface treats asset URLs inside partial HTML as partial-relative.
+
+- author image, poster, stylesheet, and `data-src` URLs relative to the partial file that contains them
+- build-time partial includes rebase those asset URLs into the including page
+- runtime-loaded partials rebase those asset URLs before insertion into the document
+- avoid root-relative asset URLs when the same build must work on a local server, a custom domain, and GitHub Pages project subpaths
+
+Normal page links are still authored explicitly in the page or partial that owns them.
 
 ## Commands
 
@@ -44,24 +72,26 @@ npm run serve:docs
 npm run verify:docs
 ```
 
-## Current Behavior
+## Validation
 
-- `FeatureRegistry` mounts and unmounts features from `data-feature="..."`.
-- `ScreensaverFeature` drives global idle state through `screensaverActiveSignal`.
-- `SlideshowFeature` and `SlidePlayerFeature` pause while the screensaver is active.
-- `SlidePlayerFeature` supports prev/next buttons, bullet navigation, left/right keyboard arrows, and horizontal swipe gestures.
-- page-level `FloatingImagesFeature` instances also pause during screensaver activity.
-- Runtime asset and partial paths are kept relative so the site works both locally and under GitHub Pages project subpaths.
-- Asset URLs inside injected partial HTML must also be page-relative, because they resolve against the document URL after insertion.
+Minimum validation before commit:
 
-## Out Of Scope
+- `npm run typecheck:docs`
+- `npm run build:dev`
+- `npm run smoke:docs`
 
-- the old router/PJAX shell
-- feature-to-feature injection
-- legacy root selector contracts for feature activation
+Full verification:
 
-## Project Docs
+- `npm run verify:docs`
 
-- [`architecture.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/architecture.md): architecture direction and current system model
-- [`RELEASE_NOTES.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/RELEASE_NOTES.md): what changed
-- [`ROADMAP.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/ROADMAP.md): what is next
+## Scope Limits
+
+- no router or PJAX shell
+- no feature-to-feature injection
+- no legacy selector compatibility layer
+
+## Related Docs
+
+- [`architecture.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/architecture.md)
+- [`RELEASE_NOTES.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/RELEASE_NOTES.md)
+- [`ROADMAP.md`](/Users/sandorzsolt/Documents/GitHub/spaceface/ROADMAP.md)

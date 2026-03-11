@@ -1,5 +1,5 @@
 // src/features/floating-images/FloatingImagesFeature.ts
-import type { Feature } from "../../core/feature.js";
+import type { Feature, FeatureMountContext } from "../../core/feature.js";
 import { createEffect } from "../../core/signals.js";
 import { globalScheduler } from "../../core/scheduler.js";
 import { waitForImagesReady } from "../../core/utils/images.js";
@@ -48,6 +48,8 @@ export class FloatingImagesFeature implements Feature {
   private preparedNodes: HTMLElement[] = [];
   private pausedByScreensaver = false;
   private allowDuringScreensaver = false;
+  private restoreContainerPosition = false;
+  private originalContainerInlinePosition = "";
 
   constructor(options: FloatingImagesFeatureOptions = {}) {
     this.options = {
@@ -60,11 +62,14 @@ export class FloatingImagesFeature implements Feature {
     };
   }
 
-  async mount(el: HTMLElement): Promise<void> {
+  async mount(el: HTMLElement, context?: FeatureMountContext): Promise<void> {
     this.container = this.resolveContainer(el);
     this.destroyed = false;
+    this.restoreContainerPosition = false;
+    this.originalContainerInlinePosition = this.container?.style.position ?? "";
 
     if (!this.container) return;
+    if (context?.signal.aborted) return;
 
     this.allowDuringScreensaver = this.container.closest("[data-screensaver]") !== null;
     this.cleanupEffect = createEffect(() => {
@@ -82,8 +87,9 @@ export class FloatingImagesFeature implements Feature {
     await waitForImagesReady(this.container, {
       selector: this.options.itemSelector,
       timeoutMs: 5000,
+      signal: context?.signal,
     });
-    if (this.destroyed) return;
+    if (this.destroyed || context?.signal.aborted) return;
 
     this.items = this.collectItems(this.container);
     if (this.items.length === 0) return;
@@ -101,6 +107,7 @@ export class FloatingImagesFeature implements Feature {
 
   destroy(): void {
     this.destroyed = true;
+    const container = this.container;
     this.unsubScheduler?.();
     this.unsubScheduler = undefined;
     this.cleanupEffect?.();
@@ -131,6 +138,10 @@ export class FloatingImagesFeature implements Feature {
       node.style.visibility = "";
     }
 
+    if (container && this.restoreContainerPosition) {
+      container.style.position = this.originalContainerInlinePosition;
+    }
+
     this.items = [];
     this.preparedNodes = [];
     this.container = null;
@@ -138,6 +149,8 @@ export class FloatingImagesFeature implements Feature {
     this.hoveredItem = null;
     this.pausedByScreensaver = false;
     this.allowDuringScreensaver = false;
+    this.restoreContainerPosition = false;
+    this.originalContainerInlinePosition = "";
   }
 
   private updateAnimationState(): void {
@@ -225,6 +238,10 @@ export class FloatingImagesFeature implements Feature {
   private collectItems(container: HTMLElement): MotionItem[] {
     const containerRect = container.getBoundingClientRect();
     if (getComputedStyle(container).position === "static") {
+      if (!this.restoreContainerPosition) {
+        this.originalContainerInlinePosition = container.style.position;
+        this.restoreContainerPosition = true;
+      }
       container.style.position = "relative";
     }
 

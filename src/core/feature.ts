@@ -9,7 +9,7 @@ export interface Feature {
   readonly name: string;
 
   /** Called when the feature's DOM node is parsed and added to the document */
-  mount?(el: HTMLElement): void;
+  mount?(el: HTMLElement, context?: FeatureMountContext): void | Promise<void>;
 
   /** Called when the feature's DOM node is removed from the document */
   destroy?(): void;
@@ -22,13 +22,17 @@ export interface FeatureConstructor extends Constructor<Feature> {
   readonly inject?: Array<Token<unknown> | Constructor<unknown>>;
 }
 
+export interface FeatureMountContext {
+  signal: AbortSignal;
+}
+
 /**
  * Global Registry that watches the DOM using a MutationObserver
  * and automatically mounts/unmounts features based on `data-feature` attributes.
  */
 export class FeatureRegistry {
   private featureConstructors = new Map<string, FeatureConstructor>();
-  private activeInstances = new Map<HTMLElement, Map<string, Feature>>();
+  private activeInstances = new Map<HTMLElement, Map<string, ActiveFeatureRecord>>();
   private observer: MutationObserver | null = null;
 
   constructor(private container: Container) {}
@@ -113,10 +117,9 @@ export class FeatureRegistry {
     const nodeInstances = this.activeInstances.get(node);
 
     if (nodeInstances) {
-      for (const [id, instance] of nodeInstances.entries()) {
+      for (const [id, record] of nodeInstances.entries()) {
         if (desiredIds.has(id)) continue;
-        instance.destroy?.();
-        nodeInstances.delete(id);
+        this.disposeRecord(node, id, record);
       }
       if (nodeInstances.size === 0) {
         this.activeInstances.delete(node);
@@ -137,13 +140,19 @@ export class FeatureRegistry {
       } else {
         instance = new FeatureClass();
       }
-      instance.mount?.(node);
 
       if (!nextNodeInstances) {
-        nextNodeInstances = new Map<string, Feature>();
+        nextNodeInstances = new Map<string, ActiveFeatureRecord>();
         this.activeInstances.set(node, nextNodeInstances);
       }
-      nextNodeInstances.set(id, instance);
+
+      const record: ActiveFeatureRecord = {
+        instance,
+        mountToken: Symbol(id),
+        mountController: new AbortController(),
+      };
+      nextNodeInstances.set(id, record);
+      this.mountFeature(node, id, record);
     }
   }
 
@@ -161,8 +170,8 @@ export class FeatureRegistry {
     const instances = this.activeInstances.get(node);
     if (!instances) return;
 
-    for (const instance of instances.values()) {
-      instance.destroy?.();
+    for (const [id, record] of Array.from(instances.entries())) {
+      this.disposeRecord(node, id, record);
     }
     this.activeInstances.delete(node);
   }
@@ -175,6 +184,67 @@ export class FeatureRegistry {
     }
     return this.container.resolve(token);
   }
+
+  private mountFeature(node: HTMLElement, id: string, record: ActiveFeatureRecord): void {
+    try {
+      const mountResult = record.instance.mount?.(node, {
+        signal: record.mountController.signal,
+      });
+      if (!isPromiseLike(mountResult)) {
+        return;
+      }
+
+      void mountResult.catch((error) => {
+        const activeRecord = this.activeInstances.get(node)?.get(id);
+        if (activeRecord?.mountToken !== record.mountToken) {
+          return;
+        }
+
+        if (record.mountController.signal.aborted && isAbortLikeError(error)) {
+          this.removeRecord(node, id, record);
+          return;
+        }
+
+        this.disposeRecord(node, id, record);
+        queueMicrotask(() => {
+          throw error;
+        });
+      });
+    } catch (error) {
+      this.disposeRecord(node, id, record);
+      throw error;
+    }
+  }
+
+  private disposeRecord(node: HTMLElement, id: string, record: ActiveFeatureRecord): void {
+    record.mountController.abort();
+    try {
+      record.instance.destroy?.();
+    } finally {
+      this.removeRecord(node, id, record);
+    }
+  }
+
+  private removeRecord(node: HTMLElement, id: string, record: ActiveFeatureRecord): void {
+    const nodeInstances = this.activeInstances.get(node);
+    if (!nodeInstances) return;
+
+    const activeRecord = nodeInstances.get(id);
+    if (activeRecord?.mountToken !== record.mountToken) {
+      return;
+    }
+
+    nodeInstances.delete(id);
+    if (nodeInstances.size === 0) {
+      this.activeInstances.delete(node);
+    }
+  }
+}
+
+interface ActiveFeatureRecord {
+  instance: Feature;
+  mountToken: symbol;
+  mountController: AbortController;
 }
 
 function parseFeatureIds(raw: string | null): string[] {
@@ -192,4 +262,17 @@ function parseFeatureIds(raw: string | null): string[] {
 function isFeatureConstructorToken(value: Token<unknown> | Constructor<unknown>): value is FeatureConstructor {
   if (typeof value !== "function") return false;
   return typeof (value as Partial<FeatureConstructor>).selector === "string";
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<void> {
+  return typeof value === "object" && value !== null && typeof (value as PromiseLike<void>).then === "function";
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  return Boolean(
+    error &&
+    typeof error === "object" &&
+    "name" in error &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
 }

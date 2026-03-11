@@ -1,5 +1,7 @@
 const partialCache = new Map<string, string>();
 const MAX_PARTIAL_CACHE_SIZE = 10;
+const ASSET_ATTR_PATTERN = /\b(?:src|poster|data-src)\s*=\s*(["'])([^"']+)\1/gi;
+const STYLESHEET_HREF_PATTERN = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=)(["'])([^"']+)\2/gi;
 
 export interface LoadPartialOptions {
   cache?: boolean;
@@ -29,7 +31,8 @@ export async function loadPartialHtml(url: string, options: LoadPartialOptions =
     throw new Error(`Partial fetch failed: HTTP ${response.status} (${resolvedUrl})`);
   }
 
-  const html = await response.text();
+  const rawHtml = await response.text();
+  const html = rebasePartialAssetUrls(rawHtml, resolvedUrl);
   if (useCache) {
     partialCache.set(resolvedUrl, html);
     if (partialCache.size > MAX_PARTIAL_CACHE_SIZE) {
@@ -38,4 +41,32 @@ export async function loadPartialHtml(url: string, options: LoadPartialOptions =
     }
   }
   return html;
+}
+
+function rebasePartialAssetUrls(html: string, baseUrl: string): string {
+  let rebased = html.replace(ASSET_ATTR_PATTERN, (fullMatch, quote: string, value: string) => {
+    const nextValue = rebaseRelativeUrl(value, baseUrl);
+    return nextValue === value ? fullMatch : fullMatch.replace(value, nextValue);
+  });
+
+  rebased = rebased.replace(
+    STYLESHEET_HREF_PATTERN,
+    (fullMatch, prefix: string, quote: string, value: string) => {
+      const nextValue = rebaseRelativeUrl(value, baseUrl);
+      return nextValue === value ? fullMatch : `${prefix}${quote}${nextValue}${quote}`;
+    }
+  );
+
+  return rebased;
+}
+
+function rebaseRelativeUrl(value: string, baseUrl: string): string {
+  if (isExternalOrSpecialUrl(value)) {
+    return value;
+  }
+  return new URL(value, baseUrl).toString();
+}
+
+function isExternalOrSpecialUrl(value: string): boolean {
+  return value.startsWith("/") || /^(?:[a-z]+:|\/\/|#|data:)/i.test(value);
 }

@@ -173,12 +173,23 @@ export class SlidePlayerFeature implements Feature {
         this.swipePointerId = event.pointerId;
         this.swipeStartX = event.clientX;
         this.swipeStartY = event.clientY;
+        if (typeof this.stage?.setPointerCapture === "function") {
+          try {
+            this.stage.setPointerCapture(event.pointerId);
+          } catch {
+            // Pointer capture is best-effort. Gesture handling still works without it.
+          }
+        }
       };
       const onPointerUp = (event: PointerEvent) => {
         if (this.swipePointerId === null || event.pointerId !== this.swipePointerId) return;
+        releasePointerCapture(this.stage, event.pointerId);
         this.handleSwipeDelta(event.clientX - this.swipeStartX, event.clientY - this.swipeStartY);
       };
-      const onPointerCancel = () => this.resetSwipeState();
+      const onPointerCancel = (event: PointerEvent) => {
+        releasePointerCapture(this.stage, event.pointerId);
+        this.resetSwipeState();
+      };
       const onTouchStart = (event: TouchEvent) => {
         if (this.pausedByScreensaver || this.slides.length <= 1) return;
         const touch = event.changedTouches[0];
@@ -324,4 +335,21 @@ function shouldIgnoreKeydown(event: KeyboardEvent): boolean {
 
   const tagName = target.tagName;
   return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+}
+
+function releasePointerCapture(target: HTMLElement | null, pointerId: number): void {
+  if (
+    !target ||
+    typeof target.hasPointerCapture !== "function" ||
+    typeof target.releasePointerCapture !== "function" ||
+    !target.hasPointerCapture(pointerId)
+  ) {
+    return;
+  }
+
+  try {
+    target.releasePointerCapture(pointerId);
+  } catch {
+    // Pointer capture release should never break the interaction path.
+  }
 }

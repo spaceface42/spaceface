@@ -18,9 +18,12 @@ try {
         export { SlideshowFeature } from "./src/features/slideshow/SlideshowFeature.ts";
         export { SlidePlayerFeature } from "./src/features/slideplayer/SlidePlayerFeature.ts";
         export { FloatingImagesFeature } from "./src/features/floating-images/FloatingImagesFeature.ts";
+        export { ScreensaverFeature } from "./src/features/screensaver/ScreensaverFeature.ts";
         export { screensaverActiveSignal } from "./src/features/shared/screensaverState.ts";
+        export { userActivitySignal, initActivityTracking, destroyActivityTracking } from "./src/features/shared/activity.ts";
         export { globalScheduler } from "./src/core/scheduler.ts";
         export { __setWaitForImagesReady } from "mock:images";
+        export { __setLoadPartialHtml } from "mock:partials";
       `,
       loader: "ts",
       resolveDir: process.cwd(),
@@ -52,16 +55,40 @@ try {
           }));
         },
       },
+      {
+        name: "mock-partials",
+        setup(buildApi) {
+          buildApi.onResolve({ filter: /^mock:partials$/ }, () => ({ path: "mock:partials", namespace: "mock-partials" }));
+          buildApi.onResolve({ filter: /core\/partials\.js$/ }, () => ({ path: "mock:partials", namespace: "mock-partials" }));
+          buildApi.onLoad({ filter: /.*/, namespace: "mock-partials" }, () => ({
+            contents: `
+              let loadPartialHtmlImpl = async () => "";
+              export function __setLoadPartialHtml(fn) {
+                loadPartialHtmlImpl = fn;
+              }
+              export async function loadPartialHtml(...args) {
+                return loadPartialHtmlImpl(...args);
+              }
+            `,
+            loader: "js",
+          }));
+        },
+      },
     ],
   });
 
   const runtime = await import(pathToFileURL(bundlePath).href);
   testFeatureRegistryAttributeToggling(runtime);
+  await testFeatureRegistryAsyncMountFailure(runtime);
+  await testFeatureRegistryAsyncMountAbort(runtime);
   testSlideshowScreensaverPause(runtime);
   testSlidePlayerScreensaverPause(runtime);
   testSlidePlayerKeyboardNavigation(runtime);
   testSlidePlayerSwipeNavigation(runtime);
   testSlidePlayerTouchSwipeNavigation(runtime);
+  await testActivityTracking(runtime);
+  await testScreensaverLoadFailure(runtime);
+  await testScreensaverLoadAbort(runtime);
   await testFloatingImagesScreensaverPause(runtime);
   await testFloatingImagesAsyncDestroy(runtime);
   console.log("[vnext regressions] OK");
@@ -109,6 +136,120 @@ function testFeatureRegistryAttributeToggling(runtime) {
 
   registry.stop();
   restoreDomGlobals();
+}
+
+async function testFeatureRegistryAsyncMountFailure(runtime) {
+  const observerState = installMutationObserverStub();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const originalQueueMicrotask = globalThis.queueMicrotask;
+  const surfacedErrors = [];
+  globalThis.queueMicrotask = (fn) => {
+    surfacedErrors.push(fn);
+  };
+
+  class AsyncProbeFeature {
+    static selector = "async-probe";
+    static mounts = 0;
+    static destroys = 0;
+    name = "async-probe";
+    async mount() {
+      AsyncProbeFeature.mounts += 1;
+      throw new Error("async mount failed");
+    }
+    destroy() {
+      AsyncProbeFeature.destroys += 1;
+    }
+  }
+
+  try {
+    const registry = new runtime.FeatureRegistry(new runtime.Container());
+    registry.register(AsyncProbeFeature);
+    registry.start();
+
+    const host = new FakeElement("div");
+    body.append(host);
+
+    host.setAttribute("data-feature", "async-probe");
+    observerState.callback([{ type: "attributes", target: host }]);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(AsyncProbeFeature.mounts, 1, "async feature should attempt to mount when activated");
+    assert.equal(AsyncProbeFeature.destroys, 1, "failed async mount should destroy the feature instance");
+    assert.equal(surfacedErrors.length, 1, "failed async mount should surface its error");
+    assert.throws(() => {
+      surfacedErrors[0]();
+    }, /async mount failed/);
+
+    registry.stop();
+  } finally {
+    globalThis.queueMicrotask = originalQueueMicrotask;
+    restoreDomGlobals();
+  }
+}
+
+async function testFeatureRegistryAsyncMountAbort(runtime) {
+  const observerState = installMutationObserverStub();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const originalQueueMicrotask = globalThis.queueMicrotask;
+  const surfacedErrors = [];
+  globalThis.queueMicrotask = (fn) => {
+    surfacedErrors.push(fn);
+  };
+
+  class AbortProbeFeature {
+    static selector = "abort-probe";
+    static destroys = 0;
+    static aborts = 0;
+    name = "abort-probe";
+    mount(_el, context) {
+      return new Promise((_, reject) => {
+        context?.signal.addEventListener(
+          "abort",
+          () => {
+            AbortProbeFeature.aborts += 1;
+            const error = new Error("mount aborted");
+            error.name = "AbortError";
+            reject(error);
+          },
+          { once: true }
+        );
+      });
+    }
+    destroy() {
+      AbortProbeFeature.destroys += 1;
+    }
+  }
+
+  try {
+    const registry = new runtime.FeatureRegistry(new runtime.Container());
+    registry.register(AbortProbeFeature);
+    registry.start();
+
+    const host = new FakeElement("div");
+    body.append(host);
+
+    host.setAttribute("data-feature", "abort-probe");
+    observerState.callback([{ type: "attributes", target: host }]);
+
+    host.removeAttribute("data-feature");
+    observerState.callback([{ type: "attributes", target: host }]);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(AbortProbeFeature.aborts, 1, "removing a feature should abort an in-flight async mount");
+    assert.equal(AbortProbeFeature.destroys, 1, "aborted async mounts should still destroy the feature instance");
+    assert.equal(surfacedErrors.length, 0, "aborted async mounts should not surface abort errors");
+
+    registry.stop();
+  } finally {
+    globalThis.queueMicrotask = originalQueueMicrotask;
+    restoreDomGlobals();
+  }
 }
 
 function testSlideshowScreensaverPause(runtime) {
@@ -235,7 +376,9 @@ function testSlidePlayerSwipeNavigation(runtime) {
 
   const stage = root.querySelector("[data-slideplayer-stage]");
   dispatchElementEvent(stage, "pointerdown", { pointerId: 1, clientX: 120, clientY: 80, button: 0 });
+  assert.equal(stage.hasPointerCapture(1), true, "pointer swipe should capture the active pointer");
   dispatchElementEvent(stage, "pointerup", { pointerId: 1, clientX: 40, clientY: 84, button: 0 });
+  assert.equal(stage.hasPointerCapture(1), false, "pointer swipe should release capture after completion");
   assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 1, "left swipe should advance the slideplayer");
 
   dispatchElementEvent(stage, "pointerdown", { pointerId: 2, clientX: 40, clientY: 80, button: 0 });
@@ -245,6 +388,136 @@ function testSlidePlayerSwipeNavigation(runtime) {
   feature.destroy();
   runtime.screensaverActiveSignal.value = false;
   restoreDomGlobals();
+}
+
+async function testActivityTracking(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  runtime.__setLoadPartialHtml(async () => "<div class='screensaver-label'>ok</div>");
+
+  try {
+    runtime.destroyActivityTracking();
+    runtime.initActivityTracking();
+    runtime.screensaverActiveSignal.value = false;
+
+    const root = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      idleMs: 100,
+      partialUrl: "./ok.html",
+    });
+    feature.mount(root);
+
+    clock.advance(90);
+    dispatchDocumentEvent("wheel", {});
+    clock.advance(20);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(runtime.screensaverActiveSignal.value, false, "wheel activity should reset the screensaver timer");
+
+    clock.advance(90);
+    document.visibilityState = "visible";
+    dispatchDocumentEvent("visibilitychange", {});
+    clock.advance(20);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(runtime.screensaverActiveSignal.value, false, "visibility changes to a visible tab should reset the screensaver timer");
+
+    feature.destroy();
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    runtime.destroyActivityTracking();
+    clock.restore();
+    restoreDomGlobals();
+  }
+}
+
+async function testScreensaverLoadFailure(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  runtime.__setLoadPartialHtml(async () => {
+    throw new Error("missing partial");
+  });
+
+  try {
+    runtime.screensaverActiveSignal.value = false;
+    runtime.userActivitySignal.value = 0;
+
+    const root = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      idleMs: 100,
+      partialUrl: "./missing.html",
+    });
+
+    feature.mount(root);
+    clock.advance(100);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(root.hidden, true, "screensaver host should stay hidden when the partial fails to load");
+    assert.equal(root.classList.contains("is-active"), false, "screensaver host should not activate on partial load failure");
+    assert.equal(runtime.screensaverActiveSignal.value, false, "screensaver failures must not pause the rest of the page");
+
+    feature.destroy();
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    clock.restore();
+    restoreDomGlobals();
+  }
+}
+
+async function testScreensaverLoadAbort(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  let aborts = 0;
+  runtime.__setLoadPartialHtml((_url, options) => new Promise((_resolve, reject) => {
+    options?.signal?.addEventListener(
+      "abort",
+      () => {
+        aborts += 1;
+        const error = new Error("partial load aborted");
+        error.name = "AbortError";
+        reject(error);
+      },
+      { once: true }
+    );
+  }));
+
+  try {
+    runtime.screensaverActiveSignal.value = false;
+    runtime.userActivitySignal.value = 0;
+
+    const root = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      idleMs: 100,
+      partialUrl: "./slow.html",
+    });
+
+    feature.mount(root);
+    clock.advance(100);
+    runtime.userActivitySignal.value = 1;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(aborts, 1, "screensaver activity reset should abort an in-flight partial load");
+    assert.equal(runtime.screensaverActiveSignal.value, false, "aborted screensaver loads must not activate the shared pause state");
+    assert.equal(root.hidden, true, "aborted screensaver loads must keep the host hidden");
+
+    feature.destroy();
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    clock.restore();
+    restoreDomGlobals();
+  }
 }
 
 function testSlidePlayerTouchSwipeNavigation(runtime) {
@@ -396,6 +669,7 @@ function installDomGlobals(body) {
   documentListeners = new Map();
   globalThis.document = {
     body,
+    visibilityState: "visible",
     addEventListener(type, handler) {
       const list = documentListeners.get(type) ?? [];
       list.push(handler);
@@ -407,6 +681,9 @@ function installDomGlobals(body) {
         type,
         list.filter((entry) => entry !== handler),
       );
+    },
+    createElement(tagName) {
+      return new FakeElement(tagName);
     },
   };
   globalThis.HTMLElement = FakeElement;
@@ -559,6 +836,7 @@ class FakeElement {
     this.clientHeight = options.height ?? 0;
     this.listeners = new Map();
     this.classSet = new Set();
+    this.pointerCaptures = new Set();
     this.classList = {
       add: (...names) => names.forEach((name) => this.classSet.add(name)),
       remove: (...names) => names.forEach((name) => this.classSet.delete(name)),
@@ -675,6 +953,18 @@ class FakeElement {
       y: 0,
       toJSON: () => ({}),
     };
+  }
+
+  setPointerCapture(pointerId) {
+    this.pointerCaptures.add(pointerId);
+  }
+
+  hasPointerCapture(pointerId) {
+    return this.pointerCaptures.has(pointerId);
+  }
+
+  releasePointerCapture(pointerId) {
+    this.pointerCaptures.delete(pointerId);
   }
 }
 

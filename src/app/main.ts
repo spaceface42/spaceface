@@ -17,10 +17,12 @@ const DEFAULT_LOG_LEVEL: LogLevel = getDefaultLogLevel();
 
 const logger = createLogger("MU/TH/UR", DEFAULT_LOG_LEVEL);
 
-async function main() {
+function main(): void {
   attachConsoleLogSink(DEFAULT_LOG_LEVEL);
   // logger.info("[MU/TH/UR] boot start", { mode: getDocumentMode() });
   logger.info("boot start", { mode: getDocumentMode() });
+
+  applyCurrentNavState();
 
   // 1. Initialize Global Shared Signals/Activity
   initActivityTracking();
@@ -69,12 +71,14 @@ async function main() {
 }
 
 // Boot
-main().catch((error) => {
+try {
+  main();
+} catch (error) {
   logger.error("boot failed", error);
   setTimeout(() => {
     throw error;
   }, 0);
-});
+}
 
 function getDocumentMode(): string {
   return document.documentElement?.dataset.mode ?? "prod";
@@ -82,4 +86,18 @@ function getDocumentMode(): string {
 
 function getDefaultLogLevel(): LogLevel {
   return getDocumentMode() === "dev" ? "debug" : "warn";
+}
+
+function applyCurrentNavState(): void {
+  const currentPage = document.body?.dataset.page;
+  if (!currentPage) return;
+
+  const links = document.querySelectorAll<HTMLAnchorElement>("[data-nav-link]");
+  for (const link of links) {
+    if (link.dataset.navLink === currentPage) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  }
 }

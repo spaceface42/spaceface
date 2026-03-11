@@ -1,27 +1,22 @@
 # Roadmap
 
-This file is the forward-looking planning document for the active runtime.
-
-## Current State
-
-No mandatory architecture or cleanup work is currently required.
+This roadmap tracks only the current static-page runtime.
 
 ## Current Priorities
 
-1. Keep authored frontend contracts stable:
-   - feature roots use `data-feature="..."`
-   - feature internals use feature-specific `data-*` only where structure needs to be explicit
-2. Expand regression coverage only when new lifecycle-sensitive features are added.
-3. Keep logging on the current typed sink dispatcher unless a real multi-sink need appears.
+1. Keep the `docs.src/` to `docs/` pipeline stable and explicit.
+2. Keep DOM feature contracts small and documented.
+3. Add tests only where lifecycle, timing, or path rebasing logic can realistically regress.
 
-## Later Work
+## Next Useful Work
 
-1. Revisit routing only if there is a real product need for route transitions again.
-2. Add unit tests around shared math helpers and feature timing logic.
-3. Revisit DI only for shared services/tokens first, not feature-to-feature references.
+1. Add direct coverage for partial asset rebasing at build time and runtime.
+2. Extend partial asset rebasing to cover `srcset` when responsive images are introduced.
+3. Add targeted tests for `math-utils.ts` and autoplay timing behavior.
+4. Decide whether `Container` needs real shared services or should stay dormant until a concrete use appears.
 
-## Not Planned Unless Requirements Change
+## Not Planned
 
-1. Bringing back the old PJAX/router architecture as-is.
-2. Restoring legacy feature activation attributes such as one-off per-feature root selectors.
-3. Turning the runtime into a general-purpose component framework.
+1. Reintroducing the old router or PJAX stack.
+2. Expanding feature mounting beyond `data-feature="..."`.
+3. Turning Spaceface into a general-purpose component framework.

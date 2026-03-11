@@ -1,150 +1,184 @@
 # Spaceface Architecture
 
-This document defines the current architecture of the active runtime. It is the baseline for ongoing work, not a proposal for reviving older router/PJAX systems. The current composition root lives in `src/app/main.ts`.
+This document describes the current system only. It is not a proposal for reviving older router-era ideas.
 
-## 0. System Boundary
+## System Boundary
 
-This system is:
+Spaceface is:
+
 - a static-page runtime
-- driven by authored HTML in `docs.src/`
-- activated by `data-feature="..."`
-- implemented by a small TypeScript runtime under `src/`
+- authored in `docs.src/`
+- generated into `docs/`
+- activated from `data-feature="..."`
+- implemented by a small TypeScript runtime in `src/`
 
-This system is not:
+Spaceface is not:
+
 - a router framework
-- a general-purpose component framework
-- a feature-to-feature DI graph
+- a component framework
+- a feature-to-feature dependency graph
 - a legacy selector compatibility layer
 
-## 1. Core Runtime
+## Boot Flow
 
-### A. Lightweight Dependency Injection (IoC Container)
-The runtime provides a lightweight `Container` for shared services/tokens.
-```typescript
-class VideoPlayerFeature implements Feature {
-  // Statically declare dependencies
-  static inject = [AudioContextService, MediaSessionService];
+The composition root is [src/app/main.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/app/main.ts).
 
-  constructor(private audio: AudioContextService, private mediaSession: MediaSessionService) {}
+Startup does four things:
 
-  onPlay() {
-    this.mediaSession.setPlaying(true);
-  }
-}
-```
+1. attach the console log sink
+2. start shared activity tracking
+3. register feature constructors
+4. start the global feature registry
 
-Current port note:
-- Service/token injection is allowed.
-- Feature-to-feature injection is intentionally unsupported.
+## Core Runtime Pieces
 
-### B. Vanilla TS Signals (Reactivity without Frameworks)
-The runtime uses a minimal signal primitive for shared reactive state.
-```typescript
-const isIdle = createSignal(false);
+### Feature Registry
 
-// Any feature can reactively subscribe without needing a global Event Bus string:
-createEffect(() => {
-  if (isIdle.value) showScreensaver();
-  else hideScreensaver();
-});
-```
+The registry in [src/core/feature.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/feature.ts) watches `document.body` with one `MutationObserver`.
 
-## 2. Feature Lifecycle
+It handles:
 
-Use a single global `MutationObserver` attached to `document.body` that watches `data-feature="..."`.
-* If `<div data-feature="floating-images">` is parsed or activated, the central registry instantiates the feature and calls `mount()`.
-* When the node is removed from the DOM, the observer instantly calls `destroy()`.
-* Attribute toggles on existing nodes are also reconciled.
+- initial DOM scan
+- added nodes
+- removed nodes
+- `data-feature` attribute changes on existing nodes
+- sync and async mount failures, with failed instances torn down before the error is surfaced
+- aborting in-flight async mounts during teardown
 
-Root contract:
-- feature roots use `data-feature="..."`
-- feature internals use feature-specific `data-*` only where structure needs to be explicit
+That is the main lifecycle boundary for the whole runtime.
 
-## 3. Animation And Render Loop
+### Signals
 
-A unified `FrameScheduler` forces strict read-then-write execution across active animated features.
-```typescript
-class FloatingImagesFeature {
-  update(dt: number) {
-    // Phase 1: Math and Logic (READ)
-    this.x += this.vx * dt;
-  }
+The signal layer in [src/core/signals.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/signals.ts) is used only for small shared state:
 
-  render() {
-    // Phase 2: DOM Mutation (WRITE)
-    this.el.style.transform = `translate3d(${this.x}px, ${this.y}px, 0)`;
-  }
-}
-```
-The scheduler runs all `update()` methods first, followed by all `render()` methods inside `requestAnimationFrame`.
+- `userActivitySignal`
+- `screensaverActiveSignal`
 
-## 4. Routing Status
+It is intentionally minimal. There is no broader reactive application model on top of it.
+Current activity inputs are mouse move, wheel, keydown, pointer down, and visible-tab returns.
 
-The current runtime does not include the old router/PJAX shell.
+### Scheduler
 
-If routing returns later:
-- feature lifecycle must remain decoupled from routing
-- routing must not own feature instantiation
-- a future View Transitions based layer is preferred over reviving the old router as-is
+Animated features use [src/core/scheduler.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/scheduler.ts).
 
-## 5. Feature Roles
+Contract:
 
-### The Screensaver & Decoupled State
-Instead of managing its own hidden visual state, the Screensaver becomes a pure function reacting to a global `userActivitySignal`.
-* A global listener updates the `userActivitySignal` timestamp.
-* When the idle time is reached, it mounts the screensaver HTML partial dynamically.
-* To communicate with other features (like pausing the slideshow), it writes to a decoupled `screensaverActiveSignal`. It never references the slideshow directly.
+- `update(dt)` is for math and reads
+- `render()` is for DOM writes
 
-### Slideshow And SlidePlayer
-* `SlideshowFeature` remains the minimal generic rotator for simple `[data-slide]` content blocks.
-* `SlidePlayerFeature` is the image-first variant with dedicated prev/next controls and bullet navigation.
-* Both subscribe to the `screensaverActiveSignal` via `createEffect`.
-* When the screensaver appears, they clear internal timers and cache remaining milliseconds.
-* When the screensaver hides, they resume seamlessly.
+The scheduler isolates failing tasks and keeps healthy tasks running.
 
-### Floating Images & Pure Math
-* Pure math operations (Gaussian distribution, bounding box collision, jitter) are extracted into `src/core/utils/math-utils.ts`.
-* The `FloatingImagesFeature` only manages the `MotionItem` state array and the `requestAnimationFrame` hooks via the `globalScheduler`.
+### Container
 
----
+The container in [src/core/container.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/container.ts) exists for shared services or tokens.
 
-## Current Status (March 2026)
+Current reality:
 
-**✅ Completed Core Primitives (`src/core/`)**
-1. `signals.ts` - `createSignal`, `createEffect`
-2. `container.ts` - Basic IoC `Container`
-3. `scheduler.ts` - `FrameScheduler` with strict read/write phases to eliminate layout thrashing.
-4. `feature.ts` - `FeatureRegistry` powered by `MutationObserver`.
-5. `partials.ts` - HTML partial loading and caching.
+- feature-to-feature injection is blocked
+- current shipped features do not depend on injected services yet
 
-**✅ Ported Features (`src/features/`)**
-1. `shared/activity.ts` - `userActivitySignal`
-2. `shared/screensaverState.ts` - `screensaverActiveSignal`
-3. `core/utils/math-utils.ts`
-4. `floating-images/FloatingImagesFeature.ts`
-5. `screensaver/ScreensaverFeature.ts`
-6. `slideshow/SlideshowFeature.ts`
-7. `slideplayer/SlidePlayerFeature.ts`
+## Partial Model
 
-## What Is Intentionally Not In Scope Right Now
+There are two kinds of partial usage:
 
-- the old router/PJAX shell
-- feature-to-feature injection
-- reviving legacy selector contracts
-- framework-managed component state outside DOM feature roots
+1. build-time includes through `<link rel="partial" href="...">`
+2. runtime-loaded partials through `loadPartialHtml(...)`
 
-## Near-Term Focus
+Asset path rule:
 
-- keep authored HTML/CSS aligned to `data-feature="..."`
+- partial assets are authored relative to the partial file itself
+- build-time includes rebase asset refs into the including file
+- runtime loads rebase asset refs against the fetched partial URL before insertion
 
-## Logging Decision
+This keeps the same authored partial working on:
 
-Logging is finalized around the current typed sink dispatcher in `src/core/logger.ts`.
+- a local web server
+- a custom domain
+- a GitHub Pages project subpath
 
-Current rule:
-- features and runtime code use `createLogger(...)`
-- sinks are attached externally
-- console output remains centralized through sink attachment
+Current rebased attributes:
 
-Future rule:
-- do not introduce a dedicated `LogBus` unless the system actually needs multiple real sinks beyond console/dev diagnostics
+- `src`
+- `poster`
+- `data-src`
+- stylesheet `href`
+
+Async mount contract:
+
+- feature `mount(...)` may return a promise
+- the registry passes an abort signal into mount context
+- teardown aborts that signal before destroy so long-running setup can stop promptly
+
+## DOM Contract Surface
+
+Feature roots:
+
+- `data-feature="slideshow"`
+- `data-feature="slideplayer"`
+- `data-feature="floating-images"`
+- `data-feature="screensaver"`
+
+Feature internals:
+
+- slideshow: `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
+- slideplayer: `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`
+- floating images: `[data-floating-item]`
+- screensaver: `[data-screensaver]`, `[data-screensaver-partial]`
+
+Page and authored-markup hooks:
+
+- `html[data-mode]`
+- `body[data-page]`
+- `[data-nav-link]`
+
+## Feature Notes
+
+### Screensaver
+
+The screensaver:
+
+- listens to `userActivitySignal`
+- toggles `screensaverActiveSignal`
+- fetches and injects its partial on demand
+- logs a warning if the partial fails to load
+
+The screensaver does not directly instantiate child features. It relies on the registry to see injected `data-feature` markup.
+
+### Slideshow
+
+`SlideshowFeature` is the simpler rotator. It uses `[data-slide]` items and optional prev/next controls.
+
+### SlidePlayer
+
+`SlidePlayerFeature` is the image-stage variant.
+
+Deliberate current constraint:
+
+- one slideplayer per page is the intended authored pattern
+- document-level keyboard handling is therefore acceptable and kept on purpose
+
+### Floating Images
+
+`FloatingImagesFeature` owns animation state and scheduler subscription only.
+
+It:
+
+- waits for images before full initialization
+- pauses on screensaver activity unless the instance lives inside the screensaver
+- restores temporary inline styles during teardown
+
+## Logging
+
+Logging lives in [src/core/logger.ts](/Users/sandorzsolt/Documents/GitHub/spaceface/src/core/logger.ts).
+
+Rules:
+
+- runtime code logs through `createLogger(...)`
+- sink attachment happens at startup
+- failures should not be silently swallowed if they matter for debugging
+
+## Non-Goals
+
+- restoring the old router or PJAX shell
+- broadening feature activation beyond `data-feature="..."`
+- adding more architecture before a concrete need appears
