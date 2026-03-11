@@ -54,8 +54,8 @@ function extractAssetRefs(html) {
 function isExternalOrSpecial(value) {
   return (
     value.startsWith("/") ||
-    value === "./dist/main.js" ||
-    value === "dist/main.js" ||
+    value === "./bin/app.js" ||
+    value === "bin/app.js" ||
     /^(?:[a-z]+:|\/\/|#|data:)/i.test(value)
   );
 }

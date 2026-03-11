@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { APP_CONTRACT } from "../../src/app/contract-data.js";
 
 const root = process.cwd();
-const bundlePath = resolve(root, APP_CONTRACT.outputDir, "dist/main.js");
+const bundlePath = resolve(root, APP_CONTRACT.outputDir, "bin/app.js");
 const routeFiles = new Map(APP_CONTRACT.routes.map((route) => [route.id, resolve(root, APP_CONTRACT.outputDir, route.file)]));
 const partialFiles = new Map(APP_CONTRACT.partials.map((partial) => [partial.id, resolve(root, APP_CONTRACT.outputDir, partial.file)]));
 const failures = [];
