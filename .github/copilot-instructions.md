@@ -3,8 +3,9 @@
 Active source of truth:
 
 - runtime code: `src/`
-- site app: `sites/spaceface/app/`
-- authored frontend: `sites/spaceface/public/`
+- active site app: `sites/spaceface/app/`
+- active authored frontend: `sites/spaceface/public/`
+- second-site skeleton: `sites/starter/`
 - generated output: `docs/`
 
 Current runtime shape:
@@ -14,7 +15,13 @@ Current runtime shape:
 - `src/features/*`: feature implementations
 - `src/features/shared/*`: feature-domain shared state
 - `src/spaceface.ts`: public runtime API
-- `sites/spaceface/app/main.ts`: composition root
+- `sites/spaceface/app/main.ts`: current composition root
+
+Current build behavior:
+
+- build scripts still target `sites/spaceface/` explicitly
+- `sites/starter/` is a skeleton only
+- there is no site discovery yet
 
 Build and verify:
 

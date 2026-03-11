@@ -11,6 +11,7 @@
 - Added feature-scoped loggers to mount context alongside abort signals.
 - Added contract-driven smoke coverage and contract-doc sync checks.
 - Added `npm run sync:contracts` and `npm run check:contract-docs`.
+- Added `sites/starter/` as a minimal second-site skeleton while keeping the current build explicit to `sites/spaceface/`.
 - Rewrote the project docs around the current static-page runtime instead of continuing the older transitional narrative.
 - Formalized the partial path rule: partial assets are authored relative to the partial file, then rebased when partial markup is included or injected.
 - Fixed the screensaver partial to use partial-relative asset paths.

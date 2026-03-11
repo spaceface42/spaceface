@@ -1,6 +1,6 @@
 # Spaceface
 
-Spaceface is a small TypeScript runtime for static pages authored in `sites/spaceface/public/` and generated into `docs/`.
+Spaceface is a small TypeScript runtime for static pages authored in `sites/<site>/public/` and generated into `docs/`.
 
 The system stays deliberately narrow:
 
@@ -11,8 +11,9 @@ The system stays deliberately narrow:
 
 ## Source Layout
 
-- Site source: `sites/spaceface/`
-- Authored pages and partials: `sites/spaceface/public/`
+- Active build target: `sites/spaceface/`
+- Second-site skeleton: `sites/starter/`
+- Authored pages and partials: `sites/<site>/public/`
 - Generated site: `docs/`
 - Public runtime API: `src/spaceface.ts`
 - Shared contract data: `sites/spaceface/app/contract-data.js`
@@ -21,6 +22,8 @@ The system stays deliberately narrow:
 - Runtime entrypoint: `sites/spaceface/app/main.ts`
 - Core runtime primitives: `src/core/`
 - DOM features: `src/features/`
+
+Current repo behavior stays explicit: the shipped build still targets `sites/spaceface/`; `sites/starter/` is only a starting skeleton, not an auto-discovered second build.
 
 ## Runtime Model
 

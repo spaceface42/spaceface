@@ -7,11 +7,11 @@ This document describes the current runtime, not the older router-era experiment
 Spaceface is:
 
 - a static-page runtime
-- authored in `sites/spaceface/public/`
+- authored in `sites/<site>/public/`
 - generated into `docs/`
 - activated from `data-feature="..."`
-- driven by shared contract data in `sites/spaceface/app/contract-data.js`
-- separated into a site app layer in `sites/spaceface/` and runtime internals in `src/`
+- driven by shared contract data in the active site's `app/contract-data.js`
+- separated into a site app layer in `sites/<site>/` and runtime internals in `src/`
 
 Spaceface is not:
 
@@ -22,7 +22,7 @@ Spaceface is not:
 
 ## Boot Flow
 
-The composition root is [`sites/spaceface/app/main.ts`](./sites/spaceface/app/main.ts).
+The current composition root is [`sites/spaceface/app/main.ts`](./sites/spaceface/app/main.ts).
 
 Startup does four things:
 
@@ -31,7 +31,13 @@ Startup does four things:
 3. start shared activity tracking
 4. register and start contract-defined features
 
-`sites/spaceface/app/` reaches runtime code through the public API in [`src/spaceface.ts`](./src/spaceface.ts), not by importing deep internal paths.
+Each site app reaches runtime code through the public API in [`src/spaceface.ts`](./src/spaceface.ts), not by importing deep internal paths.
+
+Current repo behavior:
+
+- `sites/spaceface/` is the active build target
+- `sites/starter/` is a second-site skeleton only
+- there is still no site discovery or multi-site build orchestration
 
 ## Core Runtime Pieces
 

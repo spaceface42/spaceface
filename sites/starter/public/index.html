@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-mode="dev">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>starter site skeleton</title>
+    <link rel="stylesheet" href="./resources/spacesuit/defaults.css" />
+    <link rel="stylesheet" href="./resources/spacesuit/styles.css" />
+  </head>
+  <body data-page="index">
+    <header>
+      <link rel="partial" href="./resources/partials/nav.html" />
+    </header>
+
+    <main>
+      <section class="panel">
+        <p class="eyebrow">Second Site Skeleton</p>
+        <h1>Starter site</h1>
+        <p class="muted">
+          This is a minimal second-site shape: one route, one slideshow, one screensaver partial, and one app
+          contract.
+        </p>
+      </section>
+
+      <section class="panel" data-feature="slideshow">
+        <div class="controls">
+          <button type="button" data-slide-prev>Back</button>
+          <button type="button" data-slide-next>Next</button>
+        </div>
+        <article class="slide" data-slide>Slide 1: Replace this text with your site headline.</article>
+        <article class="slide" data-slide hidden>Slide 2: Add more routes only when the second site becomes real.</article>
+        <article class="slide" data-slide hidden>Slide 3: Keep runtime changes in src only when they are reusable.</article>
+      </section>
+
+      <link rel="partial" href="./resources/partials/footer.html" />
+    </main>
+
+    <div data-feature="screensaver" data-screensaver hidden aria-hidden="true"></div>
+
+    <script type="module" src="./bin/app.js"></script>
+  </body>
+</html>
