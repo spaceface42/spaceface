@@ -2,7 +2,7 @@ import type { LogLevel } from "../../../src/spaceface.js";
 import { APP_CONTRACT } from "./contract-data.js";
 
 export { APP_CONTRACT };
-export type { FeatureContract, RouteContract, PartialContract, AppContract } from "./contract-data.js";
+export type { HookContract, HookPresence, FeatureContract, RouteContract, PartialContract, AppContract } from "./contract-data.js";
 import type { FeatureContract } from "./contract-data.js";
 
 export function getDocumentMode(documentMode = document.documentElement?.dataset.mode): string {

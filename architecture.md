@@ -112,9 +112,9 @@ Asset path rule:
 - Doc sync command: `npm run sync:contracts`
 
 ### Routes
-- `index.html`: page id `index`; nav id `index`; required hooks `none`; features `slideshow`, `floating-images`, `screensaver`
-- `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; required hooks `[data-slideplayer-stage]`, `[data-slideplayer-bullets]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; features `slideplayer`, `screensaver`
-- `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; required hooks `none`; features `floating-images`, `screensaver`
+- `index.html`: page id `index`; nav id `index`; hooks `none`; features `slideshow`, `floating-images`, `screensaver`
+- `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; hooks required `[data-slideplayer-stage]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; optional `[data-slideplayer-bullets]`; features `slideplayer`, `screensaver`
+- `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; hooks `none`; features `floating-images`, `screensaver`
 
 ### Features
 - `slideshow`: root `data-feature="slideshow"`; internals `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
@@ -123,7 +123,7 @@ Asset path rule:
 - `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-partial]`
 
 ### Partials
-- `resources/features/screensaver/index.html`: host hook `[data-screensaver-partial]`; features `floating-images`; required hooks `[data-floating-item]`, `class="screensaver-floating"`
+- `resources/features/screensaver/index.html`: host hook `[data-screensaver-partial]`; features `floating-images`; hooks required `[data-floating-item]`, `class="screensaver-floating"`
 
 ### Shared Rules
 - Activity reset inputs: `mousemove`, `wheel`, `keydown`, `pointerdown`, `visibilitychange`

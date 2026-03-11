@@ -51,7 +51,7 @@ export const APP_CONTRACT = {
       page: "index",
       navLabel: "Home",
       featureSelectors: ["slideshow", "floating-images", "screensaver"],
-      requiredHooks: [],
+      hooks: [],
     },
     {
       id: "slideplayer",
@@ -59,12 +59,12 @@ export const APP_CONTRACT = {
       page: "slideplayer",
       navLabel: "Slideplayer",
       featureSelectors: ["slideplayer", "screensaver"],
-      requiredHooks: [
-        "[data-slideplayer-stage]",
-        "[data-slideplayer-bullets]",
-        "[data-slideplayer-prev]",
-        "[data-slideplayer-next]",
-        "[data-slideplayer-slide]",
+      hooks: [
+        { selector: "[data-slideplayer-stage]", presence: "required" },
+        { selector: "[data-slideplayer-prev]", presence: "required" },
+        { selector: "[data-slideplayer-next]", presence: "required" },
+        { selector: "[data-slideplayer-slide]", presence: "required" },
+        { selector: "[data-slideplayer-bullets]", presence: "optional" },
       ],
     },
     {
@@ -73,7 +73,7 @@ export const APP_CONTRACT = {
       page: "floatingimages",
       navLabel: "Floating images",
       featureSelectors: ["floating-images", "screensaver"],
-      requiredHooks: [],
+      hooks: [],
     },
   ],
   partials: [
@@ -82,7 +82,10 @@ export const APP_CONTRACT = {
       file: "resources/features/screensaver/index.html",
       hostHook: "[data-screensaver-partial]",
       featureSelectors: ["floating-images"],
-      requiredHooks: ["[data-floating-item]", 'class="screensaver-floating"'],
+      hooks: [
+        { selector: "[data-floating-item]", presence: "required" },
+        { selector: 'class="screensaver-floating"', presence: "required" },
+      ],
     },
   ],
 };

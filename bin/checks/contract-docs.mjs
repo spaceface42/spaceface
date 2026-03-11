@@ -88,7 +88,7 @@ function renderArchitectureContract(contract) {
   const routes = contract.routes
     .map(
       (route) =>
-        `- \`${route.file}\`: page id \`${route.page}\`; nav id \`${route.id}\`; required hooks ${joinInlineCode(route.requiredHooks ?? [])}; features ${joinInlineCode(route.featureSelectors)}`
+        `- \`${route.file}\`: page id \`${route.page}\`; nav id \`${route.id}\`; hooks ${formatHookSummary(route.hooks ?? [])}; features ${joinInlineCode(route.featureSelectors)}`
     )
     .join("\n");
 
@@ -102,7 +102,7 @@ function renderArchitectureContract(contract) {
   const partials = contract.partials
     .map(
       (partial) =>
-        `- \`${partial.file}\`: host hook \`${partial.hostHook}\`; features ${joinInlineCode(partial.featureSelectors)}; required hooks ${joinInlineCode(partial.requiredHooks)}`
+        `- \`${partial.file}\`: host hook \`${partial.hostHook}\`; features ${joinInlineCode(partial.featureSelectors)}; hooks ${formatHookSummary(partial.hooks)}`
     )
     .join("\n");
 
@@ -134,4 +134,23 @@ function joinInlineCode(values) {
     return "`none`";
   }
   return values.map((value) => `\`${value}\``).join(", ");
+}
+
+function formatHookSummary(hooks) {
+  if (hooks.length === 0) {
+    return "`none`";
+  }
+
+  const required = hooks.filter((hook) => hook.presence === "required").map((hook) => hook.selector);
+  const optional = hooks.filter((hook) => hook.presence === "optional").map((hook) => hook.selector);
+  const parts = [];
+
+  if (required.length > 0) {
+    parts.push(`required ${joinInlineCode(required)}`);
+  }
+  if (optional.length > 0) {
+    parts.push(`optional ${joinInlineCode(optional)}`);
+  }
+
+  return parts.join("; ");
 }

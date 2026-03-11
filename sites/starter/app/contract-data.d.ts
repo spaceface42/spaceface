@@ -6,13 +6,20 @@ export interface FeatureContract {
   singletonNote?: string;
 }
 
+export type HookPresence = "required" | "optional";
+
+export interface HookContract {
+  selector: string;
+  presence: HookPresence;
+}
+
 export interface RouteContract {
   id: string;
   file: string;
   page: string;
   navLabel?: string;
   featureSelectors: string[];
-  requiredHooks?: string[];
+  hooks?: HookContract[];
 }
 
 export interface PartialContract {
@@ -20,7 +27,7 @@ export interface PartialContract {
   file: string;
   hostHook: string;
   featureSelectors: string[];
-  requiredHooks: string[];
+  hooks: HookContract[];
 }
 
 export interface AppContract {

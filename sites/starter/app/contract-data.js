@@ -31,7 +31,7 @@ export const APP_CONTRACT = {
       page: "index",
       navLabel: "Home",
       featureSelectors: ["slideshow", "screensaver"],
-      requiredHooks: [],
+      hooks: [],
     },
   ],
   partials: [
@@ -40,7 +40,7 @@ export const APP_CONTRACT = {
       file: "resources/features/screensaver/index.html",
       hostHook: "[data-screensaver-partial]",
       featureSelectors: ["slideshow"],
-      requiredHooks: ["[data-slide]"],
+      hooks: [{ selector: "[data-slide]", presence: "required" }],
     },
   ],
 };

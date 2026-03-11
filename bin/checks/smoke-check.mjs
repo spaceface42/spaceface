@@ -35,7 +35,7 @@ if (failures.length === 0) {
     for (const selector of route.featureSelectors) {
       assertContains(html, `data-feature="${selector}"`, `${route.file} must mount ${selector} via data-feature`);
     }
-    for (const hook of route.requiredHooks ?? []) {
+    for (const hook of getRequiredHooks(route.hooks ?? [])) {
       assertContains(html, stripHookBrackets(hook), `${route.file} must expose ${hook}`);
     }
     for (const navRoute of navRoutes) {
@@ -49,7 +49,7 @@ if (failures.length === 0) {
     for (const selector of partial.featureSelectors) {
       assertContains(html, `data-feature="${selector}"`, `${partial.file} must mount ${selector} via data-feature`);
     }
-    for (const hook of partial.requiredHooks) {
+    for (const hook of getRequiredHooks(partial.hooks)) {
       assertContains(html, stripHookBrackets(hook), `${partial.file} must expose ${hook}`);
     }
   }
@@ -87,4 +87,8 @@ function stripHookBrackets(hook) {
     return hook.slice(1, -1);
   }
   return hook;
+}
+
+function getRequiredHooks(hooks) {
+  return hooks.filter((hook) => hook.presence === "required").map((hook) => hook.selector);
 }
