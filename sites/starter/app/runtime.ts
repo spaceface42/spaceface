@@ -13,6 +13,7 @@ export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
         new ScreensaverFeature({
           idleMs: APP_CONTRACT.defaults.screensaverIdleMs,
           partialUrl: APP_CONTRACT.defaults.screensaverPartialUrl,
+          partialAssetAttributes: APP_CONTRACT.partialAssetAttributes,
         }),
     },
     {

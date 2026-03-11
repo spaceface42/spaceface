@@ -12,6 +12,7 @@ import { loadPartialHtml } from "../../core/partials.js";
 export interface ScreensaverFeatureOptions {
   idleMs?: number;
   partialUrl?: string;
+  partialAssetAttributes?: string[];
 }
 
 export class ScreensaverFeature implements Feature {
@@ -32,6 +33,7 @@ export class ScreensaverFeature implements Feature {
     this.options = {
       idleMs: options.idleMs ?? 60000,
       partialUrl: options.partialUrl ?? "",
+      partialAssetAttributes: options.partialAssetAttributes ?? ["src", "poster", "data-src"],
     };
   }
 
@@ -164,6 +166,7 @@ export class ScreensaverFeature implements Feature {
       const html = await loadPartialHtml(this.options.partialUrl, {
         cache: true,
         signal: controller.signal,
+        assetAttributes: this.options.partialAssetAttributes,
       });
       if (requestId !== this.showRequestId || !this.target || this.target !== target) {
         return false;

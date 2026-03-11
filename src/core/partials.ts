@@ -1,13 +1,13 @@
-import { APP_CONTRACT } from "../../sites/spaceface/app/contract.js";
-
 const partialCache = new Map<string, string>();
 const MAX_PARTIAL_CACHE_SIZE = 10;
-const ASSET_ATTR_PATTERN = createAssetAttrPattern(APP_CONTRACT.partialAssetAttributes);
 const STYLESHEET_HREF_PATTERN = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=)(["'])([^"']+)\2/gi;
+const DEFAULT_PARTIAL_ASSET_ATTRIBUTES = ["src", "poster", "data-src"] as const;
+const assetAttrPatternCache = new Map<string, RegExp>();
 
 export interface LoadPartialOptions {
   cache?: boolean;
   signal?: AbortSignal;
+  assetAttributes?: string[];
 }
 
 export async function loadPartialHtml(url: string, options: LoadPartialOptions = {}): Promise<string> {
@@ -34,7 +34,7 @@ export async function loadPartialHtml(url: string, options: LoadPartialOptions =
   }
 
   const rawHtml = await response.text();
-  const html = rebasePartialAssetUrls(rawHtml, resolvedUrl);
+  const html = rebasePartialAssetUrls(rawHtml, resolvedUrl, options.assetAttributes ?? [...DEFAULT_PARTIAL_ASSET_ATTRIBUTES]);
   if (useCache) {
     partialCache.set(resolvedUrl, html);
     if (partialCache.size > MAX_PARTIAL_CACHE_SIZE) {
@@ -45,8 +45,9 @@ export async function loadPartialHtml(url: string, options: LoadPartialOptions =
   return html;
 }
 
-function rebasePartialAssetUrls(html: string, baseUrl: string): string {
-  let rebased = html.replace(ASSET_ATTR_PATTERN, (fullMatch, quote: string, value: string) => {
+function rebasePartialAssetUrls(html: string, baseUrl: string, assetAttributes: string[]): string {
+  const assetAttrPattern = getAssetAttrPattern(assetAttributes);
+  let rebased = html.replace(assetAttrPattern, (fullMatch, quote: string, value: string) => {
     const nextValue = rebaseRelativeUrl(value, baseUrl);
     return nextValue === value ? fullMatch : fullMatch.replace(value, nextValue);
   });
@@ -60,6 +61,29 @@ function rebasePartialAssetUrls(html: string, baseUrl: string): string {
   );
 
   return rebased;
+}
+
+function getAssetAttrPattern(attributeNames: string[]): RegExp {
+  const normalized = normalizeAttributeNames(attributeNames);
+  const cacheKey = normalized.join("|");
+  const cached = assetAttrPatternCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const pattern = createAssetAttrPattern(normalized);
+  assetAttrPatternCache.set(cacheKey, pattern);
+  return pattern;
+}
+
+function normalizeAttributeNames(attributeNames: string[]): string[] {
+  const unique = new Set<string>();
+  for (const attributeName of attributeNames) {
+    const nextValue = attributeName.trim().toLowerCase();
+    if (!nextValue) continue;
+    unique.add(nextValue);
+  }
+  return unique.size > 0 ? Array.from(unique) : [...DEFAULT_PARTIAL_ASSET_ATTRIBUTES];
 }
 
 function rebaseRelativeUrl(value: string, baseUrl: string): string {
