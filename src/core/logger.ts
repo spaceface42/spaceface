@@ -1,13 +1,16 @@
 export type LogLevel = "debug" | "info" | "warn" | "error";
 export type UnsubscribeFn = () => void;
+export type LogScopeMatcher = "any" | string | RegExp;
 
-interface LogEntry {
+export interface LogEntry {
   scope: string;
   level: LogLevel;
   message: string;
   data?: unknown;
   time: number;
 }
+
+export type LogListener = (entry: LogEntry) => void;
 
 export interface Logger {
   child(scope: string): Logger;
@@ -23,7 +26,7 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
   warn: 30,
   error: 40,
 };
-const logSinks = new Set<(entry: LogEntry) => void>();
+const logSinks = new Set<LogListener>();
 
 export function createLogger(scope: string, level: LogLevel): Logger {
   const canLog = (candidate: LogLevel) => LEVEL_ORDER[candidate] >= LEVEL_ORDER[level];
@@ -56,7 +59,6 @@ export function createLogger(scope: string, level: LogLevel): Logger {
 }
 
 export function attachConsoleLogSink(minLevel: LogLevel = "debug"): UnsubscribeFn {
-  const canLog = (candidate: LogLevel) => LEVEL_ORDER[candidate] >= LEVEL_ORDER[minLevel];
   const write = (method: "log" | "warn" | "error", entry: LogEntry): void => {
     const prefix = `[${entry.scope}] [${entry.level.toUpperCase()}]`;
     if (entry.data === undefined) {
@@ -67,7 +69,6 @@ export function attachConsoleLogSink(minLevel: LogLevel = "debug"): UnsubscribeF
   };
 
   const sink = (entry: LogEntry): void => {
-    if (!canLog(entry.level)) return;
     if (entry.level === "error") {
       write("error", entry);
       return;
@@ -78,8 +79,33 @@ export function attachConsoleLogSink(minLevel: LogLevel = "debug"): UnsubscribeF
     }
     write("log", entry);
   };
+  return subscribeLogs("any", sink, minLevel);
+}
+
+export function subscribeLogs(
+  matcher: LogScopeMatcher,
+  listener: LogListener,
+  minLevel: LogLevel = "debug"
+): UnsubscribeFn {
+  const canLog = (candidate: LogLevel) => LEVEL_ORDER[candidate] >= LEVEL_ORDER[minLevel];
+  const sink: LogListener = (entry) => {
+    if (!canLog(entry.level)) return;
+    if (!matchesScope(matcher, entry.scope)) return;
+    listener(entry);
+  };
+
   logSinks.add(sink);
   return () => {
     logSinks.delete(sink);
   };
+}
+
+function matchesScope(matcher: LogScopeMatcher, scope: string): boolean {
+  if (matcher === "any") {
+    return true;
+  }
+  if (matcher instanceof RegExp) {
+    return matcher.test(scope);
+  }
+  return scope === matcher || scope.startsWith(`${matcher}:`);
 }

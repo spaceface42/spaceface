@@ -4,13 +4,18 @@ import {
   attachConsoleLogSink,
   createLogger,
   initActivityTracking,
+  subscribeLogs,
   type LogLevel,
 } from "../../../src/spaceface.js";
 import { APP_CONTRACT, getDefaultLogLevel, getDocumentMode } from "./contract.js";
 import { createRuntimeFeatureDefinitions } from "./runtime.js";
 
 const DEFAULT_LOG_LEVEL: LogLevel = getDefaultLogLevel(getDocumentMode());
-const logger = createLogger("spaceface", DEFAULT_LOG_LEVEL);
+const logger = createLogger("MU/TH/UR", DEFAULT_LOG_LEVEL);
+
+//const unsubscribe = subscribeLogs("any", (entry) => {
+//  console.log("saw log", entry.scope, entry.level, entry.message, entry.data);
+//});
 
 function main(): void {
   attachConsoleLogSink(DEFAULT_LOG_LEVEL);

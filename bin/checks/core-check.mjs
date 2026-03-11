@@ -10,11 +10,13 @@ await runBundledCheck(
     contents: `
       export { createSignal, createEffect } from "./src/core/signals.ts";
       export { FrameScheduler } from "./src/core/scheduler.ts";
+      export { createLogger, subscribeLogs } from "./src/core/logger.ts";
     `,
   },
   (runtime) => {
   testSignalRecovery(runtime.createSignal, runtime.createEffect);
   testSchedulerIsolation(runtime.FrameScheduler);
+  testLoggerSubscriptions(runtime.createLogger, runtime.subscribeLogs);
   }
 );
 
@@ -108,4 +110,28 @@ function testSchedulerIsolation(FrameScheduler) {
     globalThis.requestAnimationFrame = originalRaf;
     globalThis.cancelAnimationFrame = originalCancelRaf;
   }
+}
+
+function testLoggerSubscriptions(createLogger, subscribeLogs) {
+  const logger = createLogger("test", "debug");
+  const anyEntries = [];
+  const childEntries = [];
+
+  const detachAny = subscribeLogs("any", (entry) => {
+    anyEntries.push(entry);
+  });
+  const detachChild = subscribeLogs("test:child", (entry) => {
+    childEntries.push(entry);
+  });
+
+  logger.debug("boot");
+  logger.child("child").info("nested");
+
+  detachAny();
+  detachChild();
+
+  assert.equal(anyEntries.length, 2, '"any" listener should receive every emitted log entry');
+  assert.equal(childEntries.length, 1, "scope listener should receive matching child-scope entries");
+  assert.equal(childEntries[0].scope, "test:child");
+  assert.equal(childEntries[0].message, "nested");
 }

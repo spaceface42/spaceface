@@ -9,8 +9,12 @@ export {
 export {
   attachConsoleLogSink,
   createLogger,
+  subscribeLogs,
+  type LogEntry,
   type LogLevel,
   type Logger,
+  type LogListener,
+  type LogScopeMatcher,
 } from "./core/logger.js";
 
 export { initActivityTracking, destroyActivityTracking } from "./features/shared/activity.js";

@@ -6,10 +6,19 @@ const inputDir = path.resolve(process.cwd(), process.env.DOCS_SRC_DIR ?? process
 const outputDir = path.resolve(process.cwd(), process.env.DOCS_OUT_DIR ?? process.env.PUBLIC_OUT_DIR ?? APP_CONTRACT.outputDir);
 const ASSET_ATTR_PATTERN = createAssetAttrPattern(APP_CONTRACT.partialAssetAttributes);
 const STYLESHEET_HREF_PATTERN = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=)(["'])([^"']+)\2/gi;
+const buildStats = {
+  htmlFiles: 0,
+  staticFiles: 0,
+  partialIncludes: 0,
+};
 
+console.log(`[build:html] source ${relPath(inputDir)} -> ${relPath(outputDir)}`);
 await fs.rm(outputDir, { recursive: true, force: true });
 await fs.mkdir(outputDir, { recursive: true });
 await copyTree(inputDir, outputDir);
+console.log(
+  `[build:html] OK (${buildStats.htmlFiles} html, ${buildStats.staticFiles} assets, ${buildStats.partialIncludes} partial includes)`
+);
 
 async function copyTree(fromDir, toDir) {
   const entries = await fs.readdir(fromDir, { withFileTypes: true });
@@ -29,11 +38,14 @@ async function copyTree(fromDir, toDir) {
     if (entry.isFile() && entry.name.endsWith(".html")) {
       const rendered = await renderHtmlWithIncludes(srcPath, inputDir, new Set());
       await fs.writeFile(outPath, rendered, "utf8");
+      buildStats.htmlFiles += 1;
+      console.log(`[build:html] rendered ${relPath(outPath)}`);
       continue;
     }
 
     if (entry.isFile()) {
       await fs.copyFile(srcPath, outPath);
+      buildStats.staticFiles += 1;
     }
   }
 }
@@ -57,6 +69,8 @@ async function renderHtmlWithIncludes(filePath, rootDir, stack) {
     if (!includePath.startsWith(rootDir)) {
       throw new Error(`Include path escapes root: ${rawInclude} in ${filePath}`);
     }
+    buildStats.partialIncludes += 1;
+    console.log(`[build:html] include ${relPath(includePath)} -> ${relPath(filePath)}`);
     const included = rebaseEmbeddedAssetUrls(
       await renderHtmlWithIncludes(includePath, rootDir, stack),
       includePath,
@@ -80,6 +94,8 @@ async function renderHtmlWithIncludes(filePath, rootDir, stack) {
     if (!includePath.startsWith(rootDir)) {
       throw new Error(`Include path escapes root: ${rawInclude} in ${filePath}`);
     }
+    buildStats.partialIncludes += 1;
+    console.log(`[build:html] include ${relPath(includePath)} -> ${relPath(filePath)}`);
     const included = rebaseEmbeddedAssetUrls(
       await renderHtmlWithIncludes(includePath, rootDir, stack),
       includePath,
@@ -134,4 +150,9 @@ function createAssetAttrPattern(attributeNames) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function relPath(value) {
+  const relativePath = path.relative(process.cwd(), value).split(path.sep).join("/");
+  return relativePath.length > 0 ? relativePath : ".";
 }
