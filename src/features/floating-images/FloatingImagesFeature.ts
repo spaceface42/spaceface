@@ -39,6 +39,7 @@ export class FloatingImagesFeature implements Feature {
   private hoveredItem: HTMLElement | null = null;
   private bounds = { width: 0, height: 0 };
   private resizeRafId: number | null = null;
+  private resizeObserver?: ResizeObserver;
   private intersectionObserver?: IntersectionObserver;
   private unsubScheduler?: () => void;
   private cleanupEffect?: () => void;
@@ -98,6 +99,7 @@ export class FloatingImagesFeature implements Feature {
     }
 
     this.bounds = this.readBounds();
+    this.attachResizeObserver();
     window.addEventListener("resize", this.onResize, { passive: true });
     this.attachViewportObserver();
     this.updateAnimationState();
@@ -117,6 +119,8 @@ export class FloatingImagesFeature implements Feature {
     }
 
     window.removeEventListener("resize", this.onResize);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
     this.intersectionObserver?.disconnect();
     this.intersectionObserver = undefined;
 
@@ -283,9 +287,12 @@ export class FloatingImagesFeature implements Feature {
         y = randomBetween(0, maxY);
       }
 
-      const direction = index % 2 === 0 ? 1 : -1;
-      const jitter = (index % 3) * 0.08;
-      const speedVariance = randomBetween(0.8, 1.2);
+      const motionLane = index % 4;
+      const baseAngleDeg = motionLane === 0 ? -38 : motionLane === 1 ? 142 : motionLane === 2 ? -58 : 122;
+      const angleDeg = baseAngleDeg + randomBetween(-10, 10);
+      const angleRad = (angleDeg * Math.PI) / 180;
+      const laneSpeedMultiplier = motionLane === 0 ? 0.9 : motionLane === 1 ? 1 : motionLane === 2 ? 1.12 : 1.22;
+      const speed = this.options.baseSpeed * laneSpeedMultiplier * randomBetween(0.88, 1.16);
 
       el.style.position = "absolute";
       el.style.left = "0";
@@ -302,8 +309,8 @@ export class FloatingImagesFeature implements Feature {
         el,
         x,
         y,
-        vx: this.options.baseSpeed * (1 + jitter) * speedVariance * direction,
-        vy: this.options.baseSpeed * (0.65 + jitter) * speedVariance * -direction,
+        vx: Math.cos(angleRad) * speed,
+        vy: Math.sin(angleRad) * speed,
         width,
         height,
         speedMultiplier: 1,
@@ -341,6 +348,15 @@ export class FloatingImagesFeature implements Feature {
       }
     });
   };
+
+  private attachResizeObserver(): void {
+    if (!this.container) return;
+    if (typeof ResizeObserver === "undefined") return;
+    this.resizeObserver = new ResizeObserver(() => {
+      this.onResize();
+    });
+    this.resizeObserver.observe(this.container);
+  }
 
   private readBounds(): { width: number; height: number } {
     if (!this.container) return { width: 0, height: 0 };

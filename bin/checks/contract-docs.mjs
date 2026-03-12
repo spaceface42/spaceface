@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { APP_CONTRACT } from "../../sites/spaceface/app/contract-data.js";
+import { APP_CONTRACT } from "../../app/contract-data.js";
 
 const root = process.cwd();
 const writeMode = process.argv.includes("--write");
@@ -108,9 +108,9 @@ function renderArchitectureContract(contract) {
 
   return [
     "### Source Of Truth",
-    "- Shared contract data: [`sites/spaceface/app/contract-data.js`](./sites/spaceface/app/contract-data.js)",
-    "- TypeScript helpers: [`sites/spaceface/app/contract.ts`](./sites/spaceface/app/contract.ts)",
-    "- Runtime registration: [`sites/spaceface/app/runtime.ts`](./sites/spaceface/app/runtime.ts)",
+    "- Shared contract data: [`app/contract-data.js`](./app/contract-data.js)",
+    "- TypeScript helpers: [`app/contract.ts`](./app/contract.ts)",
+    "- Runtime registration: [`app/runtime.ts`](./app/runtime.ts)",
     "- Doc sync command: `npm run sync:contracts`",
     "",
     "### Routes",

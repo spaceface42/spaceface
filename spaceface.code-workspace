@@ -9,8 +9,12 @@
             "path": "docs",
         },
         {
-            "name": "site",
-            "path": "sites/spaceface",
+            "name": "public",
+            "path": "public",
+        },
+        {
+            "name": "app",
+            "path": "app",
         },
         {
             "name": "src",

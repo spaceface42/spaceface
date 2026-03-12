@@ -7,11 +7,11 @@ This document describes the current runtime, not the older router-era experiment
 Spaceface is:
 
 - a static-page runtime
-- authored in `sites/<site>/public/`
+- authored in `public/`
 - generated into `docs/`
 - activated from `data-feature="..."`
-- driven by shared contract data in the active site's `app/contract-data.js`
-- separated into a site app layer in `sites/<site>/` and runtime internals in `src/`
+- driven by shared contract data in `app/contract-data.js`
+- separated into authored markup in `public/`, app wiring in `app/`, and runtime internals in `src/`
 
 Spaceface is not:
 
@@ -22,7 +22,7 @@ Spaceface is not:
 
 ## Boot Flow
 
-The current composition root is [`sites/spaceface/app/main.ts`](./sites/spaceface/app/main.ts).
+The current composition root is [`app/main.ts`](./app/main.ts).
 
 Startup does four things:
 
@@ -31,13 +31,13 @@ Startup does four things:
 3. start shared activity tracking
 4. register and start contract-defined features
 
-Each site app reaches runtime code through the public API in [`src/spaceface.ts`](./src/spaceface.ts), not by importing deep internal paths.
+The app layer reaches runtime code through the public API in [`src/spaceface.ts`](./src/spaceface.ts), not by importing deep internal paths.
 
 Current repo behavior:
 
-- `sites/spaceface/` is the active build target
-- `sites/starter/` is a second-site skeleton only
-- there is still no site discovery or multi-site build orchestration
+- `public/` is the authored site tree
+- `docs/` is generated output
+- multi-site scaffolding has been removed on purpose
 
 ## Core Runtime Pieces
 
@@ -106,9 +106,9 @@ Asset path rule:
 
 <!-- CONTRACT:ARCH:START -->
 ### Source Of Truth
-- Shared contract data: [`sites/spaceface/app/contract-data.js`](./sites/spaceface/app/contract-data.js)
-- TypeScript helpers: [`sites/spaceface/app/contract.ts`](./sites/spaceface/app/contract.ts)
-- Runtime registration: [`sites/spaceface/app/runtime.ts`](./sites/spaceface/app/runtime.ts)
+- Shared contract data: [`app/contract-data.js`](./app/contract-data.js)
+- TypeScript helpers: [`app/contract.ts`](./app/contract.ts)
+- Runtime registration: [`app/runtime.ts`](./app/runtime.ts)
 - Doc sync command: `npm run sync:contracts`
 
 ### Routes
@@ -118,7 +118,7 @@ Asset path rule:
 
 ### Features
 - `slideshow`: root `data-feature="slideshow"`; internals `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
-- `slideplayer`: root `data-feature="slideplayer"`; internals `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; singleton note: One slideplayer per page is the intended authored pattern.
+- `slideplayer`: root `data-feature="slideplayer"`; internals `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; singleton note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; internals `[data-floating-item]`
 - `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-partial]`
 
@@ -150,7 +150,8 @@ The screensaver does not directly instantiate child features. It relies on the r
 
 Deliberate current constraint:
 
-- one slideplayer per page is the intended authored pattern
+- one slideplayer per page is the enforced authored pattern
+- smoke validation fails duplicate mounts and runtime warns if an extra instance is mounted anyway
 - document-level keyboard handling is therefore acceptable and kept on purpose
 
 ### Floating Images

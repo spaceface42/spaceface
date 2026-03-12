@@ -69,12 +69,15 @@ async function run() {
       testSlideshowScreensaverPause(runtime);
       testSlidePlayerScreensaverPause(runtime);
       testSlidePlayerKeyboardNavigation(runtime);
+      testSlidePlayerSingletonKeyboardBinding(runtime);
       testSlidePlayerSwipeNavigation(runtime);
       testSlidePlayerTouchSwipeNavigation(runtime);
       await testActivityTracking(runtime);
       await testScreensaverLoadFailure(runtime);
       await testScreensaverLoadAbort(runtime);
+      await testScreensaverHideWaitsForTransitionDelay(runtime);
       await testFloatingImagesScreensaverPause(runtime);
+      await testFloatingImagesContainerResize(runtime);
       await testFloatingImagesAsyncDestroy(runtime);
     }
   );
@@ -370,6 +373,42 @@ function testSlidePlayerKeyboardNavigation(runtime) {
   restoreDomGlobals();
 }
 
+function testSlidePlayerSingletonKeyboardBinding(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const firstRoot = createSlidePlayerRoot();
+  const secondRoot = createSlidePlayerRoot();
+  body.append(firstRoot);
+  body.append(secondRoot);
+
+  runtime.screensaverActiveSignal.value = false;
+  const firstFeature = new runtime.SlidePlayerFeature({ autoplayMs: 0 });
+  const secondFeature = new runtime.SlidePlayerFeature({ autoplayMs: 0 });
+  firstFeature.mount(firstRoot);
+  secondFeature.mount(secondRoot);
+
+  assert.equal((documentListeners.get("keydown") ?? []).length, 1, "only one slideplayer should bind the global keyboard handler");
+
+  dispatchDocumentEvent("keydown", {
+    key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {},
+    target: firstRoot,
+  });
+
+  assert.equal(activeIndex(firstRoot, "[data-slideplayer-slide]"), 1, "the first slideplayer should retain global keyboard ownership");
+  assert.equal(activeIndex(secondRoot, "[data-slideplayer-slide]"), 0, "duplicate slideplayers must not bind a second global keyboard handler");
+
+  secondFeature.destroy();
+  firstFeature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
+}
+
 function testSlidePlayerSwipeNavigation(runtime) {
   const body = new FakeElement("body");
   installDomGlobals(body);
@@ -463,8 +502,7 @@ async function testScreensaverLoadFailure(runtime) {
 
     feature.mount(root);
     clock.advance(100);
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushMicrotasks(4);
 
     assert.equal(root.hidden, true, "screensaver host should stay hidden when the partial fails to load");
     assert.equal(root.classList.contains("is-active"), false, "screensaver host should not activate on partial load failure");
@@ -512,8 +550,7 @@ async function testScreensaverLoadAbort(runtime) {
     feature.mount(root);
     clock.advance(100);
     runtime.userActivitySignal.value = 1;
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushMicrotasks(2);
 
     assert.equal(aborts, 1, "screensaver activity reset should abort an in-flight partial load");
     assert.equal(runtime.screensaverActiveSignal.value, false, "aborted screensaver loads must not activate the shared pause state");
@@ -524,6 +561,37 @@ async function testScreensaverLoadAbort(runtime) {
     runtime.screensaverActiveSignal.value = false;
     clock.restore();
     restoreDomGlobals();
+  }
+}
+
+async function testScreensaverHideWaitsForTransitionDelay(runtime) {
+  const clock = installFakeClock();
+  const originalGetComputedStyle = globalThis.getComputedStyle;
+
+  globalThis.window.getComputedStyle = () => ({
+    transitionDuration: "200ms",
+    transitionDelay: "150ms",
+  });
+  globalThis.getComputedStyle = globalThis.window.getComputedStyle;
+
+  try {
+    const root = new FakeElement("div", { "data-screensaver": "true" });
+    const feature = new runtime.ScreensaverFeature();
+    feature.target = root;
+    feature.isShowing = true;
+    feature.partialLoaded = true;
+
+    feature.hideScreensaver();
+    clock.advance(300);
+    assert.equal(root.hidden, false, "screensaver should stay visible until delay plus duration has elapsed");
+
+    clock.advance(60);
+    assert.equal(root.hidden, true, "screensaver should hide after delay plus duration completes");
+    assert.equal(feature.partialLoaded, false, "screensaver hide cleanup should reset the partial loaded flag");
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    globalThis.getComputedStyle = originalGetComputedStyle;
+    clock.restore();
   }
 }
 
@@ -603,6 +671,37 @@ async function testFloatingImagesScreensaverPause(runtime) {
     runtime.screensaverActiveSignal.value = true;
     assert.equal(unsubscribers[0].calls, 0, "screensaver-owned floating images must keep running during screensaver activity");
     screensaverFeature.destroy();
+  } finally {
+    runtime.globalScheduler.add = originalAdd;
+    runtime.screensaverActiveSignal.value = false;
+    restoreFloatingWindow();
+  }
+}
+
+async function testFloatingImagesContainerResize(runtime) {
+  const floatingWindow = installWindowForFloatingImages();
+  runtime.__setWaitForImagesReady(async () => []);
+  const originalAdd = runtime.globalScheduler.add.bind(runtime.globalScheduler);
+  runtime.globalScheduler.add = () => () => {};
+
+  try {
+    const root = createFloatingRoot();
+    const feature = new runtime.FloatingImagesFeature();
+    await feature.mount(root);
+
+    assert.equal(feature.bounds.width, 320, "floating images should read initial container width on mount");
+    assert.equal(feature.bounds.height, 240, "floating images should read initial container height on mount");
+    assert.equal(floatingWindow.resizeObservers.length, 1, "floating images should observe container size changes");
+
+    root.clientWidth = 480;
+    root.clientHeight = 360;
+    floatingWindow.resizeObservers[0].trigger();
+
+    assert.equal(feature.bounds.width, 480, "container-only resize should refresh floating image bounds width");
+    assert.equal(feature.bounds.height, 360, "container-only resize should refresh floating image bounds height");
+
+    feature.destroy();
+    assert.equal(floatingWindow.resizeObservers[0].disconnectCalls, 1, "destroy should disconnect the resize observer");
   } finally {
     runtime.globalScheduler.add = originalAdd;
     runtime.screensaverActiveSignal.value = false;
@@ -706,12 +805,15 @@ let originalWindow;
 let originalGetComputedStyle;
 let originalRequestAnimationFrame;
 let originalCancelAnimationFrame;
+let originalResizeObserver;
 
 function installWindowForFloatingImages() {
   originalWindow = globalThis.window;
   originalGetComputedStyle = globalThis.getComputedStyle;
   originalRequestAnimationFrame = globalThis.requestAnimationFrame;
   originalCancelAnimationFrame = globalThis.cancelAnimationFrame;
+  originalResizeObserver = globalThis.ResizeObserver;
+  const resizeObservers = [];
 
   globalThis.window = {
     addEventListener() {},
@@ -725,6 +827,28 @@ function installWindowForFloatingImages() {
     return 1;
   };
   globalThis.cancelAnimationFrame = () => {};
+  globalThis.ResizeObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+      this.disconnectCalls = 0;
+      resizeObservers.push(this);
+    }
+
+    observe(target) {
+      this.target = target;
+    }
+
+    disconnect() {
+      this.disconnectCalls += 1;
+    }
+
+    trigger(entries) {
+      const observedTarget = this.target ?? null;
+      this.callback(entries ?? (observedTarget ? [{ target: observedTarget }] : []));
+    }
+  };
+
+  return { resizeObservers };
 }
 
 function restoreFloatingWindow() {
@@ -732,6 +856,7 @@ function restoreFloatingWindow() {
   globalThis.getComputedStyle = originalGetComputedStyle;
   globalThis.requestAnimationFrame = originalRequestAnimationFrame;
   globalThis.cancelAnimationFrame = originalCancelAnimationFrame;
+  globalThis.ResizeObserver = originalResizeObserver;
 }
 
 function installFakeClock() {
@@ -829,6 +954,12 @@ function spy() {
   };
   fn.calls = 0;
   return fn;
+}
+
+async function flushMicrotasks(count = 1) {
+  for (let i = 0; i < count; i += 1) {
+    await Promise.resolve();
+  }
 }
 
 class FakeElement {

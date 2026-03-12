@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { APP_CONTRACT } from "../sites/spaceface/app/contract-data.js";
+import { APP_CONTRACT } from "../app/contract-data.js";
 
 const inputDir = path.resolve(process.cwd(), process.env.DOCS_SRC_DIR ?? process.env.PUBLIC_IN_DIR ?? APP_CONTRACT.sourceDir);
 const outputDir = path.resolve(process.cwd(), process.env.DOCS_OUT_DIR ?? process.env.PUBLIC_OUT_DIR ?? APP_CONTRACT.outputDir);

@@ -1,32 +1,40 @@
+// app/main.ts
 import {
   FeatureRegistry,
   attachConsoleLogSink,
   createLogger,
   initActivityTracking,
   type LogLevel,
-} from "../../../src/spaceface.js";
+} from "../src/spaceface.js";
 import { APP_CONTRACT, getDefaultLogLevel, getDocumentMode } from "./contract.js";
 import { createRuntimeFeatureDefinitions } from "./runtime.js";
 
 const DEFAULT_LOG_LEVEL: LogLevel = getDefaultLogLevel(getDocumentMode());
-const logger = createLogger("starter", DEFAULT_LOG_LEVEL);
+const logger = createLogger("MU/TH/UR", DEFAULT_LOG_LEVEL);
 
 function main(): void {
   attachConsoleLogSink(DEFAULT_LOG_LEVEL);
   logger.info("boot start", { mode: getDocumentMode(), app: APP_CONTRACT.name });
 
   applyCurrentNavState();
+
+  // 1. Initialize Global Shared Signals/Activity
   initActivityTracking();
 
+  // 2. Initialize Global Feature Registry
   const registry = new FeatureRegistry({ logger: logger.child("features") });
+
+  // 3. Register Features from the app contract
   for (const definition of createRuntimeFeatureDefinitions()) {
     registry.register(definition);
   }
 
+  // 4. Start DOM Observation
   registry.start();
   logger.info("boot complete");
 }
 
+// Boot
 try {
   main();
 } catch (error) {

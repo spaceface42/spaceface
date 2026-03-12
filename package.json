@@ -1,6 +1,6 @@
 {
     "name": "spaceface",
-    "version": "3.0.0-b",
+    "version": "4.0.0",
     "type": "module",
     "devDependencies": {
         "@eslint/js": "^9.39.3",
@@ -14,8 +14,8 @@
         "build": "npm run build:prod",
         "build:dev": "npm run build:html && npm run build:js:dev",
         "build:prod": "npm run build:html && npm run build:js:prod",
-        "build:js:dev": "esbuild ./sites/spaceface/app/main.ts --bundle --format=esm --target=es2022 --sourcemap --outfile=./docs/bin/app.js",
-        "build:js:prod": "esbuild ./sites/spaceface/app/main.ts --bundle --format=esm --target=es2022 --minify --outfile=./docs/bin/app.js",
+        "build:js:dev": "esbuild ./app/main.ts --bundle --format=esm --target=es2022 --sourcemap --outfile=./docs/bin/app.js",
+        "build:js:prod": "esbuild ./app/main.ts --bundle --format=esm --target=es2022 --minify --outfile=./docs/bin/app.js",
         "build:html": "node ./bin/build-public-html.mjs",
         "build:docs": "npm run build:dev",
         "build:docs:prod": "npm run build:prod",

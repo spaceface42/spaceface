@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { APP_CONTRACT } from "../../sites/spaceface/app/contract-data.js";
+import { APP_CONTRACT } from "../../app/contract-data.js";
 
 const root = process.cwd();
 const bundlePath = resolve(root, APP_CONTRACT.outputDir, "bin/app.js");
@@ -35,6 +35,13 @@ if (failures.length === 0) {
     for (const selector of route.featureSelectors) {
       assertContains(html, `data-feature="${selector}"`, `${route.file} must mount ${selector} via data-feature`);
     }
+    for (const feature of APP_CONTRACT.features) {
+      if (!feature.singletonNote) continue;
+      const count = countFeatureMounts(html, feature.selector);
+      if (count > 1) {
+        failures.push(`${route.file} must mount at most one ${feature.selector}; found ${count}`);
+      }
+    }
     for (const hook of getRequiredHooks(route.hooks ?? [])) {
       assertContains(html, stripHookBrackets(hook), `${route.file} must expose ${hook}`);
     }
@@ -56,7 +63,7 @@ if (failures.length === 0) {
 
   assertContains(bundle, "FeatureRegistry", "bundle should include FeatureRegistry runtime");
   assertContains(bundle, APP_CONTRACT.defaults.screensaverPartialUrl.replace(/^\.\//, ""), "bundle should reference the screensaver partial");
-  assertContains(bundle, "sites/spaceface/app/main.ts", "bundle sourcemap path should reflect the app entrypoint");
+  assertContains(bundle, "app/main.ts", "bundle sourcemap path should reflect the app entrypoint");
   for (const feature of APP_CONTRACT.features) {
     assertContains(bundle, `"${feature.selector}"`, `bundle should include ${feature.selector} feature wiring`);
   }
@@ -91,4 +98,15 @@ function stripHookBrackets(hook) {
 
 function getRequiredHooks(hooks) {
   return hooks.filter((hook) => hook.presence === "required").map((hook) => hook.selector);
+}
+
+function countFeatureMounts(html, featureId) {
+  const attrPattern = /\bdata-feature\s*=\s*(["'])([^"']+)\1/gi;
+  let count = 0;
+  let match;
+  while ((match = attrPattern.exec(html)) !== null) {
+    const featureIds = match[2].trim().split(/\s+/).filter(Boolean);
+    count += featureIds.filter((id) => id === featureId).length;
+  }
+  return count;
 }

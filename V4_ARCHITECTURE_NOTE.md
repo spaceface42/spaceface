@@ -6,7 +6,7 @@ The goal for a v4 iteration should be to keep the system small, make the contrac
 
 ## Keep
 
-- Keep `sites/spaceface/public/` as the authored source of truth and `docs/` as generated output.
+- Keep `public/` as the authored source of truth and `docs/` as generated output.
 - Keep static pages as the primary delivery model.
 - Keep feature activation from `data-feature="..."`.
 - Keep feature modules DOM-first, with explicit `mount(...)` and `destroy()` boundaries.

@@ -1,6 +1,6 @@
 export const APP_CONTRACT = {
   name: "Spaceface",
-  sourceDir: "sites/spaceface/public",
+  sourceDir: "public",
   outputDir: "docs",
   defaults: {
     screensaverIdleMs: 6000,
@@ -29,7 +29,7 @@ export const APP_CONTRACT = {
         "[data-slideplayer-bullets]",
         "[data-slideplayer-bullet]",
       ],
-      singletonNote: "One slideplayer per page is the intended authored pattern.",
+      singletonNote: "Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.",
     },
     {
       id: "floating-images",

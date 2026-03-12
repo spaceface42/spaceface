@@ -212,11 +212,20 @@ export class ScreensaverFeature implements Feature {
   private getTransitionDurationMs(element: HTMLElement): number {
     if (typeof window === "undefined") return 360;
     const style = window.getComputedStyle(element);
-    const duration = style.transitionDuration;
-    if (!duration) return 360;
+    const durations = parseTransitionTimeList(style.transitionDuration);
+    if (durations.length === 0) return 360;
 
-    const maxDelay = Math.max(...duration.split(",").map((s) => parseFloat(s) * (s.includes("ms") ? 1 : 1000)));
-    return isNaN(maxDelay) ? 360 : maxDelay;
+    const delays = parseTransitionTimeList(style.transitionDelay);
+    const count = Math.max(durations.length, delays.length, 1);
+    let maxTotal = 0;
+
+    for (let i = 0; i < count; i += 1) {
+      const duration = durations[i % durations.length] ?? 0;
+      const delay = delays.length > 0 ? (delays[i % delays.length] ?? 0) : 0;
+      maxTotal = Math.max(maxTotal, duration + delay);
+    }
+
+    return Number.isFinite(maxTotal) ? maxTotal : 360;
   }
 }
 
@@ -227,4 +236,19 @@ function isAbortError(error: unknown): boolean {
     "name" in error &&
     (error as { name?: unknown }).name === "AbortError"
   );
+}
+
+function parseTransitionTimeList(value: string): number[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((entry) => parseTransitionTimeMs(entry.trim()))
+    .filter((entry) => Number.isFinite(entry));
+}
+
+function parseTransitionTimeMs(value: string): number {
+  if (!value) return Number.NaN;
+  const numericValue = Number.parseFloat(value);
+  if (Number.isNaN(numericValue)) return Number.NaN;
+  return value.endsWith("ms") ? numericValue : numericValue * 1000;
 }

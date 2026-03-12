@@ -1,6 +1,6 @@
 # Spaceface
 
-Spaceface is a small TypeScript runtime for static pages authored in `sites/<site>/public/` and generated into `docs/`.
+Spaceface is a small TypeScript runtime for static pages authored in `public/` and generated into `docs/`.
 
 The system stays deliberately narrow:
 
@@ -11,24 +11,23 @@ The system stays deliberately narrow:
 
 ## Source Layout
 
-- Active build target: `sites/spaceface/`
-- Second-site skeleton: `sites/starter/`
-- Authored pages and partials: `sites/<site>/public/`
+- Authored pages and partials: `public/`
 - Generated site: `docs/`
+- Site app wiring: `app/`
 - Public runtime API: `src/spaceface.ts`
-- Shared contract data: `sites/spaceface/app/contract-data.js`
-- TypeScript contract helpers: `sites/spaceface/app/contract.ts`
-- Runtime registration: `sites/spaceface/app/runtime.ts`
-- Runtime entrypoint: `sites/spaceface/app/main.ts`
+- Shared contract data: `app/contract-data.js`
+- TypeScript contract helpers: `app/contract.ts`
+- Runtime registration: `app/runtime.ts`
+- Runtime entrypoint: `app/main.ts`
 - Core runtime primitives: `src/core/`
 - DOM features: `src/features/`
 
-Current repo behavior stays explicit: the shipped build still targets `sites/spaceface/`; `sites/starter/` is only a starting skeleton, not an auto-discovered second build.
+Current repo behavior stays explicit: the project ships one authored site in `public/` and one app wiring layer in `app/`.
 
 ## Runtime Model
 
 - `FeatureRegistry` mounts and destroys features from `data-feature="..."`
-- `sites/spaceface/app/` imports runtime code through `src/spaceface.ts` instead of deep `src/` paths
+- `app/` imports runtime code through `src/spaceface.ts` instead of deep `src/` paths
 - Feature mounts may be async and receive one mount context with `signal` and `logger`
 - Failed async mounts are torn down before the error is surfaced
 - `userActivitySignal` tracks last interaction time
@@ -45,7 +44,7 @@ Current repo behavior stays explicit: the shipped build still targets `sites/spa
 
 ### Feature Hooks
 - `slideshow`: root `data-feature="slideshow"`; hooks `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
-- `slideplayer`: root `data-feature="slideplayer"`; hooks `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; note: One slideplayer per page is the intended authored pattern.
+- `slideplayer`: root `data-feature="slideplayer"`; hooks `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; hooks `[data-floating-item]`
 - `screensaver`: root `data-feature="screensaver"`; hooks `[data-screensaver]`, `[data-screensaver-partial]`
 

@@ -1,4 +1,5 @@
-import type { Feature } from "../../core/feature.js";
+import type { Feature, FeatureMountContext } from "../../core/feature.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 import { createEffect } from "../../core/signals.js";
 import { screensaverActiveSignal } from "../shared/screensaverState.js";
 
@@ -15,6 +16,7 @@ export interface SlidePlayerFeatureOptions {
 export class SlidePlayerFeature implements Feature {
   private static readonly SWIPE_THRESHOLD_PX = 36;
   private static readonly SWIPE_OFF_AXIS_THRESHOLD_PX = 24;
+  private static keyboardOwner: SlidePlayerFeature | null = null;
 
   private options: Required<SlidePlayerFeatureOptions>;
   private root: HTMLElement | null = null;
@@ -40,6 +42,8 @@ export class SlidePlayerFeature implements Feature {
   private swipePointerId: number | null = null;
   private swipeStartX = 0;
   private swipeStartY = 0;
+  private logger: Logger = createLogger("slideplayer", "warn");
+  private ownsKeyboardBinding = false;
 
   constructor(options: SlidePlayerFeatureOptions = {}) {
     this.options = {
@@ -54,7 +58,8 @@ export class SlidePlayerFeature implements Feature {
     this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
-  mount(el: HTMLElement): void {
+  mount(el: HTMLElement, context?: FeatureMountContext): void {
+    this.logger = context?.logger ?? this.logger;
     this.root = el;
     this.stage = this.root.querySelector<HTMLElement>("[data-slideplayer-stage]");
     this.slides = Array.from(this.root.querySelectorAll<HTMLElement>(this.options.slideSelector));
@@ -108,6 +113,10 @@ export class SlidePlayerFeature implements Feature {
     this.swipePointerId = null;
     this.swipeStartX = 0;
     this.swipeStartY = 0;
+    if (this.ownsKeyboardBinding && SlidePlayerFeature.keyboardOwner === this) {
+      SlidePlayerFeature.keyboardOwner = null;
+    }
+    this.ownsKeyboardBinding = false;
   }
 
   private collectBullets(): HTMLButtonElement[] {
@@ -148,21 +157,29 @@ export class SlidePlayerFeature implements Feature {
       return () => button.removeEventListener("click", onClick);
     });
 
-    const onKeydown = (event: KeyboardEvent) => {
-      if (this.pausedByScreensaver || this.slides.length <= 1 || shouldIgnoreKeydown(event)) {
-        return;
-      }
+    if (SlidePlayerFeature.keyboardOwner === null) {
+      const onKeydown = (event: KeyboardEvent) => {
+        if (this.pausedByScreensaver || this.slides.length <= 1 || shouldIgnoreKeydown(event)) {
+          return;
+        }
 
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        this.prev(true);
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        this.next(true);
-      }
-    };
-    document.addEventListener("keydown", onKeydown);
-    this.detachKeydown = () => document.removeEventListener("keydown", onKeydown);
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          this.prev(true);
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          this.next(true);
+        }
+      };
+      document.addEventListener("keydown", onKeydown);
+      this.detachKeydown = () => document.removeEventListener("keydown", onKeydown);
+      SlidePlayerFeature.keyboardOwner = this;
+      this.ownsKeyboardBinding = true;
+    } else if (SlidePlayerFeature.keyboardOwner !== this) {
+      this.logger.warn("ignored duplicate slideplayer keyboard binding", {
+        reason: "singleton-enforced",
+      });
+    }
 
     if (this.stage) {
       const onPointerDown = (event: PointerEvent) => {

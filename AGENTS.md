@@ -6,8 +6,8 @@ These instructions apply to the whole repository.
 
 ## Working Rules
 
-- Use `sites/<site>/public/` as source of truth for HTML/CSS.
-- Treat `sites/<site>/public/` as the source-of-truth authored HTML tree.
+- Use `public/` as source of truth for HTML/CSS.
+- Treat `public/` as the source-of-truth authored HTML tree.
 - Build output in `docs/` is generated; do not treat it as authored source.
 
 ## Pre-Commit Documentation Sync (Required)
@@ -29,13 +29,13 @@ then update documentation in the same commit:
 
 ## Feature/CSS Organization
 
-- Keep feature-specific CSS in `sites/<site>/public/resources/` when feature-specific styles are added.
-- Keep shared layout/base styles in `sites/<site>/public/resources/` when shared styles are added.
+- Keep feature-specific CSS in `public/resources/` when feature-specific styles are added.
+- Keep shared layout/base styles in `public/resources/` when shared styles are added.
 
 ## Markup/CSS/Script Hygiene
 
 - Avoid inline `<style>` and inline `<script>` in partials unless there is a documented technical reason.
-- Prefer centralized styles and runtime code in source files under `sites/<site>/public/` and `src/`.
+- Prefer centralized styles and runtime code in source files under `public/`, `app/`, and `src/`.
 
 ## Attribute Registry Rule
 
