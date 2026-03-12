@@ -1,0 +1,20 @@
+/**
+ * VARIABLES
+ */
+:root {
+
+  /* spaceing units */
+  --quark:   0.25rem;     /* very tiny */
+  --neutrino: 0.5rem;     /* tiny */
+  --atom:       1rem;     /* base */
+  --molecule:   3rem;     /* big */
+
+  --margin:  var(--neutrino);
+  --padding: var(--atom);
+  --gap:     var(--molecule);
+
+  /* named colors */
+  --spaceface-gray: rgba(135, 142, 153, 1);
+
+  --spaceface-gradient: linear-gradient(to right, #6253e1, #a853e1);
+}
