@@ -2,6 +2,11 @@
 
 This roadmap tracks only the current static-page runtime.
 
+## Frontend Priorities
+
+1. a simple reset for 2026 / https://pawelgrzybek.com/vertical-rhythm-using-css-lh-and-rlh-units/
+2. write the base css vars, layout, tipo
+
 ## Current Priorities
 
 1. Keep the `public/` to `docs/` pipeline stable and explicit.
