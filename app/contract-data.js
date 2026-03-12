@@ -54,6 +54,14 @@ export const APP_CONTRACT = {
       hooks: [],
     },
     {
+      id: "skeleton",
+      file: "skeleton.html",
+      page: "skeleton",
+      navLabel: "Skeleton",
+      featureSelectors: ["screensaver"],
+      hooks: [],
+    },
+    {
       id: "slideplayer",
       file: "slideplayer.html",
       page: "slideplayer",
