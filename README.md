@@ -39,6 +39,7 @@ Current repo behavior stays explicit: the project ships one authored site in `pu
 <!-- CONTRACT:README:START -->
 ### Routes
 - `index.html`: `body[data-page="index"]`; features `slideshow`, `floating-images`, `screensaver`
+- `skeleton.html`: `body[data-page="skeleton"]`; features `screensaver`
 - `slideplayer.html`: `body[data-page="slideplayer"]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: `body[data-page="floatingimages"]`; features `floating-images`, `screensaver`
 

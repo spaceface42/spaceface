@@ -113,6 +113,7 @@ Asset path rule:
 
 ### Routes
 - `index.html`: page id `index`; nav id `index`; hooks `none`; features `slideshow`, `floating-images`, `screensaver`
+- `skeleton.html`: page id `skeleton`; nav id `skeleton`; hooks `none`; features `screensaver`
 - `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; hooks required `[data-slideplayer-stage]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; optional `[data-slideplayer-bullets]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; hooks `none`; features `floating-images`, `screensaver`
 

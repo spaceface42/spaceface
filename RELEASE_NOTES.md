@@ -1,5 +1,11 @@
 # Release Notes
 
+## Unreleased
+
+### Public Pages
+
+- Added `public/skeleton.html` as a graphic designer portfolio starter page with first-page content prompts and suggested opening copy.
+
 ## 2026-03-12
 
 ### Single-Site Rollback
