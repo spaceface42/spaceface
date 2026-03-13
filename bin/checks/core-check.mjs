@@ -11,12 +11,14 @@ await runBundledCheck(
       export { createSignal, createEffect } from "./src/core/signals.ts";
       export { FrameScheduler } from "./src/core/scheduler.ts";
       export { createLogger, subscribeLogs } from "./src/core/logger.ts";
+      export { clamp, distance, randomBetween, gaussianRandom } from "./src/core/utils/math-utils.ts";
     `,
   },
   (runtime) => {
-  testSignalRecovery(runtime.createSignal, runtime.createEffect);
-  testSchedulerIsolation(runtime.FrameScheduler);
-  testLoggerSubscriptions(runtime.createLogger, runtime.subscribeLogs);
+    testSignalRecovery(runtime.createSignal, runtime.createEffect);
+    testSchedulerIsolation(runtime.FrameScheduler);
+    testLoggerSubscriptions(runtime.createLogger, runtime.subscribeLogs);
+    testMathUtils(runtime);
   }
 );
 
@@ -134,4 +136,51 @@ function testLoggerSubscriptions(createLogger, subscribeLogs) {
   assert.equal(childEntries.length, 1, "scope listener should receive matching child-scope entries");
   assert.equal(childEntries[0].scope, "test:child");
   assert.equal(childEntries[0].message, "nested");
+}
+
+function testMathUtils({ clamp, distance, randomBetween, gaussianRandom }) {
+  assert.equal(clamp(-5, 0, 10), 0, "clamp should floor values below the minimum");
+  assert.equal(clamp(4, 0, 10), 4, "clamp should preserve in-range values");
+  assert.equal(clamp(15, 0, 10), 10, "clamp should cap values above the maximum");
+
+  assert.equal(distance(0, 0, 3, 4), 5, "distance should return Euclidean distance");
+  assert.equal(distance(2, -1, 2, -1), 0, "distance should be zero for identical points");
+
+  withStubbedRandom([0], () => {
+    assert.equal(randomBetween(10, 20), 10, "randomBetween should return the minimum when Math.random() is 0");
+  });
+  withStubbedRandom([0.75], () => {
+    assert.equal(randomBetween(10, 20), 17.5, "randomBetween should scale the random sample across the range");
+  });
+  withStubbedRandom([0, 0.5, 0, 0.5], () => {
+    const expected = -Math.sqrt(-2 * Math.log(0.5));
+    assertClose(
+      gaussianRandom(),
+      expected,
+      "gaussianRandom should retry zero inputs and apply the Box-Muller transform",
+    );
+  });
+}
+
+function withStubbedRandom(values, callback) {
+  const originalRandom = Math.random;
+  let index = 0;
+  Math.random = () => {
+    const value = values[index];
+    if (value === undefined) {
+      throw new Error("Math.random exhausted");
+    }
+    index += 1;
+    return value;
+  };
+
+  try {
+    callback();
+  } finally {
+    Math.random = originalRandom;
+  }
+}
+
+function assertClose(actual, expected, message, epsilon = 1e-12) {
+  assert.ok(Math.abs(actual - expected) <= epsilon, `${message} (expected ${expected}, received ${actual})`);
 }

@@ -67,7 +67,11 @@ async function run() {
       await testFeatureRegistryAsyncMountFailure(runtime);
       await testFeatureRegistryAsyncMountAbort(runtime);
       testSlideshowScreensaverPause(runtime);
+      testSlideshowAutoplayResumeUsesRemainingTime(runtime);
+      testSlideshowManualNavigationResetsAutoplay(runtime);
       testSlidePlayerScreensaverPause(runtime);
+      testSlidePlayerAutoplayResumeUsesRemainingTime(runtime);
+      testSlidePlayerManualNavigationResetsAutoplay(runtime);
       testSlidePlayerKeyboardNavigation(runtime);
       testSlidePlayerSingletonKeyboardBinding(runtime);
       testSlidePlayerSwipeNavigation(runtime);
@@ -263,12 +267,8 @@ function testSlideshowScreensaverPause(runtime) {
   const clock = installFakeClock();
   const body = new FakeElement("body");
   installDomGlobals(body);
-  const root = new FakeElement("section");
-  root.append(new FakeElement("button", { "data-slide-prev": "" }));
-  root.append(new FakeElement("button", { "data-slide-next": "" }));
-  root.append(new FakeElement("article", { "data-slide": "" }));
-  root.append(new FakeElement("article", { "data-slide": "" }, { hidden: true }));
-  root.append(new FakeElement("article", { "data-slide": "" }, { hidden: true }));
+  const root = createSlideshowRoot();
+  body.append(root);
 
   runtime.screensaverActiveSignal.value = false;
   const feature = new runtime.SlideshowFeature({ autoplayMs: 100 });
@@ -292,6 +292,64 @@ function testSlideshowScreensaverPause(runtime) {
   restoreDomGlobals();
 }
 
+function testSlideshowAutoplayResumeUsesRemainingTime(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const root = createSlideshowRoot();
+  body.append(root);
+
+  runtime.screensaverActiveSignal.value = false;
+  const feature = new runtime.SlideshowFeature({ autoplayMs: 100 });
+  feature.mount(root);
+
+  assert.equal(activeIndex(root, "[data-slide]"), 0, "slideshow timing test should start on the first slide");
+
+  clock.advance(40);
+  runtime.screensaverActiveSignal.value = true;
+  clock.advance(200);
+  assert.equal(activeIndex(root, "[data-slide]"), 0, "slideshow should stay paused while the screensaver is active");
+
+  runtime.screensaverActiveSignal.value = false;
+  clock.advance(59);
+  assert.equal(activeIndex(root, "[data-slide]"), 0, "slideshow should wait for its saved remaining autoplay time after resuming");
+
+  clock.advance(1);
+  assert.equal(activeIndex(root, "[data-slide]"), 1, "slideshow should resume using the remaining autoplay time");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  clock.restore();
+  restoreDomGlobals();
+}
+
+function testSlideshowManualNavigationResetsAutoplay(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const root = createSlideshowRoot();
+  body.append(root);
+
+  runtime.screensaverActiveSignal.value = false;
+  const feature = new runtime.SlideshowFeature({ autoplayMs: 100 });
+  feature.mount(root);
+
+  clock.advance(40);
+  dispatchElementEvent(root.querySelector("[data-slide-next]"), "click", {});
+  assert.equal(activeIndex(root, "[data-slide]"), 1, "manual slideshow navigation should advance immediately");
+
+  clock.advance(99);
+  assert.equal(activeIndex(root, "[data-slide]"), 1, "manual slideshow navigation should reset the autoplay timer");
+
+  clock.advance(1);
+  assert.equal(activeIndex(root, "[data-slide]"), 2, "slideshow should autoplay after the reset interval elapses");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  clock.restore();
+  restoreDomGlobals();
+}
+
 function createDefinition(selector, create) {
   return { selector, create };
 }
@@ -300,21 +358,8 @@ function testSlidePlayerScreensaverPause(runtime) {
   const clock = installFakeClock();
   const body = new FakeElement("body");
   installDomGlobals(body);
-  const root = new FakeElement("section");
-  root.append(new FakeElement("button", { "data-slideplayer-prev": "" }));
-  root.append(new FakeElement("button", { "data-slideplayer-next": "" }));
-
-  const stage = new FakeElement("div", { "data-slideplayer-stage": "" });
-  stage.append(new FakeElement("img", { "data-slideplayer-slide": "" }));
-  stage.append(new FakeElement("img", { "data-slideplayer-slide": "" }, { hidden: true }));
-  stage.append(new FakeElement("img", { "data-slideplayer-slide": "" }, { hidden: true }));
-  root.append(stage);
-
-  const bullets = new FakeElement("div", { "data-slideplayer-bullets": "" });
-  bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
-  bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
-  bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
-  root.append(bullets);
+  const root = createSlidePlayerRoot();
+  body.append(root);
 
   runtime.screensaverActiveSignal.value = false;
   const feature = new runtime.SlidePlayerFeature({ autoplayMs: 100 });
@@ -331,6 +376,66 @@ function testSlidePlayerScreensaverPause(runtime) {
   runtime.screensaverActiveSignal.value = false;
   clock.advance(100);
   assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 2, "slideplayer should resume after screensaver hides");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  clock.restore();
+  restoreDomGlobals();
+}
+
+function testSlidePlayerAutoplayResumeUsesRemainingTime(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createSlidePlayerRoot();
+  body.append(root);
+
+  runtime.screensaverActiveSignal.value = false;
+  const feature = new runtime.SlidePlayerFeature({ autoplayMs: 100 });
+  feature.mount(root);
+
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "slideplayer timing test should start on the first slide");
+
+  clock.advance(40);
+  runtime.screensaverActiveSignal.value = true;
+  clock.advance(200);
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "slideplayer should stay paused while the screensaver is active");
+
+  runtime.screensaverActiveSignal.value = false;
+  clock.advance(59);
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "slideplayer should wait for its saved remaining autoplay time after resuming");
+
+  clock.advance(1);
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 1, "slideplayer should resume using the remaining autoplay time");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  clock.restore();
+  restoreDomGlobals();
+}
+
+function testSlidePlayerManualNavigationResetsAutoplay(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createSlidePlayerRoot();
+  body.append(root);
+
+  runtime.screensaverActiveSignal.value = false;
+  const feature = new runtime.SlidePlayerFeature({ autoplayMs: 100 });
+  feature.mount(root);
+
+  clock.advance(40);
+  dispatchElementEvent(root.querySelectorAll("[data-slideplayer-bullet]")[2], "click", {});
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 2, "slideplayer bullet navigation should activate the requested slide");
+
+  clock.advance(99);
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 2, "slideplayer bullet navigation should reset the autoplay timer");
+
+  clock.advance(1);
+  assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "slideplayer should autoplay after the reset interval elapses");
 
   feature.destroy();
   runtime.screensaverActiveSignal.value = false;
@@ -991,6 +1096,16 @@ function createFloatingRoot() {
   root.clientHeight = 240;
   root.append(new FakeElement("div", { "data-floating-item": "true" }, { width: 48, height: 48 }));
   root.append(new FakeElement("div", { "data-floating-item": "true" }, { width: 48, height: 48 }));
+  return root;
+}
+
+function createSlideshowRoot() {
+  const root = new FakeElement("section");
+  root.append(new FakeElement("button", { "data-slide-prev": "" }));
+  root.append(new FakeElement("button", { "data-slide-next": "" }));
+  root.append(new FakeElement("article", { "data-slide": "" }));
+  root.append(new FakeElement("article", { "data-slide": "" }, { hidden: true }));
+  root.append(new FakeElement("article", { "data-slide": "" }, { hidden: true }));
   return root;
 }
 
