@@ -141,6 +141,7 @@ The screensaver:
 - listens to `userActivitySignal`
 - toggles `screensaverActiveSignal`
 - fetches and injects its partial on demand
+- can also be started manually with `Ctrl+Shift+.` on all platforms
 - aborts in-flight partial loads when activity resumes
 
 The screensaver does not directly instantiate child features. It relies on the registry to see injected `data-feature` markup.

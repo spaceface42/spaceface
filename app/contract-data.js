@@ -3,7 +3,7 @@ export const APP_CONTRACT = {
   sourceDir: "public",
   outputDir: "docs",
   defaults: {
-    screensaverIdleMs: 6000,
+    screensaverIdleMs: 60000,
     slideshowAutoplayMs: 5000,
     screensaverPartialUrl: "./resources/features/screensaver/index.html",
   },

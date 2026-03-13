@@ -5,6 +5,8 @@
 ### Public Pages
 
 - Added `public/skeleton.html` as a graphic designer portfolio starter page with first-page content prompts and suggested opening copy.
+- Added a manual screensaver shortcut: `Ctrl+Shift+.` on all platforms.
+- Set the current development screensaver delay to 1 minute.
 
 ## 2026-03-12
 

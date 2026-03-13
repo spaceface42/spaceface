@@ -73,6 +73,7 @@ async function run() {
       testSlidePlayerSwipeNavigation(runtime);
       testSlidePlayerTouchSwipeNavigation(runtime);
       await testActivityTracking(runtime);
+      await testScreensaverManualShortcut(runtime);
       await testScreensaverLoadFailure(runtime);
       await testScreensaverLoadAbort(runtime);
       await testScreensaverHideWaitsForTransitionDelay(runtime);
@@ -475,6 +476,71 @@ async function testActivityTracking(runtime) {
   } finally {
     runtime.screensaverActiveSignal.value = false;
     runtime.destroyActivityTracking();
+    clock.restore();
+    restoreDomGlobals();
+  }
+}
+
+async function testScreensaverManualShortcut(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const clock = installFakeClock();
+  const originalGetComputedStyle = globalThis.getComputedStyle;
+
+  globalThis.window.getComputedStyle = () => ({
+    transitionDuration: "0ms",
+    transitionDelay: "0ms",
+  });
+  globalThis.getComputedStyle = globalThis.window.getComputedStyle;
+  runtime.__setLoadPartialHtml(async () => "<div class='screensaver-label'>ok</div>");
+  runtime.screensaverActiveSignal.value = false;
+  runtime.destroyActivityTracking();
+  runtime.initActivityTracking();
+
+  try {
+    const root = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      idleMs: 500,
+      partialUrl: "/partial/screensaver.html",
+    });
+    feature.mount(root);
+
+    const shortcutEvent = {
+      key: ">",
+      code: "Period",
+      ctrlKey: true,
+      altKey: false,
+      metaKey: false,
+      shiftKey: true,
+      repeat: false,
+      defaultPrevented: false,
+      preventDefault() {
+        this.defaultPrevented = true;
+      },
+      target: body,
+    };
+
+    dispatchDocumentEvent("keydown", shortcutEvent);
+    await flushMicrotasks(4);
+
+    assert.equal(shortcutEvent.defaultPrevented, true, "manual shortcut should prevent the browser default");
+    assert.equal(root.hidden, false, "manual shortcut should show the screensaver immediately");
+    assert.equal(runtime.screensaverActiveSignal.value, true, "manual shortcut should toggle the shared screensaver state");
+
+    clock.advance(1);
+    dispatchDocumentEvent("pointerdown", { target: body });
+    clock.advance(0);
+
+    assert.equal(runtime.screensaverActiveSignal.value, false, "activity after a manual start should hide the screensaver");
+    assert.equal(root.hidden, true, "manual-started screensaver should hide after the next activity");
+
+    feature.destroy();
+  } finally {
+    runtime.destroyActivityTracking();
+    runtime.screensaverActiveSignal.value = false;
+    globalThis.getComputedStyle = originalGetComputedStyle;
     clock.restore();
     restoreDomGlobals();
   }

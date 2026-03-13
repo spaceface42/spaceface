@@ -28,6 +28,17 @@ export class ScreensaverFeature implements Feature {
   private showRequestId = 0;
   private partialLoadController: AbortController | null = null;
   private logger: Logger = createLogger("screensaver", "warn");
+  private readonly handleManualStartKeydown = (event: KeyboardEvent): void => {
+    if (!this.target) return;
+    if (this.isShowing) return;
+    if (!isManualScreensaverShortcut(event)) return;
+
+    event.preventDefault();
+    const requestId = ++this.showRequestId;
+    this.cancelPendingPartialLoad();
+    this.resetTimer();
+    void this.showScreensaver(requestId, "manual");
+  };
 
   constructor(options: ScreensaverFeatureOptions = {}) {
     this.options = {
@@ -43,6 +54,7 @@ export class ScreensaverFeature implements Feature {
     this.target.hidden = true;
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");
+    document.addEventListener("keydown", this.handleManualStartKeydown);
 
     // Start watching user activity via our shiny new Signal primitive
     this.cleanupEffect = createEffect(() => {
@@ -56,7 +68,7 @@ export class ScreensaverFeature implements Feature {
       }
 
       this.timer = window.setTimeout(() => {
-        void this.showScreensaver(requestId);
+        void this.showScreensaver(requestId, "idle");
       }, this.options.idleMs);
     });
   }
@@ -77,6 +89,7 @@ export class ScreensaverFeature implements Feature {
       clearTimeout(this.hideCleanupTimer);
       this.hideCleanupTimer = null;
     }
+    document.removeEventListener("keydown", this.handleManualStartKeydown);
 
     if (this.target) {
       this.target.classList.remove("is-active");
@@ -97,7 +110,7 @@ export class ScreensaverFeature implements Feature {
     }
   }
 
-  private async showScreensaver(requestId: number): Promise<void> {
+  private async showScreensaver(requestId: number, reason: "idle" | "manual"): Promise<void> {
     if (!this.target) return;
     if (requestId !== this.showRequestId) return;
 
@@ -119,7 +132,7 @@ export class ScreensaverFeature implements Feature {
     void this.target.offsetWidth;
     this.target.classList.add("is-active");
     this.target.setAttribute("aria-hidden", "false");
-    this.logger.debug("screensaver started", { partialLoaded: this.partialLoaded });
+    this.logger.debug("screensaver started", { partialLoaded: this.partialLoaded, reason });
 
     // We don't have to manually instantiate FloatingImagesFeature.
     // By loading the partial containing `data-feature="floating-images"`, the
@@ -251,4 +264,25 @@ function parseTransitionTimeMs(value: string): number {
   const numericValue = Number.parseFloat(value);
   if (Number.isNaN(numericValue)) return Number.NaN;
   return value.endsWith("ms") ? numericValue : numericValue * 1000;
+}
+
+function isManualScreensaverShortcut(event: KeyboardEvent): boolean {
+  if (event.defaultPrevented || event.repeat) return false;
+  if (isEditableEventTarget(event.target)) return false;
+
+  const isTriggerKey = event.code === "Period" || event.key === "." || event.key === ">";
+  if (!isTriggerKey) return false;
+
+  return event.ctrlKey && !event.metaKey && !event.altKey && event.shiftKey;
+}
+
+function isEditableEventTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  return (
+    tagName === "input" ||
+    tagName === "textarea" ||
+    tagName === "select" ||
+    target.isContentEditable
+  );
 }

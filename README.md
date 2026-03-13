@@ -32,6 +32,7 @@ Current repo behavior stays explicit: the project ships one authored site in `pu
 - Failed async mounts are torn down before the error is surfaced
 - `userActivitySignal` tracks last interaction time
 - `screensaverActiveSignal` pauses page features while the screensaver is active
+- The screensaver can also be started manually with `Ctrl+Shift+.` on all platforms
 - `FrameScheduler` runs animated features in update-then-render order
 
 ## Contract Snapshot
