@@ -92,6 +92,7 @@ export class ScreensaverFeature implements Feature {
     document.removeEventListener("keydown", this.handleManualStartKeydown);
 
     if (this.target) {
+      this.clearPartialMount(this.target);
       this.target.classList.remove("is-active");
       this.target.hidden = true;
       this.target.setAttribute("aria-hidden", "true");
@@ -170,7 +171,10 @@ export class ScreensaverFeature implements Feature {
       return false;
     }
     if (this.partialLoaded) {
-      return true;
+      if (target.querySelector("[data-screensaver-partial]")) {
+        return true;
+      }
+      this.partialLoaded = false;
     }
 
     try {
@@ -220,6 +224,12 @@ export class ScreensaverFeature implements Feature {
     mount.setAttribute("data-screensaver-partial", "true");
     target.prepend(mount);
     return mount;
+  }
+
+  private clearPartialMount(target: HTMLElement): void {
+    const mount = target.querySelector<HTMLElement>("[data-screensaver-partial]");
+    mount?.remove();
+    this.partialLoaded = false;
   }
 
   private getTransitionDurationMs(element: HTMLElement): number {

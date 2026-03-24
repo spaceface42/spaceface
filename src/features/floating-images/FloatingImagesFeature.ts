@@ -20,6 +20,15 @@ interface MotionItem {
   renderedY: number;
 }
 
+interface InlineStyleSnapshot {
+  left: string;
+  position: string;
+  top: string;
+  transform: string;
+  visibility: string;
+  willChange: string;
+}
+
 export interface FloatingImagesFeatureOptions {
   containerSelector?: string;
   itemSelector?: string;
@@ -45,6 +54,7 @@ export class FloatingImagesFeature implements Feature {
   private cleanupEffect?: () => void;
   private destroyed = false;
   private preparedNodes: HTMLElement[] = [];
+  private originalItemStyles = new Map<HTMLElement, InlineStyleSnapshot>();
   private pausedByScreensaver = false;
   private allowDuringScreensaver = false;
   private restoreContainerPosition = false;
@@ -64,6 +74,7 @@ export class FloatingImagesFeature implements Feature {
   async mount(el: HTMLElement, context?: FeatureMountContext): Promise<void> {
     this.container = this.resolveContainer(el);
     this.destroyed = false;
+    this.originalItemStyles.clear();
     this.restoreContainerPosition = false;
     this.originalContainerInlinePosition = this.container?.style.position ?? "";
 
@@ -79,6 +90,7 @@ export class FloatingImagesFeature implements Feature {
     // Instantly hide items to prevent flickering before images load and math is calculated
     this.preparedNodes = Array.from(this.container.querySelectorAll<HTMLElement>(this.options.itemSelector));
     for (const node of this.preparedNodes) {
+      this.captureOriginalItemStyles(node);
       node.style.position = "absolute";
       node.style.visibility = "hidden";
     }
@@ -132,12 +144,7 @@ export class FloatingImagesFeature implements Feature {
     for (const node of nodesToRestore) {
       node.removeEventListener("pointerenter", this.onItemPointerEnter);
       node.removeEventListener("pointerleave", this.onItemPointerLeave);
-      node.style.transform = "";
-      node.style.willChange = "";
-      node.style.position = "";
-      node.style.left = "";
-      node.style.top = "";
-      node.style.visibility = "";
+      this.restoreOriginalItemStyles(node);
     }
 
     if (container && this.restoreContainerPosition) {
@@ -145,6 +152,7 @@ export class FloatingImagesFeature implements Feature {
     }
 
     this.items = [];
+    this.originalItemStyles.clear();
     this.preparedNodes = [];
     this.container = null;
     this.inViewport = true;
@@ -318,6 +326,38 @@ export class FloatingImagesFeature implements Feature {
         renderedY: Number.NaN,
       };
     });
+  }
+
+  private captureOriginalItemStyles(node: HTMLElement): void {
+    if (this.originalItemStyles.has(node)) return;
+    this.originalItemStyles.set(node, {
+      left: node.style.left ?? "",
+      position: node.style.position ?? "",
+      top: node.style.top ?? "",
+      transform: node.style.transform ?? "",
+      visibility: node.style.visibility ?? "",
+      willChange: node.style.willChange ?? "",
+    });
+  }
+
+  private restoreOriginalItemStyles(node: HTMLElement): void {
+    const snapshot = this.originalItemStyles.get(node);
+    if (!snapshot) {
+      node.style.transform = "";
+      node.style.willChange = "";
+      node.style.position = "";
+      node.style.left = "";
+      node.style.top = "";
+      node.style.visibility = "";
+      return;
+    }
+
+    node.style.left = snapshot.left;
+    node.style.position = snapshot.position;
+    node.style.top = snapshot.top;
+    node.style.transform = snapshot.transform;
+    node.style.visibility = snapshot.visibility;
+    node.style.willChange = snapshot.willChange;
   }
 
   private resolveContainer(root: HTMLElement): HTMLElement | null {

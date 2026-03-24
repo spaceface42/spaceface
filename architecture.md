@@ -156,6 +156,10 @@ Deliberate current constraint:
 - smoke validation fails duplicate mounts and runtime warns if an extra instance is mounted anyway
 - document-level keyboard handling is therefore acceptable and kept on purpose
 
+Residual risk to remember later:
+
+- if the authored contract ever allows dynamic slideplayer replacement or more than one mounted instance, the current singleton keyboard-owner model should be revisited so ownership can transfer cleanly instead of staying with the first instance that bound the document listener
+
 ### Floating Images
 
 `FloatingImagesFeature` owns animation state and scheduler subscription only.

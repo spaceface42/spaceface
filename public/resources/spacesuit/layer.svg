@@ -4,8 +4,11 @@
     .gray {
         fill: rgba(125, 125, 125, 0.2);
     }
+    .white {
+        fill: rgba(255,255,255,0.5);
+    }
 </style>
-    <rect x="0" y="0" width="16" height="16" fill="rgba(255,255,255,0.5)" />
+    <rect class="white" x="0" y="0" width="16" height="16" />
     <rect class="gray" x="0" y="0" width="8" height="8" />
     <rect class="gray" x="8" y="8" width="8" height="8" />
 </svg>

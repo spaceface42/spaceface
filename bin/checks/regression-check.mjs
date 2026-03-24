@@ -81,9 +81,11 @@ async function run() {
       await testScreensaverLoadFailure(runtime);
       await testScreensaverLoadAbort(runtime);
       await testScreensaverHideWaitsForTransitionDelay(runtime);
+      testScreensaverDestroyRemovesInjectedMarkup(runtime);
       await testFloatingImagesScreensaverPause(runtime);
       await testFloatingImagesContainerResize(runtime);
       await testFloatingImagesAsyncDestroy(runtime);
+      await testFloatingImagesRestoreInlineStyles(runtime);
     }
   );
 }
@@ -766,6 +768,33 @@ async function testScreensaverHideWaitsForTransitionDelay(runtime) {
   }
 }
 
+function testScreensaverDestroyRemovesInjectedMarkup(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  try {
+    const root = new FakeElement("div", { "data-screensaver": "true" });
+    const partialMount = new FakeElement("div", { "data-screensaver-partial": "true" });
+    const floatingRoot = new FakeElement("div", { "data-feature": "floating-images" });
+    partialMount.append(floatingRoot);
+    root.append(partialMount);
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature();
+    feature.target = root;
+    feature.partialLoaded = true;
+    runtime.screensaverActiveSignal.value = true;
+
+    feature.destroy();
+
+    assert.equal(root.querySelector("[data-screensaver-partial]"), null, "destroy should remove injected screensaver partial markup");
+    assert.equal(runtime.screensaverActiveSignal.value, false, "destroy should clear the shared screensaver state");
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    restoreDomGlobals();
+  }
+}
+
 function testSlidePlayerTouchSwipeNavigation(runtime) {
   const body = new FakeElement("body");
   installDomGlobals(body);
@@ -917,6 +946,39 @@ async function testFloatingImagesAsyncDestroy(runtime) {
     await mountPromise;
 
     assert.equal(addCalls, 1, "destroyed async mount must not subscribe to the scheduler again after resolution");
+  } finally {
+    runtime.globalScheduler.add = originalAdd;
+    runtime.screensaverActiveSignal.value = false;
+    restoreFloatingWindow();
+  }
+}
+
+async function testFloatingImagesRestoreInlineStyles(runtime) {
+  installWindowForFloatingImages();
+  runtime.__setWaitForImagesReady(async () => []);
+  const originalAdd = runtime.globalScheduler.add.bind(runtime.globalScheduler);
+  runtime.globalScheduler.add = () => () => {};
+
+  try {
+    const root = createFloatingRoot();
+    const item = root.querySelector("[data-floating-item]");
+    item.style.position = "relative";
+    item.style.left = "12px";
+    item.style.top = "14px";
+    item.style.transform = "scale(1.2)";
+    item.style.visibility = "collapse";
+    item.style.willChange = "opacity";
+
+    const feature = new runtime.FloatingImagesFeature();
+    await feature.mount(root);
+    feature.destroy();
+
+    assert.equal(item.style.position, "relative", "destroy should restore the original inline position");
+    assert.equal(item.style.left, "12px", "destroy should restore the original inline left");
+    assert.equal(item.style.top, "14px", "destroy should restore the original inline top");
+    assert.equal(item.style.transform, "scale(1.2)", "destroy should restore the original inline transform");
+    assert.equal(item.style.visibility, "collapse", "destroy should restore the original inline visibility");
+    assert.equal(item.style.willChange, "opacity", "destroy should restore the original inline will-change");
   } finally {
     runtime.globalScheduler.add = originalAdd;
     runtime.screensaverActiveSignal.value = false;
