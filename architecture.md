@@ -116,11 +116,13 @@ Asset path rule:
 - `skeleton.html`: page id `skeleton`; nav id `skeleton`; hooks `none`; features `screensaver`
 - `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; hooks required `[data-slideplayer-stage]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; optional `[data-slideplayer-bullets]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; hooks `none`; features `floating-images`, `screensaver`
+- `portfoliostage.html`: page id `portfoliostage`; nav id `portfoliostage`; hooks required `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`; optional `[data-portfolio-stage-filter]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; features `portfolio-stage`, `screensaver`
 
 ### Features
 - `slideshow`: root `data-feature="slideshow"`; internals `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
 - `slideplayer`: root `data-feature="slideplayer"`; internals `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; singleton note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; internals `[data-floating-item]`
+- `portfolio-stage`: root `data-feature="portfolio-stage"`; internals `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`, `[data-portfolio-stage-filter]`, `[data-portfolio-stage-current-title]`, `[data-portfolio-stage-current-category]`, `[data-portfolio-stage-current-index]`, `[data-portfolio-stage-current-summary]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; singleton note: Exactly one portfolio-stage per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-partial]`
 
 ### Partials
@@ -159,6 +161,22 @@ Deliberate current constraint:
 Residual risk to remember later:
 
 - if the authored contract ever allows dynamic slideplayer replacement or more than one mounted instance, the current singleton keyboard-owner model should be revisited so ownership can transfer cleanly instead of staying with the first instance that bound the document listener
+
+### Portfolio Stage
+
+`PortfolioStageFeature` is the page-level, editorial work navigator.
+
+Deliberate current constraint:
+
+- one portfolio stage per page is the enforced authored pattern
+- smoke validation fails duplicate mounts and runtime warns if an extra instance is mounted anyway
+
+It:
+
+- keeps one active project in a large stage
+- supports direct prev/next navigation plus filters
+- updates text outputs from the active item metadata
+- keeps details as an optional secondary layer instead of an always-open text block
 
 ### Floating Images
 

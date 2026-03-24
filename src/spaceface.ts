@@ -25,6 +25,11 @@ export {
 } from "./features/floating-images/FloatingImagesFeature.js";
 
 export {
+  PortfolioStageFeature,
+  type PortfolioStageFeatureOptions,
+} from "./features/portfolio-stage/PortfolioStageFeature.js";
+
+export {
   ScreensaverFeature,
   type ScreensaverFeatureOptions,
 } from "./features/screensaver/ScreensaverFeature.js";

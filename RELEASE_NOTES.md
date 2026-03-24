@@ -8,6 +8,11 @@
 - Added a manual screensaver shortcut: `Ctrl+Shift+.` on all platforms.
 - Set the current development screensaver delay to 1 minute.
 
+### Runtime Fixes
+
+- Restored `PortfolioStageFeature` authored DOM state during destroy so `data-feature` deactivation and replacement clean up safely.
+- Formalized `portfolio-stage` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
+
 ## 2026-03-12
 
 ### Single-Site Rollback

@@ -1,6 +1,7 @@
 import {
   type FeatureDefinition,
   FloatingImagesFeature,
+  PortfolioStageFeature,
   ScreensaverFeature,
   SlidePlayerFeature,
   SlideshowFeature,
@@ -21,6 +22,10 @@ export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
           partialUrl: APP_CONTRACT.defaults.screensaverPartialUrl,
           partialAssetAttributes: APP_CONTRACT.partialAssetAttributes,
         }),
+    },
+    {
+      selector: getFeatureContract("portfolio-stage").selector,
+      create: () => new PortfolioStageFeature(),
     },
     {
       selector: getFeatureContract("slideshow").selector,

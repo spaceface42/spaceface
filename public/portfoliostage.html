@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en" data-mode="dev">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>spaceface portfolio stage</title>
+    <link rel="stylesheet" href="./resources/spacesuit/_reset.css" />
+    <link rel="stylesheet" href="./resources/spacesuit/styles.css" />
+    <link rel="stylesheet" href="./resources/spacesuit/features/portfolio-stage.css" />
+    <link rel="stylesheet" href="./resources/spacesuit/features/screensaver.css" />
+    <style>
+      .portfolio-stage-demo {
+        display: grid;
+        justify-items: center;
+        gap: 1rem;
+        min-height: calc(100vh - 7rem);
+        padding-top: 0.5rem;
+      }
+
+      .portfolio-stage-demo__shell {
+        width: min(1160px, 100%);
+        display: grid;
+        justify-items: center;
+        gap: 0.65rem;
+        outline: none;
+      }
+
+      .portfolio-stage-demo__brandline,
+      .portfolio-stage-demo__menu,
+      .portfolio-stage-demo__filters,
+      .portfolio-stage-demo__controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 0.9rem;
+      }
+
+      .portfolio-stage-demo__brandline {
+        margin-top: -0.45rem;
+        gap: 0.35rem;
+        color: rgba(17, 17, 17, 0.84);
+        font-size: 1.05rem;
+      }
+
+      .portfolio-stage-demo__brandline h1,
+      .portfolio-stage-demo__brandline p {
+        margin: 0;
+        font: inherit;
+      }
+
+      .portfolio-stage-demo__menu {
+        gap: 1.05rem;
+        color: rgba(17, 17, 17, 0.9);
+        font-size: 0.98rem;
+      }
+
+      .portfolio-stage-demo__menu a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .portfolio-stage-demo__menu a:hover,
+      .portfolio-stage-demo__menu a:focus-visible {
+        text-decoration: underline;
+      }
+
+      .portfolio-stage-demo__filters button,
+      .portfolio-stage-demo__controls button {
+        border-radius: 999px;
+        border-color: rgba(17, 17, 17, 0.14);
+        background: rgba(255, 255, 255, 0.8);
+        padding-inline: 0.9rem;
+      }
+
+      .portfolio-stage-demo__meta {
+        display: grid;
+        justify-items: center;
+        gap: 0.35rem;
+        max-width: 44rem;
+        margin-top: 0.35rem;
+        text-align: center;
+      }
+
+      .portfolio-stage-demo__index,
+      .portfolio-stage-demo__category {
+        margin: 0;
+        color: rgba(17, 17, 17, 0.54);
+        font-size: 0.76rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+      }
+
+      .portfolio-stage-demo__meta h2 {
+        margin: 0;
+        font-size: clamp(1.7rem, 4vw, 2.8rem);
+        line-height: 0.98;
+        letter-spacing: -0.04em;
+        text-transform: uppercase;
+      }
+
+      .portfolio-stage-demo__summary {
+        margin: 0;
+        color: rgba(17, 17, 17, 0.72);
+        line-height: 1.65;
+      }
+
+      .portfolio-stage-demo__details {
+        display: grid;
+        gap: 0.8rem;
+        max-width: 40rem;
+        margin-top: 0.4rem;
+      }
+
+      .portfolio-stage-demo__details p,
+      .portfolio-stage-demo__details ul {
+        margin: 0;
+      }
+
+      .portfolio-stage-demo__details ul {
+        padding-left: 1.15rem;
+        text-align: left;
+        color: rgba(17, 17, 17, 0.78);
+        line-height: 1.6;
+      }
+
+      .portfolio-stage-card {
+        cursor: pointer;
+      }
+
+      @media (max-width: 720px) {
+        .portfolio-stage-demo {
+          min-height: auto;
+          padding-top: 0.25rem;
+        }
+
+        .portfolio-stage-demo__menu {
+          gap: 0.75rem;
+          font-size: 0.92rem;
+        }
+      }
+    </style>
+  </head>
+  <body data-page="portfoliostage">
+    <header>
+      <link rel="partial" href="./resources/partials/nav.html" />
+    </header>
+
+    <main class="portfolio-stage-demo">
+      <section class="portfolio-stage-demo__shell" data-feature="portfolio-stage" aria-label="Portfolio stage demo">
+        <div data-portfolio-stage-stage>
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Ultra Miami"
+            data-portfolio-stage-category="Music"
+            data-portfolio-stage-summary="A stacked-card lead frame with one dominant project in front and supporting projects still visible around it."
+          >
+            <img src="./content/placeholders/placeholder-1.png" alt="Placeholder artwork for Ultra Miami" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Lunar Signal"
+            data-portfolio-stage-category="Film"
+            data-portfolio-stage-summary="The side cards stay readable enough to promise more work without stealing focus from the center frame."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-2.png" alt="Placeholder artwork for Lunar Signal" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Monochrome Pulse"
+            data-portfolio-stage-category="Commercial"
+            data-portfolio-stage-summary="This layout is more about composition and rhythm than a conventional slideshow component."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-3.png" alt="Placeholder artwork for Monochrome Pulse" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Sphere Motion"
+            data-portfolio-stage-category="Branding"
+            data-portfolio-stage-summary="The carousel behaves like a visual shelf: click a side card, swipe, or use the controls to bring it forward."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-1.png" alt="Placeholder artwork for Sphere Motion" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Ghost Profile"
+            data-portfolio-stage-category="Fashion"
+            data-portfolio-stage-summary="A stronger center-weighted composition makes the carousel feel authored instead of generic."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-2.png" alt="Placeholder artwork for Ghost Profile" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Chrome Runner"
+            data-portfolio-stage-category="Commercial"
+            data-portfolio-stage-summary="Warm highlights on the far right keep the stack asymmetrical and closer to the reference mood."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-3.png" alt="Placeholder artwork for Chrome Runner" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Static Matter"
+            data-portfolio-stage-category="Artifacts"
+            data-portfolio-stage-summary="Extra cards remain tucked behind the hero so the carousel still reads as a sequence rather than a pile."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-1.png" alt="Placeholder artwork for Static Matter" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Velvet Circuit"
+            data-portfolio-stage-category="Music"
+            data-portfolio-stage-summary="A softer left-hand card gives the stack a more rhythmic cadence when the set expands beyond seven projects."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-2.png" alt="Placeholder artwork for Velvet Circuit" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Night Archive"
+            data-portfolio-stage-category="Film"
+            data-portfolio-stage-summary="Another cinematic frame deepens the middle run so the carousel feels curated instead of evenly spaced."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-3.png" alt="Placeholder artwork for Night Archive" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Signal Bloom"
+            data-portfolio-stage-category="Branding"
+            data-portfolio-stage-summary="A brighter branding study rounds out the back half of the shelf without changing the interaction model."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-1.png" alt="Placeholder artwork for Signal Bloom" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Neon Choir"
+            data-portfolio-stage-category="Music"
+            data-portfolio-stage-summary="An additional music frame gives the filter more depth while keeping the stack focused on bold, center-weighted artwork."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-2.png" alt="Placeholder artwork for Neon Choir" />
+          </figure>
+
+          <figure
+            class="portfolio-stage-card"
+            data-portfolio-stage-item
+            data-portfolio-stage-title="Echo Static"
+            data-portfolio-stage-category="Music"
+            data-portfolio-stage-summary="A second new music study helps the filtered sequence feel intentional instead of dropping back to the same few cards."
+            hidden
+          >
+            <img src="./content/placeholders/placeholder-3.png" alt="Placeholder artwork for Echo Static" />
+          </figure>
+        </div>
+
+        <div class="portfolio-stage-demo__meta">
+          <div class="portfolio-stage-demo__brandline">
+            <h1>Spaceface</h1>
+            <p>stacked carousel study</p>
+          </div>
+          <p class="portfolio-stage-demo__index" data-portfolio-stage-current-index>01 / 12</p>
+          <p class="portfolio-stage-demo__category" data-portfolio-stage-current-category>Music</p>
+          <h2 data-portfolio-stage-current-title>Ultra Miami</h2>
+          <p class="portfolio-stage-demo__summary" data-portfolio-stage-current-summary>
+            A stacked-card lead frame with one dominant project in front and supporting projects still visible around it.
+          </p>
+          <div id="portfolio-stage-details" class="portfolio-stage-demo__details" data-portfolio-stage-details hidden>
+            <p data-portfolio-stage-current-summary>
+              A stacked-card lead frame with one dominant project in front and supporting projects still visible around it.
+            </p>
+            <ul>
+              <li>Click a side card to promote it to the center.</li>
+              <li>Use arrow keys after focusing the carousel shell.</li>
+              <li>Swipe left and right on touch devices.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="portfolio-stage-demo__controls">
+          <button type="button" data-portfolio-stage-prev>Prev</button>
+          <button type="button" data-portfolio-stage-next>Next</button>
+          <button type="button" data-portfolio-stage-details-toggle aria-controls="portfolio-stage-details">Details</button>
+        </div>
+
+        <div class="portfolio-stage-demo__filters" aria-label="Portfolio filters">
+          <button type="button" data-portfolio-stage-filter="all" class="is-selected">All</button>
+          <button type="button" data-portfolio-stage-filter="music">Music</button>
+          <button type="button" data-portfolio-stage-filter="film">Film</button>
+          <button type="button" data-portfolio-stage-filter="branding">Branding</button>
+          <button type="button" data-portfolio-stage-filter="commercial">Commercial</button>
+        </div>
+
+        <nav class="portfolio-stage-demo__menu" aria-label="Portfolio demo sections">
+          <a href="./portfoliostage.html">Works</a>
+          <a href="./floatingimages.html">Artifacts</a>
+          <a href="./index.html">About</a>
+          <a href="./slideplayer.html">Contact</a>
+        </nav>
+      </section>
+
+      <link rel="partial" href="./resources/partials/footer.html" />
+    </main>
+
+    <div data-feature="screensaver" data-screensaver hidden aria-hidden="true"></div>
+
+    <script type="module" src="./bin/app.js"></script>
+  </body>
+</html>

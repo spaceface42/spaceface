@@ -37,6 +37,17 @@ body[data-page="floatingimages"] {
     --line: #cdd5e3;
 }
 
+body[data-page="portfoliostage"] {
+    --bg: #f5f4f1;
+    --surface: #ffffff;
+    --ink: #111111;
+    --muted: rgba(17, 17, 17, 0.66);
+    --line: rgba(17, 17, 17, 0.14);
+    --brand: #111111;
+    --accent: #111111;
+    background: #f5f4f1;
+}
+
 main {
     max-width: 900px;
     margin: 24px auto;
@@ -94,6 +105,18 @@ body[data-page="floatingimages"] main {
     max-width: none;
     margin: 12px 16px 16px;
     padding: 0;
+}
+
+body[data-page="portfoliostage"] header {
+    max-width: none;
+    margin: 0;
+    padding: 18px 24px 0;
+}
+
+body[data-page="portfoliostage"] main {
+    max-width: none;
+    margin: 0;
+    padding: 12px 24px 32px;
 }
 
 nav ul {

@@ -1,0 +1,8 @@
+/* SlideshowFeature */
+
+[data-slide] {
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    min-height: 80px;
+}

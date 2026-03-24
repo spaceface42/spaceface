@@ -43,11 +43,13 @@ Current repo behavior stays explicit: the project ships one authored site in `pu
 - `skeleton.html`: `body[data-page="skeleton"]`; features `screensaver`
 - `slideplayer.html`: `body[data-page="slideplayer"]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: `body[data-page="floatingimages"]`; features `floating-images`, `screensaver`
+- `portfoliostage.html`: `body[data-page="portfoliostage"]`; features `portfolio-stage`, `screensaver`
 
 ### Feature Hooks
 - `slideshow`: root `data-feature="slideshow"`; hooks `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
 - `slideplayer`: root `data-feature="slideplayer"`; hooks `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; hooks `[data-floating-item]`
+- `portfolio-stage`: root `data-feature="portfolio-stage"`; hooks `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`, `[data-portfolio-stage-filter]`, `[data-portfolio-stage-current-title]`, `[data-portfolio-stage-current-category]`, `[data-portfolio-stage-current-index]`, `[data-portfolio-stage-current-summary]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; note: Exactly one portfolio-stage per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `screensaver`: root `data-feature="screensaver"`; hooks `[data-screensaver]`, `[data-screensaver-partial]`
 
 ### Shared Contracts
