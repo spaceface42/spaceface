@@ -41,6 +41,9 @@ Current repo behavior stays explicit: the project ships one authored site in `pu
 ### Routes
 - `index.html`: `body[data-page="index"]`; features `slideshow`, `floating-images`, `screensaver`
 - `skeleton.html`: `body[data-page="skeleton"]`; features `screensaver`
+- `demo.html`: `body[data-page="demo"]`; features `screensaver`
+- `demo2.html`: `body[data-page="demo2"]`; features `screensaver`
+- `demo3.html`: `body[data-page="demo3"]`; features `screensaver`
 - `slideplayer.html`: `body[data-page="slideplayer"]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: `body[data-page="floatingimages"]`; features `floating-images`, `screensaver`
 - `portfoliostage.html`: `body[data-page="portfoliostage"]`; features `portfolio-stage`, `screensaver`

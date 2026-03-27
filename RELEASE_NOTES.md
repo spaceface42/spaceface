@@ -4,6 +4,9 @@
 
 ### Public Pages
 
+- Added `public/demo3.html` and `public/resources/demo3.css` as a surreal anti-UX landing-page experiment with a third demo route.
+- Added `public/demo2.html` and `public/resources/demo2.css` as an even stranger sibling landing-page experiment with its own nav route.
+- Added `public/demo.html` and `public/resources/demo.css` as a deliberately chaotic landing-page experiment with a new primary nav route.
 - Added `public/skeleton.html` as a graphic designer portfolio starter page with first-page content prompts and suggested opening copy.
 - Added a manual screensaver shortcut: `Ctrl+Shift+.` on all platforms.
 - Set the current development screensaver delay to 1 minute.
