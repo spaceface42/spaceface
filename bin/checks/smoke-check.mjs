@@ -62,7 +62,9 @@ if (failures.length === 0) {
   }
 
   assertContains(bundle, "FeatureRegistry", "bundle should include FeatureRegistry runtime");
-  assertContains(bundle, APP_CONTRACT.defaults.screensaverPartialUrl.replace(/^\.\//, ""), "bundle should reference the screensaver partial");
+  for (const partialUrl of Object.values(APP_CONTRACT.defaults.screensaverScenePartialUrls ?? {})) {
+    assertContains(bundle, partialUrl.replace(/^\.\//, ""), `bundle should reference the screensaver scene partial ${partialUrl}`);
+  }
   assertContains(bundle, "app/main.ts", "bundle sourcemap path should reflect the app entrypoint");
   for (const feature of APP_CONTRACT.features) {
     assertContains(bundle, `"${feature.selector}"`, `bundle should include ${feature.selector} feature wiring`);

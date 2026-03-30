@@ -39,23 +39,6 @@ Current repo behavior:
 - `docs/` is generated output
 - multi-site scaffolding has been removed on purpose
 
-## Optional Foundation Stylesheet
-
-`public/resources/spacesuit/skeleton.css` is the minimal authored page foundation.
-
-It introduces one optional styling hook:
-
-- `html[data-theme="light"]`
-- `html[data-theme="dark"]`
-
-If the hook is absent, the stylesheet falls back to `prefers-color-scheme`.
-
-Its breakpoint rhythm is intentionally small and fixed:
-
-- `40rem`
-- `64rem`
-- `80rem`
-
 ## Core Runtime Pieces
 
 ### Feature Registry
@@ -130,10 +113,8 @@ Asset path rule:
 
 ### Routes
 - `index.html`: page id `index`; nav id `index`; hooks `none`; features `slideshow`, `floating-images`, `screensaver`
-- `skeleton.html`: page id `skeleton`; nav id `skeleton`; hooks `none`; features `screensaver`
-- `demo.html`: page id `demo`; nav id `demo`; hooks `none`; features `screensaver`
 - `demo2.html`: page id `demo2`; nav id `demo2`; hooks `none`; features `screensaver`
-- `demo3.html`: page id `demo3`; nav id `demo3`; hooks `none`; features `idle-attractor`
+- `demo3.html`: page id `demo3`; nav id `demo3`; hooks `none`; features `screensaver`
 - `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; hooks required `[data-slideplayer-stage]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; optional `[data-slideplayer-bullets]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; hooks `none`; features `floating-images`, `screensaver`
 - `portfoliostage.html`: page id `portfoliostage`; nav id `portfoliostage`; hooks required `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`; optional `[data-portfolio-stage-filter]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; features `portfolio-stage`, `screensaver`
@@ -142,13 +123,13 @@ Asset path rule:
 - `slideshow`: root `data-feature="slideshow"`; internals `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
 - `slideplayer`: root `data-feature="slideplayer"`; internals `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; singleton note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; internals `[data-floating-item]`
-- `idle-attractor`: root `data-feature="idle-attractor"`; internals `[data-idle-attractor]`, `[data-idle-attractor-partial]`, `[data-idle-attractor-layout]`, `[data-idle-attractor-width]`, `[data-idle-attractor-height]`, `[data-idle-attractor-year]`
+- `attractor-scene`: root `data-feature="attractor-scene"`; internals `[data-attractor-scene]`, `[data-attractor-scene-layout]`, `[data-attractor-scene-width]`, `[data-attractor-scene-height]`, `[data-attractor-scene-year]`
 - `portfolio-stage`: root `data-feature="portfolio-stage"`; internals `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-title]`, `[data-portfolio-stage-category]`, `[data-portfolio-stage-summary]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`, `[data-portfolio-stage-filter]`, `[data-portfolio-stage-filter-value]`, `[data-portfolio-stage-slot]`, `[data-portfolio-stage-wrap-enter]`, `[data-portfolio-stage-current-title]`, `[data-portfolio-stage-current-category]`, `[data-portfolio-stage-current-index]`, `[data-portfolio-stage-current-summary]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; singleton note: Exactly one portfolio-stage per page; smoke validation fails duplicates and runtime warns on extra mounts.
-- `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-partial]`
+- `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-scene]`, `[data-screensaver-idle-ms]`, `[data-screensaver-partial]`
 
 ### Partials
-- `resources/features/idle-attractor/index.html`: host hook `[data-idle-attractor-partial]`; features `none`; hooks required `[data-idle-attractor-layout]`, `[data-idle-attractor-width]`, `[data-idle-attractor-height]`, `[data-idle-attractor-year]`, `class="idle-attractor__shell"`
-- `resources/features/screensaver/index.html`: host hook `[data-screensaver-partial]`; features `floating-images`; hooks required `[data-floating-item]`, `class="screensaver-floating"`
+- `resources/features/screensaver-scenes/attractor.html`: host hook `[data-screensaver-partial]`; features `attractor-scene`; hooks required `[data-attractor-scene]`, `[data-attractor-scene-layout]`, `[data-attractor-scene-width]`, `[data-attractor-scene-height]`, `[data-attractor-scene-year]`, `class="attractor-scene"`
+- `resources/features/screensaver-scenes/floating-images.html`: host hook `[data-screensaver-partial]`; features `floating-images`; hooks required `[data-floating-item]`, `class="screensaver-floating"`
 
 ### Shared Rules
 - Activity reset inputs: `mousemove`, `wheel`, `keydown`, `pointerdown`, `visibilitychange`
@@ -164,24 +145,25 @@ The screensaver:
 
 - listens to `userActivitySignal`
 - toggles `screensaverActiveSignal`
-- fetches and injects its partial on demand
+- fetches and injects the authored partial for the selected scene on demand
+- resolves the visual scene from `data-screensaver-scene`, defaulting to the configured floating-images scene
+- supports per-host idle timing overrides through `data-screensaver-idle-ms`
 - can also be started manually with `Ctrl+Shift+.` on all platforms
 - aborts in-flight partial loads when activity resumes
+- keeps the current scene mounted between activations so repeat starts are instant
 
 The screensaver does not directly instantiate child features. It relies on the registry to see injected `data-feature` markup.
 
-### Idle Attractor
+### Attractor Scene
 
-`IdleAttractorFeature` is the branded idle-overlay variant.
+`AttractorSceneFeature` is the branded editorial scene used inside the screensaver shell.
 
 It:
 
-- listens to `userActivitySignal`
-- lazy-loads its authored overlay partial on first use
-- keeps the partial mounted after first load so repeated idle entries are instant
 - rotates authored visual layouts on a timer instead of running a floating-object system
-- can also be started manually with `Ctrl+Shift+.` on all platforms
-- stays intentionally separate from `screensaver` so the utility overlay and the editorial overlay can evolve independently
+- updates viewport-width, viewport-height, and year labels while mounted
+- starts and stops purely from `screensaverActiveSignal` instead of owning idle timing itself
+- stays swappable because the shell only depends on scene partial paths, not on attractor-specific logic
 
 ### SlidePlayer
 
@@ -223,7 +205,7 @@ It:
 It:
 
 - waits for images before full initialization
-- pauses on screensaver activity unless the instance lives inside the screensaver
+- pauses on screensaver activity when mounted on the page and only runs while the screensaver is active when mounted inside the screensaver shell
 - restores temporary inline styles during teardown
 
 ## Non-Goals

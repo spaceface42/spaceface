@@ -84,6 +84,8 @@ async function run() {
       testPortfolioStageBlankClickUsesLiveRects(runtime);
       await testActivityTracking(runtime);
       await testScreensaverManualShortcut(runtime);
+      await testScreensaverSceneSelection(runtime);
+      await testScreensaverCustomIdleDelay(runtime);
       await testScreensaverLoadFailure(runtime);
       await testScreensaverLoadAbort(runtime);
       await testScreensaverHideWaitsForTransitionDelay(runtime);
@@ -566,7 +568,9 @@ async function testActivityTracking(runtime) {
 
     const feature = new runtime.ScreensaverFeature({
       idleMs: 100,
-      partialUrl: "./ok.html",
+      scenePartialUrls: {
+        "floating-images": "./ok.html",
+      },
     });
     feature.mount(root);
 
@@ -616,7 +620,9 @@ async function testScreensaverManualShortcut(runtime) {
 
     const feature = new runtime.ScreensaverFeature({
       idleMs: 500,
-      partialUrl: "/partial/screensaver.html",
+      scenePartialUrls: {
+        "floating-images": "/partial/screensaver.html",
+      },
     });
     feature.mount(root);
 
@@ -659,6 +665,85 @@ async function testScreensaverManualShortcut(runtime) {
   }
 }
 
+async function testScreensaverSceneSelection(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  let requestedUrl = "";
+  runtime.__setLoadPartialHtml(async (url) => {
+    requestedUrl = String(url);
+    return "<div class='scene-shell'>ok</div>";
+  });
+
+  try {
+    const root = new FakeElement("div", { "data-screensaver": "true", "data-screensaver-scene": "attractor" }, { hidden: true });
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      defaultScene: "floating-images",
+      scenePartialUrls: {
+        "floating-images": "/partial/floating-images.html",
+        attractor: "/partial/attractor.html",
+      },
+    });
+
+    feature.target = root;
+    await feature.showScreensaver(0, "manual");
+
+    assert.equal(requestedUrl, "/partial/attractor.html", "screensaver should load the partial for the authored scene");
+    assert.equal(feature.loadedSceneId, "attractor", "screensaver should remember which scene is mounted");
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    restoreDomGlobals();
+  }
+}
+
+async function testScreensaverCustomIdleDelay(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const clock = installFakeClock();
+  runtime.__setLoadPartialHtml(async () => "<div class='screensaver-label'>ok</div>");
+
+  try {
+    runtime.destroyActivityTracking();
+    runtime.initActivityTracking();
+    runtime.screensaverActiveSignal.value = false;
+
+    const root = new FakeElement(
+      "div",
+      {
+        "data-screensaver": "true",
+        "data-screensaver-idle-ms": "200",
+      },
+      { hidden: true }
+    );
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      idleMs: 100,
+      defaultScene: "floating-images",
+      scenePartialUrls: {
+        "floating-images": "/partial/floating-images.html",
+      },
+    });
+    feature.mount(root);
+
+    clock.advance(100);
+    await flushMicrotasks(4);
+    assert.equal(root.hidden, true, "screensaver should respect a host-specific idle delay before activating");
+
+    clock.advance(100);
+    await flushMicrotasks(4);
+    assert.equal(root.hidden, false, "screensaver should activate after the host-specific idle delay elapses");
+
+    feature.destroy();
+  } finally {
+    runtime.destroyActivityTracking();
+    runtime.screensaverActiveSignal.value = false;
+    clock.restore();
+    restoreDomGlobals();
+  }
+}
+
 async function testScreensaverLoadFailure(runtime) {
   const clock = installFakeClock();
   const body = new FakeElement("body");
@@ -676,7 +761,9 @@ async function testScreensaverLoadFailure(runtime) {
 
     const feature = new runtime.ScreensaverFeature({
       idleMs: 100,
-      partialUrl: "./missing.html",
+      scenePartialUrls: {
+        "floating-images": "./missing.html",
+      },
     });
 
     feature.mount(root);
@@ -723,7 +810,9 @@ async function testScreensaverLoadAbort(runtime) {
 
     const feature = new runtime.ScreensaverFeature({
       idleMs: 100,
-      partialUrl: "./slow.html",
+      scenePartialUrls: {
+        "floating-images": "./slow.html",
+      },
     });
 
     feature.mount(root);
@@ -766,7 +855,7 @@ async function testScreensaverHideWaitsForTransitionDelay(runtime) {
 
     clock.advance(60);
     assert.equal(root.hidden, true, "screensaver should hide after delay plus duration completes");
-    assert.equal(feature.partialLoaded, false, "screensaver hide cleanup should reset the partial loaded flag");
+    assert.equal(feature.partialLoaded, true, "screensaver should keep the current scene mounted between activations");
   } finally {
     runtime.screensaverActiveSignal.value = false;
     globalThis.getComputedStyle = originalGetComputedStyle;
@@ -1134,8 +1223,12 @@ async function testFloatingImagesScreensaverPause(runtime) {
     const screensaverFeature = new runtime.FloatingImagesFeature();
     await screensaverFeature.mount(screensaverRoot);
 
+    assert.equal(addCalls, 0, "screensaver-owned floating images should stay paused until the screensaver activates");
     runtime.screensaverActiveSignal.value = true;
-    assert.equal(unsubscribers[0].calls, 0, "screensaver-owned floating images must keep running during screensaver activity");
+    assert.equal(addCalls, 1, "screensaver-owned floating images should subscribe when the screensaver activates");
+
+    runtime.screensaverActiveSignal.value = false;
+    assert.equal(unsubscribers[0].calls, 1, "screensaver-owned floating images should unsubscribe when the screensaver hides");
     screensaverFeature.destroy();
   } finally {
     runtime.globalScheduler.add = originalAdd;

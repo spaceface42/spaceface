@@ -6,16 +6,14 @@
 
 - Added `public/demo3.html` and `public/resources/demo3.css` as a surreal anti-UX landing-page experiment with a third demo route.
 - Added `public/demo2.html` and `public/resources/demo2.css` as an even stranger sibling landing-page experiment with its own nav route.
-- Added `public/demo.html` and `public/resources/demo.css` as a deliberately chaotic landing-page experiment with a new primary nav route.
-- Added `public/skeleton.html` as a graphic designer portfolio starter page with first-page content prompts and suggested opening copy.
+- Removed the original `public/demo.html` landing-page experiment and its dedicated `public/resources/demo.css` stylesheet.
+- Removed `public/skeleton.html` and its dedicated `public/resources/spacesuit/skeleton.css` starter stylesheet.
 - Added a manual screensaver shortcut: `Ctrl+Shift+.` on all platforms.
 - Set the current development screensaver delay to 1 minute.
 - Moved the portfolio-stage demo presentation styles out of inline page markup and into `public/resources/spacesuit/features/portfolio-stage.css`.
-- Added `public/resources/spacesuit/skeleton.css` as a minimal light/dark page foundation using ArrivalApercuMonoPro, theme tokens, and fixed breakpoints.
-- Rebuilt `public/skeleton.html` to demonstrate the new skeleton stylesheet instead of carrying page-local inline CSS.
-- Switched the shared site typography over to ArrivalApercuMonoPro so the existing pages and the skeleton starter use the same family.
-- Added a new `idle-attractor` feature with its own partial-backed editorial idle overlay, and switched `demo3.html` to use it instead of the utility screensaver.
-- Added the same `Ctrl+Shift+.` manual start shortcut to `idle-attractor`.
+- Switched the shared site typography over to ArrivalApercuMonoPro.
+- Refactored the screensaver into a scene-based idle shell with authored `floating-images` and `attractor` scene partials.
+- Added `AttractorSceneFeature` as the editorial scene runtime and switched `demo3.html` back to the shared screensaver shell with `data-screensaver-scene="attractor"` and `data-screensaver-idle-ms="120000"`.
 
 ### Runtime Fixes
 
@@ -23,6 +21,7 @@
 - Formalized `portfolio-stage` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
 - Changed portfolio-stage blank-stage click targeting to use live rendered card boxes instead of duplicated slot-position constants.
 - Synced the portfolio-stage contract docs to include authored metadata attrs plus runtime-owned filter/slot/wrap attrs.
+- Updated `FloatingImagesFeature` so screensaver-owned instances stay paused while the shell is hidden and only animate during active screensaver scenes.
 
 ## 2026-03-12
 

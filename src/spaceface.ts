@@ -20,9 +20,9 @@ export {
 export { initActivityTracking, destroyActivityTracking } from "./features/shared/activity.js";
 
 export {
-  IdleAttractorFeature,
-  type IdleAttractorFeatureOptions,
-} from "./features/idle-attractor/IdleAttractorFeature.js";
+  AttractorSceneFeature,
+  type AttractorSceneFeatureOptions,
+} from "./features/attractor-scene/AttractorSceneFeature.js";
 
 export {
   FloatingImagesFeature,

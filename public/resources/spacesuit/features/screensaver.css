@@ -3,13 +3,7 @@
 [data-screensaver] {
     position: fixed;
     inset: 0;
-    display: grid;
-    place-items: center;
-    background: url("../layer.svg") 0 0 / 16px 16px repeat;
-    mix-blend-mode: multiply;
-    color: #fff;
-    font-size: 24px;
-    letter-spacing: 0.04em;
+    overflow: hidden;
     opacity: 0;
     pointer-events: none;
     transition: opacity 320ms ease;
@@ -21,8 +15,22 @@
     pointer-events: auto;
 }
 
-[data-screensaver] .screensaver-floating,
-[data-screensaver] [data-feature="floating-images"] {
+[data-screensaver][data-screensaver-scene="floating-images"] {
+    display: grid;
+    place-items: center;
+    background: url("../layer.svg") 0 0 / 16px 16px repeat;
+    mix-blend-mode: multiply;
+    color: #fff;
+    font-size: 24px;
+    letter-spacing: 0.04em;
+}
+
+[data-screensaver] [data-screensaver-partial] {
+    min-height: 100%;
+}
+
+[data-screensaver][data-screensaver-scene="floating-images"] .screensaver-floating,
+[data-screensaver][data-screensaver-scene="floating-images"] [data-feature="floating-images"] {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -31,7 +39,7 @@
     background: transparent;
 }
 
-[data-screensaver] [data-floating-item] {
+[data-screensaver][data-screensaver-scene="floating-images"] [data-floating-item] {
     width: 12%;
     height: auto;
     display: grid;
@@ -40,7 +48,7 @@
     pointer-events: none;
 }
 
-[data-screensaver] .screensaver-label {
+[data-screensaver][data-screensaver-scene="floating-images"] .screensaver-label {
     position: relative;
     z-index: 1;
 }

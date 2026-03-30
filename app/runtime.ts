@@ -1,7 +1,7 @@
 import {
+  AttractorSceneFeature,
   type FeatureDefinition,
   FloatingImagesFeature,
-  IdleAttractorFeature,
   PortfolioStageFeature,
   ScreensaverFeature,
   SlidePlayerFeature,
@@ -16,13 +16,10 @@ export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
       create: () => new FloatingImagesFeature(),
     },
     {
-      selector: getFeatureContract("idle-attractor").selector,
+      selector: getFeatureContract("attractor-scene").selector,
       create: () =>
-        new IdleAttractorFeature({
-          idleMs: APP_CONTRACT.defaults.idleAttractorIdleMs,
-          rotateMs: APP_CONTRACT.defaults.idleAttractorRotateMs,
-          partialUrl: APP_CONTRACT.defaults.idleAttractorPartialUrl,
-          partialAssetAttributes: APP_CONTRACT.partialAssetAttributes,
+        new AttractorSceneFeature({
+          rotateMs: APP_CONTRACT.defaults.attractorSceneRotateMs,
         }),
     },
     {
@@ -30,7 +27,8 @@ export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
       create: () =>
         new ScreensaverFeature({
           idleMs: APP_CONTRACT.defaults.screensaverIdleMs,
-          partialUrl: APP_CONTRACT.defaults.screensaverPartialUrl,
+          defaultScene: APP_CONTRACT.defaults.screensaverDefaultScene,
+          scenePartialUrls: APP_CONTRACT.defaults.screensaverScenePartialUrls,
           partialAssetAttributes: APP_CONTRACT.partialAssetAttributes,
         }),
     },
