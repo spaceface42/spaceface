@@ -35,6 +35,9 @@ export interface AppContract {
   sourceDir: string;
   outputDir: string;
   defaults: {
+    idleAttractorIdleMs: number;
+    idleAttractorRotateMs: number;
+    idleAttractorPartialUrl: string;
     screensaverIdleMs: number;
     slideshowAutoplayMs: number;
     screensaverPartialUrl: string;

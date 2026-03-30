@@ -3,6 +3,9 @@ export const APP_CONTRACT = {
   sourceDir: "public",
   outputDir: "docs",
   defaults: {
+    idleAttractorIdleMs: 120000,
+    idleAttractorRotateMs: 2400,
+    idleAttractorPartialUrl: "./resources/features/idle-attractor/index.html",
     screensaverIdleMs: 60000,
     slideshowAutoplayMs: 5000,
     screensaverPartialUrl: "./resources/features/screensaver/index.html",
@@ -38,15 +41,34 @@ export const APP_CONTRACT = {
       internals: ["[data-floating-item]"],
     },
     {
+      id: "idle-attractor",
+      selector: "idle-attractor",
+      root: 'data-feature="idle-attractor"',
+      internals: [
+        "[data-idle-attractor]",
+        "[data-idle-attractor-partial]",
+        "[data-idle-attractor-layout]",
+        "[data-idle-attractor-width]",
+        "[data-idle-attractor-height]",
+        "[data-idle-attractor-year]",
+      ],
+    },
+    {
       id: "portfolio-stage",
       selector: "portfolio-stage",
       root: 'data-feature="portfolio-stage"',
       internals: [
         "[data-portfolio-stage-stage]",
         "[data-portfolio-stage-item]",
+        "[data-portfolio-stage-title]",
+        "[data-portfolio-stage-category]",
+        "[data-portfolio-stage-summary]",
         "[data-portfolio-stage-prev]",
         "[data-portfolio-stage-next]",
         "[data-portfolio-stage-filter]",
+        "[data-portfolio-stage-filter-value]",
+        "[data-portfolio-stage-slot]",
+        "[data-portfolio-stage-wrap-enter]",
         "[data-portfolio-stage-current-title]",
         "[data-portfolio-stage-current-category]",
         "[data-portfolio-stage-current-index]",
@@ -101,7 +123,7 @@ export const APP_CONTRACT = {
       file: "demo3.html",
       page: "demo3",
       navLabel: "Demo 3",
-      featureSelectors: ["screensaver"],
+      featureSelectors: ["idle-attractor"],
       hooks: [],
     },
     {
@@ -144,6 +166,19 @@ export const APP_CONTRACT = {
     },
   ],
   partials: [
+    {
+      id: "idle-attractor",
+      file: "resources/features/idle-attractor/index.html",
+      hostHook: "[data-idle-attractor-partial]",
+      featureSelectors: [],
+      hooks: [
+        { selector: "[data-idle-attractor-layout]", presence: "required" },
+        { selector: "[data-idle-attractor-width]", presence: "required" },
+        { selector: "[data-idle-attractor-height]", presence: "required" },
+        { selector: "[data-idle-attractor-year]", presence: "required" },
+        { selector: 'class="idle-attractor__shell"', presence: "required" },
+      ],
+    },
     {
       id: "screensaver",
       file: "resources/features/screensaver/index.html",

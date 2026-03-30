@@ -24,6 +24,13 @@ The system stays deliberately narrow:
 
 Current repo behavior stays explicit: the project ships one authored site in `public/` and one app wiring layer in `app/`.
 
+## Skeleton Stylesheet
+
+- `public/resources/spacesuit/skeleton.css` is the minimal starter stylesheet for new pages
+- optional theme hook: `html[data-theme="light"]` or `html[data-theme="dark"]`
+- if `data-theme` is omitted, the stylesheet follows `prefers-color-scheme`
+- breakpoint tokens and layouts are built around `40rem`, `64rem`, and `80rem`
+
 ## Runtime Model
 
 - `FeatureRegistry` mounts and destroys features from `data-feature="..."`
@@ -32,7 +39,8 @@ Current repo behavior stays explicit: the project ships one authored site in `pu
 - Failed async mounts are torn down before the error is surfaced
 - `userActivitySignal` tracks last interaction time
 - `screensaverActiveSignal` pauses page features while the screensaver is active
-- The screensaver can also be started manually with `Ctrl+Shift+.` on all platforms
+- The screensaver and idle attractor can both be started manually with `Ctrl+Shift+.` on all platforms
+- `IdleAttractorFeature` is a separate idle overlay that reuses `userActivitySignal` but keeps its own partial, timing, and layout rotation
 - `FrameScheduler` runs animated features in update-then-render order
 
 ## Contract Snapshot
@@ -43,7 +51,7 @@ Current repo behavior stays explicit: the project ships one authored site in `pu
 - `skeleton.html`: `body[data-page="skeleton"]`; features `screensaver`
 - `demo.html`: `body[data-page="demo"]`; features `screensaver`
 - `demo2.html`: `body[data-page="demo2"]`; features `screensaver`
-- `demo3.html`: `body[data-page="demo3"]`; features `screensaver`
+- `demo3.html`: `body[data-page="demo3"]`; features `idle-attractor`
 - `slideplayer.html`: `body[data-page="slideplayer"]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: `body[data-page="floatingimages"]`; features `floating-images`, `screensaver`
 - `portfoliostage.html`: `body[data-page="portfoliostage"]`; features `portfolio-stage`, `screensaver`
@@ -52,7 +60,8 @@ Current repo behavior stays explicit: the project ships one authored site in `pu
 - `slideshow`: root `data-feature="slideshow"`; hooks `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
 - `slideplayer`: root `data-feature="slideplayer"`; hooks `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; hooks `[data-floating-item]`
-- `portfolio-stage`: root `data-feature="portfolio-stage"`; hooks `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`, `[data-portfolio-stage-filter]`, `[data-portfolio-stage-current-title]`, `[data-portfolio-stage-current-category]`, `[data-portfolio-stage-current-index]`, `[data-portfolio-stage-current-summary]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; note: Exactly one portfolio-stage per page; smoke validation fails duplicates and runtime warns on extra mounts.
+- `idle-attractor`: root `data-feature="idle-attractor"`; hooks `[data-idle-attractor]`, `[data-idle-attractor-partial]`, `[data-idle-attractor-layout]`, `[data-idle-attractor-width]`, `[data-idle-attractor-height]`, `[data-idle-attractor-year]`
+- `portfolio-stage`: root `data-feature="portfolio-stage"`; hooks `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-title]`, `[data-portfolio-stage-category]`, `[data-portfolio-stage-summary]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`, `[data-portfolio-stage-filter]`, `[data-portfolio-stage-filter-value]`, `[data-portfolio-stage-slot]`, `[data-portfolio-stage-wrap-enter]`, `[data-portfolio-stage-current-title]`, `[data-portfolio-stage-current-category]`, `[data-portfolio-stage-current-index]`, `[data-portfolio-stage-current-summary]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; note: Exactly one portfolio-stage per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `screensaver`: root `data-feature="screensaver"`; hooks `[data-screensaver]`, `[data-screensaver-partial]`
 
 ### Shared Contracts

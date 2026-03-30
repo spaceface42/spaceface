@@ -1,0 +1,302 @@
+/* IdleAttractorFeature */
+
+[data-idle-attractor] {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    overflow: hidden;
+    background: #f6f4ef;
+    color: #111111;
+    font-family: "Apercu Mono", "SFMono-Regular", Consolas, monospace;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-idle-attractor].is-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+[data-idle-attractor][hidden] {
+    display: none;
+}
+
+[data-idle-attractor-partial] {
+    min-height: 100%;
+}
+
+.idle-attractor__shell {
+    position: relative;
+    min-height: 100vh;
+    padding: clamp(1.2rem, 2vw, 2rem);
+}
+
+.idle-attractor__meta,
+.idle-attractor__brand,
+.idle-attractor__footer {
+    position: relative;
+    z-index: 2;
+}
+
+.idle-attractor__meta {
+    display: inline-grid;
+    gap: 0.2rem;
+    font-size: 0.76rem;
+    line-height: 1.1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.idle-attractor__brand {
+    position: absolute;
+    top: clamp(1.2rem, 2vw, 2rem);
+    right: clamp(1.2rem, 2vw, 2rem);
+    width: min(28rem, 42vw);
+    text-align: right;
+}
+
+.idle-attractor__wordmark {
+    font-size: clamp(2.6rem, 6vw, 5.8rem);
+    line-height: 0.9;
+    letter-spacing: -0.06em;
+    text-transform: lowercase;
+}
+
+.idle-attractor__descriptor {
+    margin-top: 0.7rem;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(17, 17, 17, 0.65);
+}
+
+.idle-attractor__layouts {
+    position: absolute;
+    inset: 0;
+}
+
+.idle-attractor__layout {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition:
+        opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform: scale(1.015);
+    pointer-events: none;
+}
+
+.idle-attractor__layout.is-current {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.idle-attractor__panel {
+    position: absolute;
+    overflow: hidden;
+    border: 1px solid rgba(17, 17, 17, 0.12);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 28px 80px rgba(17, 17, 17, 0.08);
+}
+
+.idle-attractor__panel img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(0.88) contrast(1.02);
+}
+
+.idle-attractor__panel-tag {
+    position: absolute;
+    top: 0.85rem;
+    left: 0.85rem;
+    padding: 0.28rem 0.44rem;
+    background: rgba(246, 244, 239, 0.9);
+    border: 1px solid rgba(17, 17, 17, 0.08);
+    font-size: 0.66rem;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.idle-attractor__layout-note {
+    position: absolute;
+    left: clamp(1.2rem, 2vw, 2rem);
+    bottom: clamp(5rem, 8vw, 7rem);
+    width: min(28rem, 40vw);
+    font-size: clamp(1rem, 1.45vw, 1.34rem);
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+}
+
+.idle-attractor__footer {
+    position: absolute;
+    right: clamp(1.2rem, 2vw, 2rem);
+    bottom: clamp(1.2rem, 2vw, 2rem);
+    font-size: 0.72rem;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+    text-align: right;
+    text-transform: uppercase;
+    color: rgba(17, 17, 17, 0.56);
+}
+
+.idle-attractor__layout--one .idle-attractor__panel--hero {
+    top: 16vh;
+    right: 8vw;
+    width: min(34vw, 30rem);
+    height: min(48vh, 31rem);
+}
+
+.idle-attractor__layout--one .idle-attractor__panel--support {
+    top: 34vh;
+    left: 12vw;
+    width: min(18vw, 16rem);
+    height: min(26vh, 16rem);
+}
+
+.idle-attractor__layout--one .idle-attractor__panel--detail {
+    right: 28vw;
+    bottom: 10vh;
+    width: min(16vw, 14rem);
+    height: min(18vh, 12rem);
+}
+
+.idle-attractor__layout--two .idle-attractor__panel--hero {
+    top: 14vh;
+    left: 16vw;
+    width: min(24vw, 20rem);
+    height: min(54vh, 34rem);
+}
+
+.idle-attractor__layout--two .idle-attractor__panel--support {
+    top: 20vh;
+    right: 13vw;
+    width: min(30vw, 26rem);
+    height: min(30vh, 18rem);
+}
+
+.idle-attractor__layout--two .idle-attractor__panel--detail {
+    bottom: 16vh;
+    right: 27vw;
+    width: min(16vw, 13rem);
+    height: min(20vh, 13rem);
+}
+
+.idle-attractor__layout--three .idle-attractor__panel--hero {
+    top: 18vh;
+    right: 20vw;
+    width: min(22vw, 18rem);
+    height: min(48vh, 30rem);
+}
+
+.idle-attractor__layout--three .idle-attractor__panel--support {
+    top: 12vh;
+    left: 10vw;
+    width: min(28vw, 24rem);
+    height: min(28vh, 16rem);
+}
+
+.idle-attractor__layout--three .idle-attractor__panel--detail {
+    bottom: 12vh;
+    left: 34vw;
+    width: min(24vw, 20rem);
+    height: min(20vh, 13rem);
+}
+
+.idle-attractor__layout--four .idle-attractor__panel--hero {
+    top: 17vh;
+    left: 8vw;
+    width: min(34vw, 30rem);
+    height: min(44vh, 29rem);
+}
+
+.idle-attractor__layout--four .idle-attractor__panel--support {
+    top: 22vh;
+    right: 11vw;
+    width: min(18vw, 15rem);
+    height: min(34vh, 22rem);
+}
+
+.idle-attractor__layout--four .idle-attractor__panel--detail {
+    right: 26vw;
+    bottom: 12vh;
+    width: min(20vw, 16rem);
+    height: min(18vh, 12rem);
+}
+
+@media (max-width: 54rem) {
+    .idle-attractor__brand {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: auto;
+        margin-top: 1.6rem;
+        text-align: left;
+    }
+
+    .idle-attractor__wordmark {
+        font-size: clamp(2.6rem, 12vw, 4.6rem);
+    }
+
+    .idle-attractor__layout-note {
+        left: 1.2rem;
+        bottom: 4.6rem;
+        width: min(20rem, calc(100vw - 2.4rem));
+        font-size: 0.94rem;
+    }
+
+    .idle-attractor__footer {
+        left: 1.2rem;
+        right: auto;
+        bottom: 1.2rem;
+        text-align: left;
+    }
+
+    .idle-attractor__panel {
+        box-shadow: 0 18px 54px rgba(17, 17, 17, 0.08);
+    }
+
+    .idle-attractor__layout--one .idle-attractor__panel--hero,
+    .idle-attractor__layout--two .idle-attractor__panel--hero,
+    .idle-attractor__layout--three .idle-attractor__panel--hero,
+    .idle-attractor__layout--four .idle-attractor__panel--hero {
+        top: 30vh;
+        left: auto;
+        right: 1.2rem;
+        width: min(58vw, 18rem);
+        height: 28vh;
+    }
+
+    .idle-attractor__layout--one .idle-attractor__panel--support,
+    .idle-attractor__layout--two .idle-attractor__panel--support,
+    .idle-attractor__layout--three .idle-attractor__panel--support,
+    .idle-attractor__layout--four .idle-attractor__panel--support {
+        top: 18vh;
+        left: 1.2rem;
+        right: auto;
+        width: min(40vw, 12rem);
+        height: 16vh;
+    }
+
+    .idle-attractor__layout--one .idle-attractor__panel--detail,
+    .idle-attractor__layout--two .idle-attractor__panel--detail,
+    .idle-attractor__layout--three .idle-attractor__panel--detail,
+    .idle-attractor__layout--four .idle-attractor__panel--detail {
+        right: auto;
+        left: 26vw;
+        bottom: 19vh;
+        width: min(32vw, 9rem);
+        height: 12vh;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-idle-attractor],
+    .idle-attractor__layout {
+        transition: none;
+    }
+}

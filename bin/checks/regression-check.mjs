@@ -81,6 +81,7 @@ async function run() {
       testPortfolioStageDestroyRestoresAuthoredDom(runtime);
       await testPortfolioStageWrapEntersFromDestinationSide(runtime);
       await testPortfolioStageNavigationAndFiltering(runtime);
+      testPortfolioStageBlankClickUsesLiveRects(runtime);
       await testActivityTracking(runtime);
       await testScreensaverManualShortcut(runtime);
       await testScreensaverLoadFailure(runtime);
@@ -1033,6 +1034,66 @@ async function testPortfolioStageNavigationAndFiltering(runtime) {
   restoreDomGlobals();
 }
 
+function testPortfolioStageBlankClickUsesLiveRects(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createPortfolioStageRoot();
+  body.append(root);
+
+  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
+  feature.mount(root);
+
+  const stage = root.querySelector("[data-portfolio-stage-stage]");
+  setFakeRect(stage, { left: 0, top: 0, width: 600, height: 400 });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Afterglow Frames"]'), {
+    left: 240,
+    top: 110,
+    width: 120,
+    height: 160,
+  });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Velvet Broadcast"]'), {
+    left: 80,
+    top: 120,
+    width: 60,
+    height: 100,
+  });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Signal Form"]'), {
+    left: 470,
+    top: 100,
+    width: 70,
+    height: 100,
+  });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Chrome Runner"]'), {
+    left: 360,
+    top: 150,
+    width: 70,
+    height: 90,
+  });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Signal Form Two"]'), {
+    left: 160,
+    top: 135,
+    width: 60,
+    height: 90,
+  });
+
+  dispatchElementEvent(stage, "click", {
+    target: stage,
+    clientX: 70,
+    clientY: 170,
+  });
+
+  assert.equal(
+    root.querySelector("[data-portfolio-stage-current-title]").textContent,
+    "Velvet Broadcast",
+    "blank-stage click targeting should follow the rendered card boxes"
+  );
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
+}
+
 async function testFloatingImagesScreensaverPause(runtime) {
   installWindowForFloatingImages();
   runtime.__setWaitForImagesReady(async () => []);
@@ -1355,6 +1416,22 @@ function installFakeClock() {
 
 function activeIndex(root, selector) {
   return root.querySelectorAll(selector).findIndex((node) => !node.hidden);
+}
+
+function setFakeRect(node, { left, top, width, height }) {
+  node.clientWidth = width;
+  node.clientHeight = height;
+  node.getBoundingClientRect = () => ({
+    width,
+    height,
+    top,
+    left,
+    right: left + width,
+    bottom: top + height,
+    x: left,
+    y: top,
+    toJSON: () => ({}),
+  });
 }
 
 function createFloatingRoot() {

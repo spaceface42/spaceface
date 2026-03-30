@@ -10,11 +10,19 @@
 - Added `public/skeleton.html` as a graphic designer portfolio starter page with first-page content prompts and suggested opening copy.
 - Added a manual screensaver shortcut: `Ctrl+Shift+.` on all platforms.
 - Set the current development screensaver delay to 1 minute.
+- Moved the portfolio-stage demo presentation styles out of inline page markup and into `public/resources/spacesuit/features/portfolio-stage.css`.
+- Added `public/resources/spacesuit/skeleton.css` as a minimal light/dark page foundation using ArrivalApercuMonoPro, theme tokens, and fixed breakpoints.
+- Rebuilt `public/skeleton.html` to demonstrate the new skeleton stylesheet instead of carrying page-local inline CSS.
+- Switched the shared site typography over to ArrivalApercuMonoPro so the existing pages and the skeleton starter use the same family.
+- Added a new `idle-attractor` feature with its own partial-backed editorial idle overlay, and switched `demo3.html` to use it instead of the utility screensaver.
+- Added the same `Ctrl+Shift+.` manual start shortcut to `idle-attractor`.
 
 ### Runtime Fixes
 
 - Restored `PortfolioStageFeature` authored DOM state during destroy so `data-feature` deactivation and replacement clean up safely.
 - Formalized `portfolio-stage` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
+- Changed portfolio-stage blank-stage click targeting to use live rendered card boxes instead of duplicated slot-position constants.
+- Synced the portfolio-stage contract docs to include authored metadata attrs plus runtime-owned filter/slot/wrap attrs.
 
 ## 2026-03-12
 

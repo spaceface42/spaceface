@@ -1,382 +1,147 @@
 <!doctype html>
 <html lang="en" data-mode="dev">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Spaceface Skeleton</title>
+    <link rel="stylesheet" href="./resources/spacesuit/_reset.css" />
+    <link rel="stylesheet" href="./resources/spacesuit/skeleton.css" />
+    <link rel="stylesheet" href="./resources/spacesuit/features/screensaver.css" />
+  </head>
+  <body data-page="skeleton">
+    <header>
+      <div class="container">
+        <link rel="partial" href="./resources/partials/nav.html" />
+      </div>
+    </header>
 
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>Portfolio Skeleton</title>
-        <link rel="stylesheet" href="./resources/spacesuit/_reset.css" />
-        <link rel="stylesheet" href="./resources/spacesuit/styles.css" />
-        <link rel="stylesheet" href="./resources/spacesuit/features/screensaver.css" />
-        <style>
-            :root {
-                --skeleton-ink: #121212;
-                --skeleton-paper: #f5f1e8;
-                --skeleton-accent: #ff6a3d;
-                --skeleton-accent-soft: #ffd7c8;
-                --skeleton-deep: #1b4d3e;
-                --skeleton-line: rgba(18, 18, 18, 0.14);
-                --skeleton-shadow: 0 20px 60px rgba(18, 18, 18, 0.12);
-            }
+    <main>
+      <section class="section">
+        <div class="container">
+          <div class="card stack">
+            <p class="eyebrow">Skeleton.css / Starter</p>
+            <h1>Minimal portfolio shell with sane tokens, breakpoints, and light or dark theming.</h1>
+            <p class="measure muted">
+              This page is the authored demo for <code>skeleton.css</code>. It is intentionally small: one font, one
+              variable system, a few layout primitives, and enough structure to start a clean portfolio or landing page
+              without inheriting the older site styles.
+            </p>
+            <div class="cluster">
+              <a class="button" href="mailto:hello@example.com">hello@example.com</a>
+              <a class="button" data-variant="ghost" href="./portfoliostage.html">See a richer demo</a>
+            </div>
+            <p class="measure muted">
+              To lock the theme manually, set <code>data-theme="light"</code> or <code>data-theme="dark"</code> on
+              <code>&lt;html&gt;</code>. If you omit it, the stylesheet follows the system preference.
+            </p>
+          </div>
+        </div>
+      </section>
 
-            body[data-page="skeleton"] {
-                background:
-                    radial-gradient(circle at top left, rgba(255, 106, 61, 0.18), transparent 28rem),
-                    linear-gradient(180deg, #f7f3eb 0%, #efe7d9 100%);
-                color: var(--skeleton-ink);
-            }
+      <section class="section">
+        <div class="container grid grid-3">
+          <article class="card stack">
+            <div class="media-frame">
+              <img src="./content/placeholders/placeholder-1.png" alt="Placeholder cover for featured project one" />
+            </div>
+            <h2>Featured Work</h2>
+            <p class="muted">
+              Start with one project that shows your strongest visual point of view fast: identity, campaign, editorial,
+              or motion-ready direction.
+            </p>
+          </article>
 
-            [data-page="skeleton"] main {
-                display: grid;
-                gap: 1.5rem;
-                padding-bottom: 4rem;
-            }
+          <article class="card stack">
+            <div class="media-frame">
+              <img src="./content/placeholders/placeholder-2.png" alt="Placeholder cover for featured project two" />
+            </div>
+            <h2>Range</h2>
+            <p class="muted">
+              Use the second card to prove range without losing authorship. Good contrast pairs are print and digital,
+              brand and editorial, or client and self-initiated work.
+            </p>
+          </article>
 
-            .portfolio-hero,
-            .portfolio-grid,
-            .portfolio-proof,
-            .portfolio-notes,
-            .portfolio-cta {
-                background: rgba(245, 241, 232, 0.88);
-                border: 1px solid var(--skeleton-line);
-                box-shadow: var(--skeleton-shadow);
-                backdrop-filter: blur(12px);
-            }
+          <article class="card stack">
+            <div class="media-frame">
+              <img src="./content/placeholders/placeholder-3.png" alt="Placeholder cover for featured project three" />
+            </div>
+            <h2>Contact</h2>
+            <p class="muted">
+              End the opening screen with a direct route to contact. A small site feels stronger when the next action is
+              obvious and frictionless.
+            </p>
+          </article>
+        </div>
+      </section>
 
-            .portfolio-hero {
-                overflow: hidden;
-                position: relative;
-                padding: clamp(1.5rem, 4vw, 3rem);
-            }
+      <section class="section">
+        <div class="container grid grid-2">
+          <article class="card stack">
+            <p class="eyebrow">Starter Copy</p>
+            <h2>What the first screen should answer</h2>
+            <ul>
+              <li>What kind of designer or studio this is.</li>
+              <li>What categories of work you want more of.</li>
+              <li>Why your visual taste feels distinct instead of just competent.</li>
+              <li>How a visitor can contact you in one move.</li>
+            </ul>
+          </article>
 
-            .portfolio-hero::after {
-                content: "";
-                position: absolute;
-                inset: auto -4rem -5rem auto;
-                width: 14rem;
-                height: 14rem;
-                border-radius: 50%;
-                background: linear-gradient(180deg, rgba(255, 106, 61, 0.22), rgba(27, 77, 62, 0.16));
-                filter: blur(4px);
-            }
+          <aside class="card stack">
+            <p class="eyebrow">Breakpoints</p>
+            <h2>Breakpoint rhythm</h2>
+            <p class="muted">
+              The stylesheet ships with three practical breakpoints:
+              <code>40rem</code>,
+              <code>64rem</code>, and
+              <code>80rem</code>.
+            </p>
+            <p class="muted">
+              They are meant for small-layout expansion, real desktop layout, and large-canvas spacing, not endless
+              device-specific overrides.
+            </p>
+          </aside>
+        </div>
+      </section>
 
-            .eyebrow {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                margin: 0 0 1rem;
-                padding: 0.35rem 0.65rem;
-                border: 1px solid rgba(18, 18, 18, 0.1);
-                border-radius: 999px;
-                background: rgba(255, 255, 255, 0.5);
-                font-size: 0.85rem;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-            }
+      <section class="section">
+        <div class="container card stack">
+          <p class="eyebrow">Notes</p>
+          <h2>Suggested workflow</h2>
+          <div class="grid grid-2">
+            <div class="stack">
+              <p class="muted">
+                Start by swapping the three placeholder cards for real work. Then replace the headline and first
+                paragraph before touching colors or layout.
+              </p>
+              <p class="muted">
+                If you want a darker look all the time, add <code>data-theme="dark"</code> to the root HTML element and
+                keep the rest of the page unchanged.
+              </p>
+            </div>
+            <div class="stack">
+              <p class="muted">Quick checks before shipping:</p>
+              <ul>
+                <li>Compress the opening statement to two or three sentences.</li>
+                <li>Use one contact route that is always visible.</li>
+                <li>Keep the first grid focused on the kind of work you want sold.</li>
+                <li>Test at <kbd>40</kbd>, <kbd>64</kbd>, and <kbd>80</kbd> rem widths.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
 
-            .portfolio-hero h1 {
-                max-width: 11ch;
-                margin: 0;
-                font-size: clamp(3rem, 8vw, 6rem);
-                line-height: 0.92;
-                letter-spacing: -0.05em;
-                text-transform: uppercase;
-            }
+      <section class="section">
+        <div class="container">
+          <link rel="partial" href="./resources/partials/footer.html" />
+        </div>
+      </section>
+    </main>
 
-            .portfolio-hero-copy {
-                display: grid;
-                grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
-                gap: 1.5rem;
-                margin-top: 1.5rem;
-                position: relative;
-                z-index: 1;
-            }
+    <div data-feature="screensaver" data-screensaver hidden aria-hidden="true"></div>
 
-            .lead {
-                max-width: 34rem;
-                margin: 0;
-                font-size: 1.1rem;
-                line-height: 1.7;
-            }
-
-            .hero-notes {
-                padding: 1rem;
-                border-left: 4px solid var(--skeleton-accent);
-                background: rgba(255, 255, 255, 0.6);
-            }
-
-            .hero-notes h2,
-            .portfolio-proof h2,
-            .portfolio-notes h2,
-            .portfolio-cta h2 {
-                margin-top: 0;
-            }
-
-            .hero-notes ul,
-            .portfolio-notes ol {
-                margin: 0;
-                padding-left: 1.2rem;
-            }
-
-            .portfolio-grid {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 1rem;
-                padding: 1rem;
-            }
-
-            .portfolio-card {
-                display: grid;
-                gap: 1rem;
-                padding: 1.1rem;
-                border: 1px solid var(--skeleton-line);
-                background: rgba(255, 255, 255, 0.64);
-            }
-
-            .portfolio-card-media {
-                aspect-ratio: 4 / 3;
-                background:
-                    linear-gradient(135deg, rgba(255, 106, 61, 0.18), rgba(255, 215, 200, 0.72)),
-                    repeating-linear-gradient(45deg, transparent 0, transparent 12px, rgba(18, 18, 18, 0.04) 12px, rgba(18, 18, 18, 0.04) 24px);
-                border: 1px solid rgba(18, 18, 18, 0.08);
-            }
-
-            .portfolio-card h3,
-            .portfolio-card p,
-            .portfolio-card ul,
-            .portfolio-proof p,
-            .portfolio-notes p,
-            .portfolio-cta p {
-                margin: 0;
-            }
-
-            .portfolio-card ul,
-            .portfolio-proof ul {
-                padding-left: 1.1rem;
-            }
-
-            .portfolio-proof,
-            .portfolio-notes,
-            .portfolio-cta {
-                padding: 1.4rem;
-            }
-
-            .portfolio-proof {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 1rem;
-            }
-
-            .proof-item {
-                padding: 1rem;
-                border-top: 4px solid var(--skeleton-deep);
-                background: rgba(255, 255, 255, 0.56);
-            }
-
-            .proof-item strong {
-                display: block;
-                margin-bottom: 0.5rem;
-                font-size: 1.25rem;
-            }
-
-            .portfolio-notes {
-                display: grid;
-                grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-                gap: 1.25rem;
-            }
-
-            .notes-panel,
-            .prompt-panel {
-                padding: 1rem;
-                border: 1px solid var(--skeleton-line);
-                background: rgba(255, 255, 255, 0.52);
-            }
-
-            .prompt-panel {
-                background: linear-gradient(180deg, rgba(255, 215, 200, 0.56), rgba(255, 255, 255, 0.8));
-            }
-
-            .portfolio-cta {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 1rem;
-            }
-
-            .cta-link {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                min-width: 12rem;
-                padding: 0.9rem 1.2rem;
-                border: 1px solid rgba(18, 18, 18, 0.2);
-                background: var(--skeleton-ink);
-                color: var(--skeleton-paper);
-                text-decoration: none;
-                text-transform: uppercase;
-                letter-spacing: 0.08em;
-            }
-
-            .cta-link:hover,
-            .cta-link:focus-visible {
-                background: var(--skeleton-accent);
-                color: var(--skeleton-ink);
-            }
-
-            @media (max-width: 900px) {
-                .portfolio-hero-copy,
-                .portfolio-grid,
-                .portfolio-proof,
-                .portfolio-notes,
-                .portfolio-cta {
-                    grid-template-columns: 1fr;
-                }
-
-                .portfolio-cta {
-                    align-items: flex-start;
-                    flex-direction: column;
-                }
-            }
-        </style>
-    </head>
-
-    <body data-page="skeleton">
-
-        <header>
-            <link rel="partial" href="./resources/partials/nav.html" />
-        </header>
-
-        <main>
-            <section class="portfolio-hero">
-                <p class="eyebrow">Portfolio Template / Graphic Designer</p>
-                <h1>Your Name Here</h1>
-                <div class="portfolio-hero-copy">
-                    <p class="lead">
-                        Replace this with a one-paragraph introduction that says what kind of graphic designer you are,
-                        what you are best at, and what clients remember about working with you. A strong version usually
-                        names your focus, your visual point of view, and the kinds of projects you want more of.
-                    </p>
-                    <aside class="hero-notes">
-                        <h2>First-page essentials</h2>
-                        <ul>
-                            <li>Your role and specialty: brand identity, editorial, campaign design, packaging, or digital art direction.</li>
-                            <li>Your strongest client type: founders, agencies, cultural institutions, fashion, hospitality, or tech.</li>
-                            <li>Your positioning sentence: what makes your work feel distinct, not just competent.</li>
-                        </ul>
-                    </aside>
-                </div>
-            </section>
-
-            <section class="portfolio-grid" aria-label="Selected work placeholders">
-                <article class="portfolio-card">
-                    <div class="portfolio-card-media" aria-hidden="true"></div>
-                    <h3>Project One / Identity System</h3>
-                    <p>
-                        Use this slot for a project that proves your taste fast. Add one sentence on the brief, one on
-                        your role, and one on the result.
-                    </p>
-                    <ul>
-                        <li>Client or project name</li>
-                        <li>Scope: identity, print, digital rollout</li>
-                        <li>Outcome: launch, recognition, sales, or engagement</li>
-                    </ul>
-                </article>
-
-                <article class="portfolio-card">
-                    <div class="portfolio-card-media" aria-hidden="true"></div>
-                    <h3>Project Two / Campaign or Editorial</h3>
-                    <p>
-                        Show range here. If your first card is branding, use this one to show layout systems, image
-                        direction, art direction, or motion-ready design thinking.
-                    </p>
-                    <ul>
-                        <li>Format: campaign, publication, social system, or launch kit</li>
-                        <li>Constraint: timeline, audience, or production limit</li>
-                        <li>Why it matters: what changed because of the work</li>
-                    </ul>
-                </article>
-
-                <article class="portfolio-card">
-                    <div class="portfolio-card-media" aria-hidden="true"></div>
-                    <h3>Project Three / Personal or Experimental</h3>
-                    <p>
-                        This slot is useful for showing authorship. Include a self-initiated series, poster system,
-                        image-making direction, or concept that reveals your visual instincts.
-                    </p>
-                    <ul>
-                        <li>Medium: posters, typography, image systems, or 3D</li>
-                        <li>Intent: exploration, research, or aesthetic statement</li>
-                        <li>Connection to paid work: what it says about your eye</li>
-                    </ul>
-                </article>
-            </section>
-
-            <section class="portfolio-proof">
-                <div class="proof-item">
-                    <strong>About</strong>
-                    <p>
-                        Add a short biography with your base city, years of experience, and the kinds of collaborations
-                        you enjoy most.
-                    </p>
-                </div>
-                <div class="proof-item">
-                    <strong>Services</strong>
-                    <p>
-                        List only the services you want to be hired for. Good examples: identity systems, art direction,
-                        editorial design, campaign visuals, packaging, and presentation design.
-                    </p>
-                </div>
-                <div class="proof-item">
-                    <strong>Signals</strong>
-                    <p>
-                        Add trust markers like selected clients, awards, publications, speaking, teaching, or notable
-                        collaborators.
-                    </p>
-                </div>
-            </section>
-
-            <section class="portfolio-notes">
-                <div class="notes-panel">
-                    <h2>Suggested opening copy</h2>
-                    <p>
-                        I design visual identities, printed matter, and campaign systems for brands that want clarity,
-                        character, and a strong point of view. My work combines structured typography, image-led
-                        storytelling, and art direction that helps a brand feel memorable across print and digital.
-                    </p>
-                    <p>
-                        Over the past few years I have worked on launches, refreshes, and editorial systems for clients
-                        who care about detail and cultural relevance. I am especially interested in projects where
-                        concept and execution need to feel equally sharp.
-                    </p>
-                </div>
-                <div class="prompt-panel">
-                    <h2>Questions to answer on page one</h2>
-                    <ol>
-                        <li>What exact kind of graphic designer are you, in one sentence?</li>
-                        <li>What 3 project categories do you most want to attract?</li>
-                        <li>Which 3 proof points make a visitor trust you quickly?</li>
-                        <li>What visual tone should the page communicate: sharp, playful, elegant, or experimental?</li>
-                    </ol>
-                </div>
-            </section>
-
-            <section class="portfolio-cta">
-                <div>
-                    <h2>Contact block suggestion</h2>
-                    <p>
-                        Keep the call to action direct: invite commissions, freelance work, collaborations, or portfolio
-                        requests. Put your email, Instagram, and location here.
-                    </p>
-                </div>
-                <a class="cta-link" href="mailto:hello@example.com">hello@example.com</a>
-            </section>
-
-            <link rel="partial" href="./resources/partials/footer.html" />
-        </main>
-
-        <div data-feature="screensaver" data-screensaver hidden="hidden" aria-hidden="true"></div>
-
-        <script type="module" src="./bin/app.js"></script>
-    </body>
-
+    <script type="module" src="./bin/app.js"></script>
+  </body>
 </html>

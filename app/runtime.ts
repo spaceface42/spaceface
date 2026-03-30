@@ -1,6 +1,7 @@
 import {
   type FeatureDefinition,
   FloatingImagesFeature,
+  IdleAttractorFeature,
   PortfolioStageFeature,
   ScreensaverFeature,
   SlidePlayerFeature,
@@ -13,6 +14,16 @@ export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
     {
       selector: getFeatureContract("floating-images").selector,
       create: () => new FloatingImagesFeature(),
+    },
+    {
+      selector: getFeatureContract("idle-attractor").selector,
+      create: () =>
+        new IdleAttractorFeature({
+          idleMs: APP_CONTRACT.defaults.idleAttractorIdleMs,
+          rotateMs: APP_CONTRACT.defaults.idleAttractorRotateMs,
+          partialUrl: APP_CONTRACT.defaults.idleAttractorPartialUrl,
+          partialAssetAttributes: APP_CONTRACT.partialAssetAttributes,
+        }),
     },
     {
       selector: getFeatureContract("screensaver").selector,

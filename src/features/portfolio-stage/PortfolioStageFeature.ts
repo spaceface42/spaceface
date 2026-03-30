@@ -79,15 +79,6 @@ export interface PortfolioStageFeatureOptions {
 export class PortfolioStageFeature implements Feature {
   private static readonly SWIPE_THRESHOLD_PX = 42;
   private static readonly SWIPE_OFF_AXIS_THRESHOLD_PX = 26;
-  private static readonly SLOT_LAYOUT_REM: Record<number, { x: number; y: number }> = {
-    [-3]: { x: -31, y: -0.4 },
-    [-2]: { x: -22, y: -0.4 },
-    [-1]: { x: -14, y: -0.4 },
-    [0]: { x: 0, y: -0.4 },
-    [1]: { x: 14, y: -0.4 },
-    [2]: { x: 22, y: -0.4 },
-    [3]: { x: 31, y: -0.4 },
-  };
   private static keyboardOwner: PortfolioStageFeature | null = null;
 
   private options: Required<PortfolioStageFeatureOptions>;
@@ -742,20 +733,15 @@ export class PortfolioStageFeature implements Feature {
     if (!this.stage || this.visibleIndexes.length === 0) return null;
 
     const directItem = this.findVisiblePositionFromTarget(event.target);
-    if (directItem !== null && directItem !== this.currentVisibleIndex) {
+    if (directItem !== null) {
       return directItem;
     }
 
     if (typeof event.clientX !== "number" || typeof event.clientY !== "number") {
-      return directItem;
+      return null;
     }
 
-    const stageRect = this.stage.getBoundingClientRect();
-    const rootFontSize = resolveRootFontSize(this.stage);
-    const centerX = stageRect.left + stageRect.width / 2;
-    const centerY = stageRect.top + stageRect.height / 2;
-
-    let bestVisiblePosition: number | null = directItem;
+    let bestVisiblePosition: number | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
 
     for (let visiblePosition = 0; visiblePosition < this.visibleIndexes.length; visiblePosition += 1) {
@@ -763,13 +749,7 @@ export class PortfolioStageFeature implements Feature {
       const item = this.items[itemIndex];
       if (!item) continue;
 
-      const slot = Number(item.el.getAttribute("data-portfolio-stage-slot"));
-      const layout = PortfolioStageFeature.SLOT_LAYOUT_REM[slot];
-      if (!layout) continue;
-
-      const projectedX = centerX + layout.x * rootFontSize;
-      const projectedY = centerY + layout.y * rootFontSize;
-      const distance = Math.hypot(event.clientX - projectedX, event.clientY - projectedY);
+      const distance = distanceToRect(event.clientX, event.clientY, item.el.getBoundingClientRect());
 
       if (distance < bestDistance) {
         bestDistance = distance;
@@ -843,17 +823,6 @@ export class PortfolioStageFeature implements Feature {
   }
 }
 
-function resolveRootFontSize(node: HTMLElement): number {
-  const documentElement = node.ownerDocument?.documentElement;
-  if (!documentElement || typeof getComputedStyle !== "function") {
-    return 16;
-  }
-
-  const value = getComputedStyle(documentElement).fontSize;
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 16;
-}
-
 function normalizeFilterValue(value: string): string {
   const normalized = value.trim().toLowerCase();
   return normalized.length > 0 ? normalized : "all";
@@ -892,6 +861,12 @@ function getSlotRange(slots: Map<number, number>): { min: number | null; max: nu
     min: Number.isFinite(min) ? min : null,
     max: Number.isFinite(max) ? max : null,
   };
+}
+
+function distanceToRect(x: number, y: number, rect: DOMRect): number {
+  const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
+  const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+  return Math.hypot(dx, dy);
 }
 
 function getWrapEnterDirection(

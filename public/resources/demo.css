@@ -1,14 +1,6 @@
 @font-face {
   font-family: "DemoMono";
-  src: url("./spacesuit/fonts/AberMono-Bold.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "DemoSans";
-  src: url("./spacesuit/fonts/ArrivalApercuPro-Regular.woff2") format("woff2");
+  src: url("./spacesuit/fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
@@ -16,7 +8,15 @@
 
 @font-face {
   font-family: "DemoSans";
-  src: url("./spacesuit/fonts/ArrivalApercuPro-Medium.woff2") format("woff2");
+  src: url("./spacesuit/fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DemoSans";
+  src: url("./spacesuit/fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
   font-style: normal;
   font-weight: 500;
   font-display: swap;
@@ -49,7 +49,7 @@ body[data-page="demo"] {
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
-  font-family: "DemoSans", "Helvetica Neue", Arial, sans-serif;
+  font-family: "DemoSans", "Apercu Mono", "SFMono-Regular", Consolas, monospace;
   color: var(--demo-ink);
   background:
     radial-gradient(circle at 15% 20%, rgba(255, 107, 26, 0.38), transparent 22rem),

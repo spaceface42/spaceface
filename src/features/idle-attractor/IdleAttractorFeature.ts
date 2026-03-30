@@ -1,34 +1,35 @@
-// src/features/screensaver/ScreensaverFeature.ts
 import type { Feature, FeatureMountContext } from "../../core/feature.js";
 import { createLogger, type Logger } from "../../core/logger.js";
 import { createEffect } from "../../core/signals.js";
+import { loadPartialHtml } from "../../core/partials.js";
 import { userActivitySignal } from "../shared/activity.js";
 import { isManualIdleShortcut } from "../shared/manualIdleShortcut.js";
-import { screensaverActiveSignal } from "../shared/screensaverState.js";
-import { loadPartialHtml } from "../../core/partials.js";
-// We don't import or tightly couple to FloatingImagesFeature directly in the code logic.
-// Instead, we just write the HTML. The FeatureRegistry will automatically see it
-// and spawn a FloatingImagesFeature for us.
 
-export interface ScreensaverFeatureOptions {
+export interface IdleAttractorFeatureOptions {
   idleMs?: number;
+  rotateMs?: number;
   partialUrl?: string;
   partialAssetAttributes?: string[];
 }
 
-export class ScreensaverFeature implements Feature {
-  private options: Required<ScreensaverFeatureOptions>;
+export class IdleAttractorFeature implements Feature {
+  private options: Required<IdleAttractorFeatureOptions>;
   private target: HTMLElement | null = null;
   private cleanupEffect?: () => void;
-  private timer: number | null = null;
-  private isShowing = false;
-  private partialLoaded = false;
-
-  // For cleanup timings
+  private idleTimer: number | null = null;
+  private rotationTimer: number | null = null;
   private hideCleanupTimer: number | null = null;
-  private showRequestId = 0;
   private partialLoadController: AbortController | null = null;
-  private logger: Logger = createLogger("screensaver", "warn");
+  private partialLoaded = false;
+  private isShowing = false;
+  private activeLayoutIndex = 0;
+  private showRequestId = 0;
+  private logger: Logger = createLogger("idle-attractor", "warn");
+
+  private readonly handleResize = (): void => {
+    this.syncRuntimeText();
+  };
+
   private readonly handleManualStartKeydown = (event: KeyboardEvent): void => {
     if (!this.target) return;
     if (this.isShowing) return;
@@ -37,13 +38,14 @@ export class ScreensaverFeature implements Feature {
     event.preventDefault();
     const requestId = ++this.showRequestId;
     this.cancelPendingPartialLoad();
-    this.resetTimer();
-    void this.showScreensaver(requestId, "manual");
+    this.resetIdleTimer();
+    void this.showAttractor(requestId, "manual");
   };
 
-  constructor(options: ScreensaverFeatureOptions = {}) {
+  constructor(options: IdleAttractorFeatureOptions = {}) {
     this.options = {
-      idleMs: options.idleMs ?? 60000,
+      idleMs: options.idleMs ?? 120000,
+      rotateMs: options.rotateMs ?? 2400,
       partialUrl: options.partialUrl ?? "",
       partialAssetAttributes: options.partialAssetAttributes ?? ["src", "poster", "data-src"],
     };
@@ -56,63 +58,67 @@ export class ScreensaverFeature implements Feature {
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");
     document.addEventListener("keydown", this.handleManualStartKeydown);
+    window.addEventListener("resize", this.handleResize, { passive: true });
 
-    // Start watching user activity via our shiny new Signal primitive
     this.cleanupEffect = createEffect(() => {
       void userActivitySignal.value;
       const requestId = ++this.showRequestId;
       this.cancelPendingPartialLoad();
-      this.resetTimer();
+      this.resetIdleTimer();
 
       if (this.isShowing) {
-        this.hideScreensaver();
+        this.hideAttractor();
       }
 
-      this.timer = window.setTimeout(() => {
-        void this.showScreensaver(requestId, "idle");
+      this.idleTimer = window.setTimeout(() => {
+        void this.showAttractor(requestId, "idle");
       }, this.options.idleMs);
     });
   }
 
   destroy(): void {
-    if (this.isShowing) {
-      this.logger.debug("screensaver stopped", { reason: "destroy" });
-    }
+    this.showRequestId += 1;
     this.isShowing = false;
     this.partialLoaded = false;
-    this.showRequestId += 1;
+    this.activeLayoutIndex = 0;
     this.cancelPendingPartialLoad();
-    this.resetTimer();
+    this.resetIdleTimer();
+    this.stopRotation();
     this.cleanupEffect?.();
     this.cleanupEffect = undefined;
+    document.removeEventListener("keydown", this.handleManualStartKeydown);
+    window.removeEventListener("resize", this.handleResize);
 
     if (this.hideCleanupTimer !== null) {
       clearTimeout(this.hideCleanupTimer);
       this.hideCleanupTimer = null;
     }
-    document.removeEventListener("keydown", this.handleManualStartKeydown);
 
     if (this.target) {
       this.clearPartialMount(this.target);
       this.target.classList.remove("is-active");
       this.target.hidden = true;
       this.target.setAttribute("aria-hidden", "true");
-      screensaverActiveSignal.value = false;
-      // The FeatureRegistry takes care of destroying child features automatically
-      // if we remove them from the DOM, but for fade-outs, we just hide them.
     }
 
     this.target = null;
   }
 
-  private resetTimer(): void {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-      this.timer = null;
+  private resetIdleTimer(): void {
+    if (this.idleTimer !== null) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
     }
   }
 
-  private async showScreensaver(requestId: number, reason: "idle" | "manual"): Promise<void> {
+  private stopRotation(): void {
+    if (this.rotationTimer !== null) {
+      clearInterval(this.rotationTimer);
+      this.rotationTimer = null;
+    }
+  }
+
+  private async showAttractor(requestId: number, reason: "idle" | "manual"): Promise<void> {
     if (!this.target) return;
     if (requestId !== this.showRequestId) return;
 
@@ -121,58 +127,88 @@ export class ScreensaverFeature implements Feature {
       this.hideCleanupTimer = null;
     }
 
-    const ready = await this.prepareScreensaverMarkup(this.target, requestId);
+    const ready = await this.prepareMarkup(this.target, requestId);
     if (!ready) return;
-
-    // Check if we became active again during the async fetch
     if (requestId !== this.showRequestId || !this.target) return;
 
+    this.syncRuntimeText();
+    this.applyActiveLayout(0);
     this.isShowing = true;
-    screensaverActiveSignal.value = true;
     this.target.hidden = false;
-    // We force a reflow before adding the active class so the fade-in CSS transitions trigger
     void this.target.offsetWidth;
     this.target.classList.add("is-active");
     this.target.setAttribute("aria-hidden", "false");
-    this.logger.debug("screensaver started", { partialLoaded: this.partialLoaded, reason });
-
-    // We don't have to manually instantiate FloatingImagesFeature.
-    // By loading the partial containing `data-feature="floating-images"`, the
-    // central MutationObserver handles instantiating it.
+    this.startRotation();
+    this.logger.debug("idle attractor started", { partialLoaded: this.partialLoaded, reason });
   }
 
-  private hideScreensaver(): void {
+  private hideAttractor(): void {
     if (!this.target || !this.isShowing) return;
     this.isShowing = false;
-    screensaverActiveSignal.value = false;
-    this.logger.debug("screensaver stopped", { reason: "activity" });
+    this.stopRotation();
+    this.logger.debug("idle attractor stopped", { reason: "activity" });
 
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");
 
-    // Wait for fade out animation before stopping the floating elements
     const durationMs = this.getTransitionDurationMs(this.target);
     this.hideCleanupTimer = window.setTimeout(() => {
       if (!this.target || this.isShowing) return;
       this.target.hidden = true;
-
-      // We can drop the floating images from the DOM entirely to destroy them
-      const floatingRoot = this.target.querySelector('[data-feature="floating-images"]');
-      if (floatingRoot) {
-        floatingRoot.remove();
-        // The MutationObserver will instantly see this removal and call `destroy()`
-        // on the FloatingImagesFeature instance gracefully!
-      }
-      this.partialLoaded = false;
+      this.applyActiveLayout(0);
     }, durationMs);
   }
 
-  private async prepareScreensaverMarkup(target: HTMLElement, requestId: number): Promise<boolean> {
+  private startRotation(): void {
+    this.stopRotation();
+    const layouts = this.getLayouts();
+    if (layouts.length <= 1 || prefersReducedMotion()) {
+      this.applyActiveLayout(0);
+      return;
+    }
+
+    this.rotationTimer = window.setInterval(() => {
+      const nextIndex = (this.activeLayoutIndex + 1) % layouts.length;
+      this.applyActiveLayout(nextIndex);
+    }, this.options.rotateMs);
+  }
+
+  private applyActiveLayout(nextIndex: number): void {
+    const layouts = this.getLayouts();
+    if (layouts.length === 0) return;
+
+    const normalizedIndex = ((nextIndex % layouts.length) + layouts.length) % layouts.length;
+    this.activeLayoutIndex = normalizedIndex;
+
+    for (const [index, layout] of layouts.entries()) {
+      const isCurrent = index === normalizedIndex;
+      layout.classList.toggle("is-current", isCurrent);
+      layout.setAttribute("aria-hidden", isCurrent ? "false" : "true");
+    }
+  }
+
+  private getLayouts(): HTMLElement[] {
+    if (!this.target) return [];
+    return Array.from(this.target.querySelectorAll<HTMLElement>("[data-idle-attractor-layout]"));
+  }
+
+  private syncRuntimeText(): void {
+    if (!this.target) return;
+    const width = this.target.querySelector<HTMLElement>("[data-idle-attractor-width]");
+    const height = this.target.querySelector<HTMLElement>("[data-idle-attractor-height]");
+    const year = this.target.querySelector<HTMLElement>("[data-idle-attractor-year]");
+    if (width) width.textContent = String(window.innerWidth);
+    if (height) height.textContent = String(window.innerHeight);
+    if (year) year.textContent = String(new Date().getFullYear());
+  }
+
+  private async prepareMarkup(target: HTMLElement, requestId: number): Promise<boolean> {
     if (!this.options.partialUrl) {
       return false;
     }
+
     if (this.partialLoaded) {
-      if (target.querySelector("[data-screensaver-partial]")) {
+      if (target.querySelector("[data-idle-attractor-partial]")) {
         return true;
       }
       this.partialLoaded = false;
@@ -191,19 +227,16 @@ export class ScreensaverFeature implements Feature {
       }
 
       const mount = this.getOrCreatePartialMount(target);
-
-      // Modifying innerHTML triggers the global FeatureRegistry's MutationObserver.
-      // If the HTML contains `<div data-feature="floating-images"></div>`, it
-      // will instantly instantiate a FloatingImagesFeature.
       mount.innerHTML = html;
-
       this.partialLoaded = true;
+      this.syncRuntimeText();
+      this.applyActiveLayout(0);
       return true;
     } catch (error) {
       if (isAbortError(error)) {
         return false;
       }
-      this.logger.warn("failed to load screensaver partial", {
+      this.logger.warn("failed to load idle attractor partial", {
         partialUrl: this.options.partialUrl,
         error,
       });
@@ -219,16 +252,16 @@ export class ScreensaverFeature implements Feature {
   }
 
   private getOrCreatePartialMount(target: HTMLElement): HTMLElement {
-    let mount = target.querySelector<HTMLElement>("[data-screensaver-partial]");
+    let mount = target.querySelector<HTMLElement>("[data-idle-attractor-partial]");
     if (mount) return mount;
     mount = document.createElement("div");
-    mount.setAttribute("data-screensaver-partial", "true");
+    mount.setAttribute("data-idle-attractor-partial", "true");
     target.prepend(mount);
     return mount;
   }
 
   private clearPartialMount(target: HTMLElement): void {
-    const mount = target.querySelector<HTMLElement>("[data-screensaver-partial]");
+    const mount = target.querySelector<HTMLElement>("[data-idle-attractor-partial]");
     mount?.remove();
     this.partialLoaded = false;
   }
@@ -251,6 +284,14 @@ export class ScreensaverFeature implements Feature {
 
     return Number.isFinite(maxTotal) ? maxTotal : 360;
   }
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
 
 function isAbortError(error: unknown): boolean {

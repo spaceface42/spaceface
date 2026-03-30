@@ -12,6 +12,7 @@ This roadmap tracks only the current static-page runtime.
 1. Keep the `public/` to `docs/` pipeline stable and explicit.
 2. Keep DOM feature contracts small and documented.
 3. Add tests only where lifecycle, timing, or path rebasing logic can realistically regress.
+4. Keep branded idle experiences as separate features instead of growing the core utility screensaver into a catch-all visual system.
 
 ## Next Useful Work
 
