@@ -15,6 +15,8 @@ export interface ScreensaverFeatureOptions {
 }
 
 export class ScreensaverFeature implements Feature {
+  private static activeInstance: ScreensaverFeature | null = null;
+
   private options: Required<ScreensaverFeatureOptions>;
   private target: HTMLElement | null = null;
   private cleanupEffect?: () => void;
@@ -28,6 +30,7 @@ export class ScreensaverFeature implements Feature {
   private injectedSceneAttribute = false;
   private injectedSceneValue: string | null = null;
   private logger: Logger = createLogger("screensaver", "warn");
+  private ownsSingleton = false;
 
   private readonly handleManualStartKeydown = (event: KeyboardEvent): void => {
     if (!this.target) return;
@@ -56,6 +59,16 @@ export class ScreensaverFeature implements Feature {
     this.target.hidden = true;
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");
+
+    if (ScreensaverFeature.activeInstance && ScreensaverFeature.activeInstance !== this) {
+      this.logger.warn("ignored duplicate screensaver mount", {
+        reason: "singleton-enforced",
+      });
+      return;
+    }
+
+    ScreensaverFeature.activeInstance = this;
+    this.ownsSingleton = true;
     this.resolveSceneId(this.target);
     document.addEventListener("keydown", this.handleManualStartKeydown);
 
@@ -100,10 +113,16 @@ export class ScreensaverFeature implements Feature {
       this.target.classList.remove("is-active");
       this.target.hidden = true;
       this.target.setAttribute("aria-hidden", "true");
-      screensaverActiveSignal.value = false;
+      if (this.ownsSingleton) {
+        screensaverActiveSignal.value = false;
+      }
     }
 
     this.target = null;
+    if (this.ownsSingleton && ScreensaverFeature.activeInstance === this) {
+      ScreensaverFeature.activeInstance = null;
+    }
+    this.ownsSingleton = false;
   }
 
   private resetTimer(): void {
@@ -144,7 +163,6 @@ export class ScreensaverFeature implements Feature {
   private hideScreensaver(): void {
     if (!this.target || !this.isShowing) return;
     this.isShowing = false;
-    screensaverActiveSignal.value = false;
     this.logger.debug("screensaver stopped", {
       reason: "activity",
       scene: this.loadedSceneId,
@@ -157,6 +175,7 @@ export class ScreensaverFeature implements Feature {
     this.hideCleanupTimer = window.setTimeout(() => {
       if (!this.target || this.isShowing) return;
       this.target.hidden = true;
+      screensaverActiveSignal.value = false;
     }, durationMs);
   }
 

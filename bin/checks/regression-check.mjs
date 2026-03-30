@@ -89,6 +89,7 @@ async function run() {
       await testScreensaverLoadFailure(runtime);
       await testScreensaverLoadAbort(runtime);
       await testScreensaverHideWaitsForTransitionDelay(runtime);
+      testScreensaverSingletonBinding(runtime);
       testScreensaverDestroyRemovesInjectedMarkup(runtime);
       await testFloatingImagesScreensaverPause(runtime);
       await testFloatingImagesContainerResize(runtime);
@@ -848,18 +849,71 @@ async function testScreensaverHideWaitsForTransitionDelay(runtime) {
     feature.target = root;
     feature.isShowing = true;
     feature.partialLoaded = true;
+    runtime.screensaverActiveSignal.value = true;
 
     feature.hideScreensaver();
     clock.advance(300);
     assert.equal(root.hidden, false, "screensaver should stay visible until delay plus duration has elapsed");
+    assert.equal(runtime.screensaverActiveSignal.value, true, "screensaver should keep the shared active state until the hide transition completes");
 
     clock.advance(60);
     assert.equal(root.hidden, true, "screensaver should hide after delay plus duration completes");
+    assert.equal(runtime.screensaverActiveSignal.value, false, "screensaver should release the shared active state after the hide transition completes");
     assert.equal(feature.partialLoaded, true, "screensaver should keep the current scene mounted between activations");
   } finally {
     runtime.screensaverActiveSignal.value = false;
     globalThis.getComputedStyle = originalGetComputedStyle;
     clock.restore();
+  }
+}
+
+function testScreensaverSingletonBinding(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const clock = installFakeClock();
+
+  const warnSpy = spy();
+  const logger = {
+    child() {
+      return this;
+    },
+    debug() {},
+    info() {},
+    warn() {
+      warnSpy();
+    },
+    error() {},
+  };
+
+  try {
+    const firstRoot = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    const secondRoot = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    body.append(firstRoot);
+    body.append(secondRoot);
+
+    const firstFeature = new runtime.ScreensaverFeature({
+      scenePartialUrls: {
+        "floating-images": "/partial/floating-images.html",
+      },
+    });
+    firstFeature.mount(firstRoot, { signal: new AbortController().signal, logger });
+
+    const secondFeature = new runtime.ScreensaverFeature({
+      scenePartialUrls: {
+        "floating-images": "/partial/floating-images.html",
+      },
+    });
+    secondFeature.mount(secondRoot, { signal: new AbortController().signal, logger });
+
+    assert.equal((documentListeners.get("keydown") ?? []).length, 1, "only one screensaver should bind the global shortcut listener");
+    assert.equal(warnSpy.calls, 1, "duplicate screensaver mounts should warn at runtime");
+
+    secondFeature.destroy();
+    firstFeature.destroy();
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    clock.restore();
+    restoreDomGlobals();
   }
 }
 
@@ -878,6 +932,7 @@ function testScreensaverDestroyRemovesInjectedMarkup(runtime) {
     const feature = new runtime.ScreensaverFeature();
     feature.target = root;
     feature.partialLoaded = true;
+    feature.ownsSingleton = true;
     runtime.screensaverActiveSignal.value = true;
 
     feature.destroy();

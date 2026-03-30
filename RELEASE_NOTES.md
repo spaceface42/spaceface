@@ -19,9 +19,11 @@
 
 - Restored `PortfolioStageFeature` authored DOM state during destroy so `data-feature` deactivation and replacement clean up safely.
 - Formalized `portfolio-stage` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
+- Formalized `screensaver` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
 - Changed portfolio-stage blank-stage click targeting to use live rendered card boxes instead of duplicated slot-position constants.
 - Synced the portfolio-stage contract docs to include authored metadata attrs plus runtime-owned filter/slot/wrap attrs.
 - Updated `FloatingImagesFeature` so screensaver-owned instances stay paused while the shell is hidden and only animate during active screensaver scenes.
+- Delayed screensaver resume so underlying features restart only after the overlay has fully finished fading out.
 
 ## 2026-03-12
 

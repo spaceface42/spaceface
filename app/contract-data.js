@@ -89,6 +89,7 @@ export const APP_CONTRACT = {
         "[data-screensaver-idle-ms]",
         "[data-screensaver-partial]",
       ],
+      singletonNote: "Exactly one screensaver per page; smoke validation fails duplicates and runtime warns on extra mounts.",
     },
   ],
   routes: [
