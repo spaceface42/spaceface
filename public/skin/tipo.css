@@ -1,0 +1,13 @@
+@font-face {
+    font-family: 'SCTO';
+    font-weight: 300;
+    src: url("./scto-grotesk-a-light-2.woff2") format("woff2"),url(../fonts/scto-grotesk-a-light-2.woff) format("woff")
+}
+
+html {
+    font-family: 'SCTO', sans-serif;
+    font-weight: 300;
+    line-height: var(--lh);
+    font-size: var(--fs);
+    letter-spacing: -.05em;
+}

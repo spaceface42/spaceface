@@ -1,0 +1,45 @@
+/* skin */
+
+/* variables */
+:root {
+    --fs:3.3vw;
+    --gutter: 10px;
+    --bgcolor: rgba(157, 204, 233, 0.2);
+}
+
+@media (max-width: 720px) {
+    :root {
+        --gutter: 7px;
+        --bgcolor: rgba(223, 186, 186, 0.2);
+    }
+}
+
+/* layout */
+body {
+    padding: var(--gutter);
+    background-color: var(--bgcolor);
+}
+
+header {
+
+}
+
+main {
+
+}
+
+footer {
+
+}
+
+
+/* atomic */
+
+h1 {
+
+}
+
+nav {
+
+}
+
