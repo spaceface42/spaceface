@@ -48,6 +48,24 @@ function extractAssetRefs(html) {
     refs.push(match[1].trim());
   }
 
+  const styleBlockPattern = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
+  while ((match = styleBlockPattern.exec(html)) !== null) {
+    refs.push(...extractCssUrlRefs(match[1]));
+  }
+
+  return refs;
+}
+
+function extractCssUrlRefs(css) {
+  const refs = [];
+  const cssUrlPattern = /url\(\s*(?:(["'])([^"']+)\1|([^)"']+))\s*\)/gi;
+  let match;
+  while ((match = cssUrlPattern.exec(css)) !== null) {
+    const value = (match[2] ?? match[3] ?? "").trim();
+    if (value) {
+      refs.push(value);
+    }
+  }
   return refs;
 }
 

@@ -1,6 +1,8 @@
 const partialCache = new Map<string, string>();
 const MAX_PARTIAL_CACHE_SIZE = 10;
 const STYLESHEET_HREF_PATTERN = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=)(["'])([^"']+)\2/gi;
+const STYLE_BLOCK_PATTERN = /(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi;
+const CSS_URL_PATTERN = /url\(\s*(?:(["'])([^"']+)\1|([^)"']+))\s*\)/gi;
 const DEFAULT_PARTIAL_ASSET_ATTRIBUTES = ["src", "poster", "data-src"] as const;
 const assetAttrPatternCache = new Map<string, RegExp>();
 
@@ -60,7 +62,25 @@ function rebasePartialAssetUrls(html: string, baseUrl: string, assetAttributes: 
     }
   );
 
-  return rebased;
+  return rebased.replace(STYLE_BLOCK_PATTERN, (fullMatch, openTag: string, css: string, closeTag: string) => {
+    return `${openTag}${rebaseCssUrls(css, (value) => rebaseRelativeUrl(value, baseUrl))}${closeTag}`;
+  });
+}
+
+function rebaseCssUrls(css: string, rebaseValue: (value: string) => string): string {
+  return css.replace(CSS_URL_PATTERN, (fullMatch, quote: string | undefined, quotedValue: string | undefined, bareValue: string | undefined) => {
+    const value = (quotedValue ?? bareValue ?? "").trim();
+    if (!value) {
+      return fullMatch;
+    }
+
+    const nextValue = rebaseValue(value);
+    if (nextValue === value) {
+      return fullMatch;
+    }
+
+    return quote ? `url(${quote}${nextValue}${quote})` : `url(${nextValue})`;
+  });
 }
 
 function getAssetAttrPattern(attributeNames: string[]): RegExp {

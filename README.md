@@ -67,13 +67,13 @@ Feature-authored assets can stay colocated under `public/resources/features/<fea
 
 ## Startup Sequence
 
-Spaceface keeps its startup enhancer app-owned through `initStartupSequence(options?)`.
+Spaceface keeps its startup enhancer app-owned through `initStartupSequence()`.
 
 Authored DOM contract:
 
 - Root: `[data-startup-sequence]`
 - Required startup children: `[data-startup-splash]`, `[data-startup-intro]`
-- Layout target: `[data-startup-layout]`, resolved from the startup root first, then `data-layout-target`, then the document-level layout selector
+- Layout target: authored on `[data-startup-layout]` and resolved from `data-layout-target`, falling back to `#app`
 - Optional timing and behavior attrs: `data-delay`, `data-intro-delay`, `data-dismiss-on-click`
 - Runtime-owned replay guard: `data-startup-complete="true"`
 
@@ -88,8 +88,8 @@ Integration points:
 
 - `app/main.ts` calls the app-local `initStartupSequence()` before shared activity tracking and feature registry startup
 - `public/index.html` demonstrates the external-layout pattern through `data-layout-target="#app"`
-- `public/resources/features/startup-sequence/splash.html` owns the startup markup and links its sibling `startup-sequence.css` so the authored intro stays self-contained
-- If any required startup node is missing, the initializer returns `null` without mutating the DOM
+- `public/resources/features/startup-sequence/splash.html` owns the startup markup and its inline startup styles so the authored intro stays self-contained
+- If any required startup node is missing, the initializer returns early without mutating the DOM
 
 ## Commands
 

@@ -6,6 +6,8 @@ const inputDir = path.resolve(process.cwd(), process.env.DOCS_SRC_DIR ?? process
 const outputDir = path.resolve(process.cwd(), process.env.DOCS_OUT_DIR ?? process.env.PUBLIC_OUT_DIR ?? APP_CONTRACT.outputDir);
 const ASSET_ATTR_PATTERN = createAssetAttrPattern(APP_CONTRACT.partialAssetAttributes);
 const STYLESHEET_HREF_PATTERN = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=)(["'])([^"']+)\2/gi;
+const STYLE_BLOCK_PATTERN = /(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi;
+const CSS_URL_PATTERN = /url\(\s*(?:(["'])([^"']+)\1|([^)"']+))\s*\)/gi;
 const buildStats = {
   htmlFiles: 0,
   staticFiles: 0,
@@ -123,7 +125,25 @@ function rebaseEmbeddedAssetUrls(html, fromFilePath, toFilePath) {
     return nextValue === value ? fullMatch : `${prefix}${quote}${nextValue}${quote}`;
   });
 
-  return rebased;
+  return rebased.replace(STYLE_BLOCK_PATTERN, (fullMatch, openTag, css, closeTag) => {
+    return `${openTag}${rebaseCssUrls(css, (value) => rebaseRelativePath(value, fromDir, toDir))}${closeTag}`;
+  });
+}
+
+function rebaseCssUrls(css, rebaseValue) {
+  return css.replace(CSS_URL_PATTERN, (fullMatch, quote, quotedValue, bareValue) => {
+    const value = (quotedValue ?? bareValue ?? "").trim();
+    if (!value) {
+      return fullMatch;
+    }
+
+    const nextValue = rebaseValue(value);
+    if (nextValue === value) {
+      return fullMatch;
+    }
+
+    return quote ? `url(${quote}${nextValue}${quote})` : `url(${nextValue})`;
+  });
 }
 
 function rebaseRelativePath(value, fromDir, toDir) {

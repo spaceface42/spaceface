@@ -98,16 +98,16 @@ Contract:
 
 - it looks for `[data-startup-sequence]`
 - it requires `[data-startup-splash]` and `[data-startup-intro]` inside that root
-- it resolves `[data-startup-layout]` from the startup root first, then from `data-layout-target`, then from the document-level layout selector
+- it resolves the `[data-startup-layout]` host from `data-layout-target`, falling back to `#app`
 - it accepts authored timing overrides from `data-delay` and `data-intro-delay`
 - it accepts authored click-dismiss control through `data-dismiss-on-click`
 - it marks completed roots with the runtime-owned `data-startup-complete="true"` replay guard
 
 Behavior:
 
-- if any required node is missing, it returns `null` and does nothing
+- if any required node is missing, it returns early and does nothing
 - if the contract is present, it temporarily locks scrolling, hides the target layout, reveals startup states through `has-startup-lock`, `is-startup-active`, `is-startup-intro-visible`, `is-startup-complete`, and `is-startup-layout-hidden`, then cleans up timers and listeners after exit
-- if the root already has `data-startup-complete="true"`, it does not replay unless the caller passes `replay: true`
+- if the root already has `data-startup-complete="true"`, it does not replay
 
 ## Partial Model
 
@@ -122,6 +122,7 @@ Asset path rule:
 - build-time includes rebase asset refs into the including file
 - runtime loads rebase asset refs against the fetched partial URL before insertion
 - stylesheet links inside partials follow the same rebasing rule, so feature-local CSS can live beside the partial that owns it
+- inline `url(...)` refs inside partial `<style>` blocks follow the same rebasing rule
 
 ## Contract Manifest
 
