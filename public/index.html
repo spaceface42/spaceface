@@ -14,45 +14,49 @@
 
     <body data-page="index">
 
-        <header>
-            <link rel="partial" href="./resources/partials/nav.html" />
-        </header>
+        <link rel="partial" href="./resources/features/startup-sequence/splash.html" />
 
-        <main>
-            <link rel="partial" href="./resources/partials/demo-notice.html" />
-            <section class="card">
-                <h1>spaceface</h1>
-                <p class="muted">
-                    Static pages with small interactive features, light motion, and screensaver-aware behavior.
-                </p>
-                <p class="muted"><a href="./slideplayer.html">Open slideplayer</a></p>
-            </section>
+        <div id="app" data-startup-layout>
+            <header>
+                <link rel="partial" href="./resources/partials/nav.html" />
+            </header>
 
-            <section class="card" data-feature="slideshow">
-                <div class="row controls">
-                    <button type="button" data-slide-prev>Prev</button>
-                    <button type="button" data-slide-next>Next</button>
-                </div>
-                <article data-slide>Slide 1: Light motion and direct controls.</article>
-                <article data-slide hidden>Slide 2: Shared pages with focused interactive sections.</article>
-                <article data-slide hidden>Slide 3: Small features that stay out of each other's way.</article>
-            </section>
+            <main>
+                <link rel="partial" href="./resources/partials/demo-notice.html" />
+                <section class="card">
+                    <h1>spaceface</h1>
+                    <p class="muted">
+                        Static pages with small interactive features, light motion, and screensaver-aware behavior.
+                    </p>
+                    <p class="muted"><a href="./slideplayer.html">Open slideplayer</a></p>
+                </section>
 
-            <section class="card">
-                <h2>Floating Images</h2>
-                <p class="muted">A floating image field that settles when the page becomes idle.
-                </p>
-                <div data-feature="floating-images">
-                    <img data-floating-item src="./content/floatingimages/a.svg" alt="Floating A" />
-                    <img data-floating-item src="./content/floatingimages/b.svg" alt="Floating B" />
-                    <img data-floating-item src="./content/floatingimages/c.svg" alt="Floating C" />
-                    <img data-floating-item src="./content/floatingimages/d.svg" alt="Floating D" />
-                </div>
-            </section>
-            <link rel="partial" href="./resources/partials/footer.html" />
-        </main>
+                <section class="card" data-feature="slideshow">
+                    <div class="row controls">
+                        <button type="button" data-slide-prev>Prev</button>
+                        <button type="button" data-slide-next>Next</button>
+                    </div>
+                    <article data-slide>Slide 1: Light motion and direct controls.</article>
+                    <article data-slide hidden>Slide 2: Shared pages with focused interactive sections.</article>
+                    <article data-slide hidden>Slide 3: Small features that stay out of each other's way.</article>
+                </section>
 
-        <div data-feature="screensaver" data-screensaver hidden aria-hidden="true"></div>
+                <section class="card">
+                    <h2>Floating Images</h2>
+                    <p class="muted">A floating image field that settles when the page becomes idle.
+                    </p>
+                    <div data-feature="floating-images">
+                        <img data-floating-item src="./content/floatingimages/a.svg" alt="Floating A" />
+                        <img data-floating-item src="./content/floatingimages/b.svg" alt="Floating B" />
+                        <img data-floating-item src="./content/floatingimages/c.svg" alt="Floating C" />
+                        <img data-floating-item src="./content/floatingimages/d.svg" alt="Floating D" />
+                    </div>
+                </section>
+                <link rel="partial" href="./resources/partials/footer.html" />
+            </main>
+
+            <div data-feature="screensaver" data-screensaver hidden aria-hidden="true"></div>
+        </div>
 
         <script type="module" src="./bin/app.js"></script>
     </body>

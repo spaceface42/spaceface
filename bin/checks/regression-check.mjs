@@ -10,6 +10,7 @@ async function run() {
       sourcefile: "regression-check-harness.ts",
       contents: `
         export { FeatureRegistry } from "./src/core/feature.ts";
+        export { initStartupSequence } from "./app/startup/initStartupSequence.ts";
         export { SlideshowFeature } from "./src/features/slideshow/SlideshowFeature.ts";
         export { SlidePlayerFeature } from "./src/features/slideplayer/SlidePlayerFeature.ts";
         export { FloatingImagesFeature } from "./src/features/floating-images/FloatingImagesFeature.ts";
@@ -67,6 +68,9 @@ async function run() {
       testFeatureRegistryMountContext(runtime);
       await testFeatureRegistryAsyncMountFailure(runtime);
       await testFeatureRegistryAsyncMountAbort(runtime);
+      testStartupSequenceNoopWhenMarkupIsIncomplete(runtime);
+      testStartupSequenceCompletesAndRequiresExplicitReplay(runtime);
+      testStartupSequenceKeepsNestedLayoutsMounted(runtime);
       testSlideshowScreensaverPause(runtime);
       testSlideshowAutoplayResumeUsesRemainingTime(runtime);
       testSlideshowManualNavigationResetsAutoplay(runtime);
@@ -272,6 +276,100 @@ async function testFeatureRegistryAsyncMountAbort(runtime) {
     globalThis.queueMicrotask = originalQueueMicrotask;
     restoreDomGlobals();
   }
+}
+
+function testStartupSequenceNoopWhenMarkupIsIncomplete(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = new FakeElement(
+    "div",
+    {
+      "data-startup-sequence": "",
+      "data-layout-target": "#app",
+    },
+    { hidden: true }
+  );
+  root.append(new FakeElement("div", { "data-startup-splash": "" }));
+  body.append(root);
+  body.append(new FakeElement("main", { id: "app", "data-startup-layout": "" }));
+
+  const handle = runtime.initStartupSequence();
+  assert.equal(handle, null, "startup sequence should no-op when required child markup is missing");
+  assert.equal(body.classList.contains("has-startup-lock"), false, "startup no-ops should not lock scrolling");
+  assert.equal(root.hidden, true, "startup no-ops should preserve authored hidden state");
+
+  restoreDomGlobals();
+}
+
+function testStartupSequenceCompletesAndRequiresExplicitReplay(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createStartupSequenceRoot({ hidden: true, layoutTarget: "#app" });
+  const layout = new FakeElement("main", { id: "app", "data-startup-layout": "" });
+  body.append(root);
+  body.append(layout);
+
+  const handle = runtime.initStartupSequence({ exitMs: 24 });
+  assert.notEqual(handle, null, "startup sequence should initialize when the authored contract is present");
+  assert.equal(root.hidden, false, "external startup roots should unhide while active");
+  assert.equal(root.classList.contains("is-startup-active"), true, "startup root should receive the active class");
+  assert.equal(layout.classList.contains("is-startup-layout-hidden"), true, "target layout should stay hidden during the intro");
+  assert.equal(body.classList.contains("has-startup-lock"), true, "startup sequence should lock page scrolling during playback");
+
+  clock.advance(40);
+  assert.equal(root.classList.contains("is-startup-intro-visible"), true, "startup intro should become visible after its delay");
+  assert.equal(
+    root.querySelector("[data-startup-intro]").classList.contains("is-hidden"),
+    false,
+    "startup intro should remove the hidden helper class once revealed"
+  );
+
+  clock.advance(60);
+  assert.equal(root.getAttribute("data-startup-complete"), "true", "startup sequence should mark completed roots");
+  assert.equal(layout.classList.contains("is-startup-layout-hidden"), false, "layout should be revealed when startup completes");
+  assert.equal(body.classList.contains("has-startup-lock"), false, "scrolling should unlock once startup completes");
+
+  clock.advance(24);
+  assert.equal(root.hidden, true, "external startup roots should hide again after exit cleanup");
+  assert.equal(root.classList.contains("is-startup-active"), false, "startup cleanup should remove runtime classes");
+
+  const skippedHandle = runtime.initStartupSequence();
+  assert.notEqual(skippedHandle, null, "completed startup roots should still return a safe handle");
+  assert.equal(root.classList.contains("is-startup-active"), false, "completed startup roots should not replay by default");
+
+  runtime.initStartupSequence({ replay: true, exitMs: 0 });
+  assert.equal(root.classList.contains("is-startup-active"), true, "startup sequence should replay when explicitly requested");
+
+  clock.restore();
+  restoreDomGlobals();
+}
+
+function testStartupSequenceKeepsNestedLayoutsMounted(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createStartupSequenceRoot({ nestedLayout: true });
+  body.append(root);
+
+  const handle = runtime.initStartupSequence({ exitMs: 12 });
+  assert.notEqual(handle, null, "startup sequence should support layouts nested inside the startup root");
+
+  clock.advance(100);
+  clock.advance(12);
+
+  assert.equal(root.hidden, false, "nested startup roots should remain mounted after cleanup");
+  assert.equal(
+    root.querySelector("[data-startup-layout]").classList.contains("is-startup-layout-hidden"),
+    false,
+    "nested layouts should be revealed when the intro finishes"
+  );
+
+  clock.restore();
+  restoreDomGlobals();
 }
 
 function testSlideshowScreensaverPause(runtime) {
@@ -1601,6 +1699,32 @@ function createSlideshowRoot() {
   return root;
 }
 
+function createStartupSequenceRoot({ hidden = false, layoutTarget = null, nestedLayout = false } = {}) {
+  const attributes = {
+    "data-startup-sequence": "",
+    "data-delay": "100",
+    "data-intro-delay": "40",
+  };
+
+  if (layoutTarget) {
+    attributes["data-layout-target"] = layoutTarget;
+  }
+
+  const root = new FakeElement("div", attributes, { hidden });
+  const splash = new FakeElement("div", { "data-startup-splash": "" });
+  const intro = new FakeElement("p", { "data-startup-intro": "" });
+  intro.classList.add("is-hidden");
+
+  root.append(splash);
+  root.append(intro);
+
+  if (nestedLayout) {
+    root.append(new FakeElement("main", { "data-startup-layout": "" }));
+  }
+
+  return root;
+}
+
 function createSlidePlayerRoot() {
   const root = new FakeElement("section");
   root.append(new FakeElement("button", { "data-slideplayer-prev": "" }));
@@ -1893,6 +2017,10 @@ function matchSelector(node, selector) {
 
   if (selector.startsWith(".")) {
     return node.classList.contains(selector.slice(1));
+  }
+
+  if (selector.startsWith("#")) {
+    return node.getAttribute("id") === selector.slice(1);
   }
 
   return false;
