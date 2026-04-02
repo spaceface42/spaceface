@@ -69,8 +69,8 @@ async function run() {
       await testFeatureRegistryAsyncMountFailure(runtime);
       await testFeatureRegistryAsyncMountAbort(runtime);
       testStartupSequenceNoopWhenMarkupIsIncomplete(runtime);
-      testStartupSequenceCompletesAndRequiresExplicitReplay(runtime);
-      testStartupSequenceKeepsNestedLayoutsMounted(runtime);
+      testStartupSequenceCompletesOnce(runtime);
+      testStartupSequenceFallsBackToAppLayout(runtime);
       testSlideshowScreensaverPause(runtime);
       testSlideshowAutoplayResumeUsesRemainingTime(runtime);
       testSlideshowManualNavigationResetsAutoplay(runtime);
@@ -294,15 +294,14 @@ function testStartupSequenceNoopWhenMarkupIsIncomplete(runtime) {
   body.append(root);
   body.append(new FakeElement("main", { id: "app", "data-startup-layout": "" }));
 
-  const handle = runtime.initStartupSequence();
-  assert.equal(handle, null, "startup sequence should no-op when required child markup is missing");
+  runtime.initStartupSequence();
   assert.equal(body.classList.contains("has-startup-lock"), false, "startup no-ops should not lock scrolling");
   assert.equal(root.hidden, true, "startup no-ops should preserve authored hidden state");
 
   restoreDomGlobals();
 }
 
-function testStartupSequenceCompletesAndRequiresExplicitReplay(runtime) {
+function testStartupSequenceCompletesOnce(runtime) {
   const clock = installFakeClock();
   const body = new FakeElement("body");
   installDomGlobals(body);
@@ -312,8 +311,7 @@ function testStartupSequenceCompletesAndRequiresExplicitReplay(runtime) {
   body.append(root);
   body.append(layout);
 
-  const handle = runtime.initStartupSequence({ exitMs: 24 });
-  assert.notEqual(handle, null, "startup sequence should initialize when the authored contract is present");
+  runtime.initStartupSequence();
   assert.equal(root.hidden, false, "external startup roots should unhide while active");
   assert.equal(root.classList.contains("is-startup-active"), true, "startup root should receive the active class");
   assert.equal(layout.classList.contains("is-startup-layout-hidden"), true, "target layout should stay hidden during the intro");
@@ -333,40 +331,35 @@ function testStartupSequenceCompletesAndRequiresExplicitReplay(runtime) {
   assert.equal(body.classList.contains("has-startup-lock"), false, "scrolling should unlock once startup completes");
 
   clock.advance(24);
+  assert.equal(root.hidden, false, "startup cleanup should wait for the authored exit duration");
+
+  clock.advance(336);
   assert.equal(root.hidden, true, "external startup roots should hide again after exit cleanup");
   assert.equal(root.classList.contains("is-startup-active"), false, "startup cleanup should remove runtime classes");
 
-  const skippedHandle = runtime.initStartupSequence();
-  assert.notEqual(skippedHandle, null, "completed startup roots should still return a safe handle");
+  runtime.initStartupSequence();
   assert.equal(root.classList.contains("is-startup-active"), false, "completed startup roots should not replay by default");
-
-  runtime.initStartupSequence({ replay: true, exitMs: 0 });
-  assert.equal(root.classList.contains("is-startup-active"), true, "startup sequence should replay when explicitly requested");
 
   clock.restore();
   restoreDomGlobals();
 }
 
-function testStartupSequenceKeepsNestedLayoutsMounted(runtime) {
+function testStartupSequenceFallsBackToAppLayout(runtime) {
   const clock = installFakeClock();
   const body = new FakeElement("body");
   installDomGlobals(body);
 
-  const root = createStartupSequenceRoot({ nestedLayout: true });
+  const root = createStartupSequenceRoot({ hidden: true });
+  root.removeAttribute("data-layout-target");
+  const layout = new FakeElement("main", { id: "app", "data-startup-layout": "" });
   body.append(root);
+  body.append(layout);
 
-  const handle = runtime.initStartupSequence({ exitMs: 12 });
-  assert.notEqual(handle, null, "startup sequence should support layouts nested inside the startup root");
+  runtime.initStartupSequence();
+  assert.equal(layout.classList.contains("is-startup-layout-hidden"), true, "startup should fall back to the default app layout");
 
   clock.advance(100);
-  clock.advance(12);
-
-  assert.equal(root.hidden, false, "nested startup roots should remain mounted after cleanup");
-  assert.equal(
-    root.querySelector("[data-startup-layout]").classList.contains("is-startup-layout-hidden"),
-    false,
-    "nested layouts should be revealed when the intro finishes"
-  );
+  assert.equal(layout.classList.contains("is-startup-layout-hidden"), false, "default app layout should be revealed when the intro finishes");
 
   clock.restore();
   restoreDomGlobals();
@@ -1699,7 +1692,7 @@ function createSlideshowRoot() {
   return root;
 }
 
-function createStartupSequenceRoot({ hidden = false, layoutTarget = null, nestedLayout = false } = {}) {
+function createStartupSequenceRoot({ hidden = false, layoutTarget = null } = {}) {
   const attributes = {
     "data-startup-sequence": "",
     "data-delay": "100",
@@ -1717,10 +1710,6 @@ function createStartupSequenceRoot({ hidden = false, layoutTarget = null, nested
 
   root.append(splash);
   root.append(intro);
-
-  if (nestedLayout) {
-    root.append(new FakeElement("main", { "data-startup-layout": "" }));
-  }
 
   return root;
 }

@@ -4,7 +4,8 @@
 
 ### Public Pages
 
-- Added a progressive startup intro to `public/index.html` with authored `data-startup-*` markup plus a colocated startup partial and stylesheet under `public/resources/features/startup-sequence/`.
+- Added a progressive startup intro to `public/index.html` with authored `data-startup-*` markup plus a self-contained startup partial under `public/resources/features/startup-sequence/`.
+- Simplified the startup intro to one app-owned boot path and restyled it around a full-screen SVG transparency-layer background.
 - Added `public/demo3.html` and `public/resources/demo3.css` as a surreal anti-UX landing-page experiment with a third demo route.
 - Added `public/demo2.html` and `public/resources/demo2.css` as an even stranger sibling landing-page experiment with its own nav route.
 - Removed the original `public/demo.html` landing-page experiment and its dedicated `public/resources/demo.css` stylesheet.
@@ -18,7 +19,7 @@
 
 ### Runtime Fixes
 
-- Added app-owned `initStartupSequence(options?)` startup wiring with layout-target fallback, click-to-dismiss support, cleanup hooks, and explicit replay control.
+- Added app-owned `initStartupSequence()` startup wiring with layout-target fallback, click-to-dismiss support, and one app-specific playback path.
 - Restored `PortfolioStageFeature` authored DOM state during destroy so `data-feature` deactivation and replacement clean up safely.
 - Formalized `portfolio-stage` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
 - Formalized `screensaver` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
