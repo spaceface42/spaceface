@@ -56,7 +56,7 @@ export class FloatingImagesFeature implements Feature {
   private preparedNodes: HTMLElement[] = [];
   private originalItemStyles = new Map<HTMLElement, InlineStyleSnapshot>();
   private pausedByScreensaver = false;
-  private allowDuringScreensaver = false;
+  private insideScreensaver = false;
   private restoreContainerPosition = false;
   private originalContainerInlinePosition = "";
 
@@ -81,9 +81,11 @@ export class FloatingImagesFeature implements Feature {
     if (!this.container) return;
     if (context?.signal.aborted) return;
 
-    this.allowDuringScreensaver = this.container.closest("[data-screensaver]") !== null;
+    this.insideScreensaver = this.container.closest("[data-screensaver]") !== null;
     this.cleanupEffect = createEffect(() => {
-      this.pausedByScreensaver = screensaverActiveSignal.value && !this.allowDuringScreensaver;
+      this.pausedByScreensaver = this.insideScreensaver
+        ? !screensaverActiveSignal.value
+        : screensaverActiveSignal.value;
       this.updateAnimationState();
     });
 
@@ -158,7 +160,7 @@ export class FloatingImagesFeature implements Feature {
     this.inViewport = true;
     this.hoveredItem = null;
     this.pausedByScreensaver = false;
-    this.allowDuringScreensaver = false;
+    this.insideScreensaver = false;
     this.restoreContainerPosition = false;
     this.originalContainerInlinePosition = "";
   }

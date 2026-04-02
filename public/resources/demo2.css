@@ -1,0 +1,768 @@
+@font-face {
+  font-family: "Demo2Mono";
+  src: url("./spacesuit/fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Demo2Sans";
+  src: url("./spacesuit/fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Demo2Sans";
+  src: url("./spacesuit/fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --demo2-paper: #f2ebdc;
+  --demo2-ink: #111111;
+  --demo2-ink-soft: rgba(17, 17, 17, 0.74);
+  --demo2-orange: #ff6a00;
+  --demo2-cyan: #38d8ff;
+  --demo2-acid: #efff44;
+  --demo2-pink: #ff66c4;
+  --demo2-lilac: #a186ff;
+  --demo2-white: rgba(255, 255, 255, 0.78);
+  --demo2-line: 2px solid var(--demo2-ink);
+  --demo2-shadow: 0.7rem 0.8rem 0 rgba(17, 17, 17, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--demo2-paper);
+}
+
+body[data-page="demo2"] {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: "Demo2Sans", "Apercu Mono", "SFMono-Regular", Consolas, monospace;
+  color: var(--demo2-ink);
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 106, 0, 0.35), transparent 20rem),
+    radial-gradient(circle at 82% 10%, rgba(56, 216, 255, 0.34), transparent 18rem),
+    radial-gradient(circle at 60% 80%, rgba(255, 102, 196, 0.22), transparent 24rem),
+    linear-gradient(0deg, rgba(17, 17, 17, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.03) 1px, transparent 1px),
+    linear-gradient(145deg, #f6f1e6 0%, #ece6d5 55%, #efe6ff 100%);
+  background-size:
+    auto,
+    auto,
+    auto,
+    1.35rem 1.35rem,
+    1.35rem 1.35rem,
+    auto;
+}
+
+body[data-page="demo2"]::before,
+body[data-page="demo2"]::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body[data-page="demo2"]::before {
+  top: -5rem;
+  left: -4rem;
+  width: 18rem;
+  height: 18rem;
+  border: var(--demo2-line);
+  border-radius: 39% 61% 43% 57%;
+  background:
+    conic-gradient(
+      from 90deg,
+      rgba(255, 106, 0, 0.78),
+      rgba(239, 255, 68, 0.84),
+      rgba(56, 216, 255, 0.8),
+      rgba(255, 102, 196, 0.76),
+      rgba(255, 106, 0, 0.78)
+    );
+  opacity: 0.26;
+  transform: rotate(-18deg);
+}
+
+body[data-page="demo2"]::after {
+  right: -3rem;
+  bottom: -2rem;
+  width: 14rem;
+  height: 14rem;
+  border: var(--demo2-line);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0) 0 38%, rgba(17, 17, 17, 0.85) 38% 42%, rgba(255, 255, 255, 0) 42%),
+    conic-gradient(from 180deg, rgba(255, 106, 0, 0.7), rgba(56, 216, 255, 0.7), rgba(239, 255, 68, 0.7), rgba(255, 102, 196, 0.7), rgba(255, 106, 0, 0.7));
+  opacity: 0.2;
+}
+
+.demo2-header,
+.demo2-shell {
+  position: relative;
+  z-index: 1;
+}
+
+.demo2-header {
+  max-width: 82rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 0;
+}
+
+body[data-page="demo2"] nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-page="demo2"] nav li:nth-child(3n + 1) {
+  transform: rotate(-4deg) translateY(0.2rem);
+}
+
+body[data-page="demo2"] nav li:nth-child(3n + 2) {
+  transform: rotate(3deg) translateY(-0.15rem);
+}
+
+body[data-page="demo2"] nav li:nth-child(3n) {
+  transform: rotate(-1deg);
+}
+
+body[data-page="demo2"] nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.95rem;
+  padding: 0.72rem 1.05rem;
+  border: var(--demo2-line);
+  border-radius: 1rem 1.4rem 1rem 1.2rem;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--demo2-ink);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 0.73rem;
+  box-shadow: var(--demo2-shadow);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+body[data-page="demo2"] nav a:hover,
+body[data-page="demo2"] nav a:focus-visible {
+  transform: translate(-0.18rem, -0.18rem);
+  box-shadow: 0.95rem 1.05rem 0 rgba(17, 17, 17, 0.15);
+}
+
+body[data-page="demo2"] nav a[aria-current="page"] {
+  background: var(--demo2-acid);
+}
+
+.demo2-shell {
+  display: grid;
+  gap: 1.1rem;
+  max-width: 82rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 3rem;
+}
+
+.demo2-hero {
+  display: grid;
+  grid-template-columns: 6.4rem minmax(0, 1fr) minmax(20rem, 28rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+.demo2-rail,
+.demo2-copy,
+.demo2-tile,
+.demo2-module,
+.demo2-contact,
+.card {
+  border: var(--demo2-line);
+  box-shadow: var(--demo2-shadow);
+}
+
+.demo2-rail {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.8rem 0.55rem;
+  border-radius: 2rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42)),
+    rgba(161, 134, 255, 0.18);
+}
+
+.demo2-rail__label {
+  margin: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.25;
+}
+
+.demo2-dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: var(--demo2-line);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.18) 0 34%, rgba(17, 17, 17, 0.88) 34% 38%, rgba(255, 255, 255, 0) 38%),
+    conic-gradient(from 15deg, var(--demo2-cyan), var(--demo2-acid), var(--demo2-orange), var(--demo2-pink), var(--demo2-cyan));
+  overflow: hidden;
+}
+
+.demo2-dial span {
+  position: absolute;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.demo2-dial span:nth-child(1) {
+  top: 1rem;
+}
+
+.demo2-dial span:nth-child(2) {
+  bottom: 1.15rem;
+  left: 1.2rem;
+}
+
+.demo2-dial span:nth-child(3) {
+  right: 1rem;
+}
+
+.demo2-copy {
+  padding: 1.25rem 1.3rem 1.4rem;
+  border-radius: 1.8rem 3rem 1.8rem 2.6rem;
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.56)),
+    linear-gradient(135deg, rgba(255, 106, 0, 0.14), rgba(56, 216, 255, 0.16));
+}
+
+.demo2-kicker,
+.demo2-module__eyebrow,
+.demo2-tile__eyebrow {
+  margin: 0 0 0.8rem;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.demo2-kicker {
+  display: inline-flex;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.08);
+}
+
+.demo2-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.55rem;
+  margin: 0;
+}
+
+.demo2-title span {
+  display: inline-block;
+  padding: 0.08em 0.2em 0.16em;
+  border: var(--demo2-line);
+  box-shadow: 0.42rem 0.5rem 0 rgba(17, 17, 17, 0.13);
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: clamp(2.4rem, 6vw, 5.9rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.demo2-title span:nth-child(1) {
+  background: var(--demo2-acid);
+  transform: rotate(-5deg);
+}
+
+.demo2-title span:nth-child(2) {
+  background: rgba(255, 255, 255, 0.86);
+  transform: rotate(3deg);
+}
+
+.demo2-title span:nth-child(3) {
+  background: var(--demo2-cyan);
+  transform: rotate(-2deg);
+}
+
+.demo2-title span:nth-child(4) {
+  background: rgba(255, 255, 255, 0.86);
+  transform: rotate(4deg);
+}
+
+.demo2-title span:nth-child(5) {
+  background: var(--demo2-pink);
+  transform: rotate(-3deg);
+}
+
+.demo2-title span:nth-child(6) {
+  background: var(--demo2-orange);
+  color: #ffffff;
+  transform: rotate(2deg);
+}
+
+.demo2-lead,
+.demo2-module p,
+.demo2-contact p,
+.muted {
+  color: var(--demo2-ink-soft);
+  font-size: 1rem;
+  line-height: 1.56;
+}
+
+.demo2-lead {
+  max-width: 38rem;
+  margin: 1.15rem 0 0;
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
+}
+
+.demo2-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.3rem;
+}
+
+.demo2-button,
+.demo2-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.82rem 1.12rem;
+  border: var(--demo2-line);
+  border-radius: 1.05rem 1.25rem 1rem 1.2rem;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--demo2-ink);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 0.82rem;
+  box-shadow: var(--demo2-shadow);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+.demo2-button:hover,
+.demo2-button:focus-visible,
+.demo2-inline:hover,
+.demo2-inline:focus-visible {
+  transform: translate(-0.18rem, -0.18rem);
+  box-shadow: 0.95rem 1.05rem 0 rgba(17, 17, 17, 0.15);
+}
+
+.demo2-button--primary {
+  background: var(--demo2-acid);
+}
+
+.demo2-button--secondary,
+.demo2-inline {
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.demo2-board {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.demo2-tile {
+  padding: 1rem;
+  border-radius: 1.5rem;
+  background: var(--demo2-white);
+  backdrop-filter: blur(8px);
+}
+
+.demo2-tile--ticket {
+  grid-column: span 2;
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  min-height: 11rem;
+  clip-path: polygon(0 0, 88% 0, 100% 16%, 100% 100%, 12% 100%, 0 84%);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.54)),
+    rgba(255, 106, 0, 0.2);
+}
+
+.demo2-tile--ticket strong {
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: clamp(2.5rem, 5vw, 3.6rem);
+  line-height: 0.9;
+}
+
+.demo2-tile--ticket span {
+  font-size: 0.86rem;
+  line-height: 1.38;
+}
+
+.demo2-tile--photo {
+  grid-column: span 4;
+  padding: 0.75rem;
+  transform: rotate(3deg);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.48)),
+    rgba(56, 216, 255, 0.18);
+}
+
+.demo2-tile--photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  object-fit: cover;
+  border: var(--demo2-line);
+  border-radius: 1.25rem;
+  filter: saturate(1.35) contrast(1.08) hue-rotate(10deg);
+}
+
+.demo2-tile--orbit {
+  grid-column: span 3;
+  display: grid;
+  place-content: center;
+  gap: 0.15rem;
+  min-height: 12rem;
+  border-radius: 50%;
+  text-align: center;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0) 0 34%, rgba(17, 17, 17, 0.88) 34% 38%, rgba(255, 255, 255, 0) 38%),
+    conic-gradient(from 180deg, rgba(255, 106, 0, 0.6), rgba(56, 216, 255, 0.6), rgba(239, 255, 68, 0.7), rgba(255, 102, 196, 0.62), rgba(255, 106, 0, 0.6));
+}
+
+.demo2-tile--orbit span {
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.demo2-tile--quote {
+  grid-column: span 3;
+  display: grid;
+  align-content: center;
+  min-height: 12rem;
+  transform: rotate(-4deg);
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.54)),
+    rgba(161, 134, 255, 0.22);
+}
+
+.demo2-tile--quote p {
+  margin: 0;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.demo2-noise {
+  overflow: hidden;
+  padding: 0.28rem;
+  border: var(--demo2-line);
+  border-radius: 1.15rem;
+  background: #111111;
+  color: #ffffff;
+  box-shadow: var(--demo2-shadow);
+}
+
+.demo2-noise__track {
+  display: inline-flex;
+  min-width: max-content;
+  gap: 1.2rem;
+  padding: 0.65rem 0.45rem;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: demo2-marquee 22s linear infinite;
+}
+
+.demo2-noise__track span::before {
+  content: "//";
+  margin-right: 0.65rem;
+  color: var(--demo2-acid);
+}
+
+.demo2-field {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.demo2-module {
+  padding: 1.15rem 1.2rem;
+  border-radius: 1.7rem;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.demo2-module h2 {
+  margin: 0 0 0.8rem;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  line-height: 0.96;
+  text-transform: uppercase;
+}
+
+.demo2-module--services {
+  grid-column: span 6;
+  border-radius: 1.8rem 3rem 1.7rem 2.6rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.56)),
+    rgba(56, 216, 255, 0.16);
+}
+
+.demo2-module--process {
+  grid-column: span 3;
+  transform: rotate(-1.5deg);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.52)),
+    rgba(255, 106, 0, 0.14);
+}
+
+.demo2-module--proof {
+  grid-column: span 3;
+  transform: rotate(1.5deg);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.52)),
+    rgba(255, 102, 196, 0.16);
+}
+
+.demo2-module--manifesto {
+  grid-column: span 12;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: 2.4rem 1.6rem 3rem 1.8rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.58)),
+    rgba(239, 255, 68, 0.14);
+}
+
+.demo2-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--demo2-ink-soft);
+  line-height: 1.58;
+}
+
+.demo2-list li + li {
+  margin-top: 0.7rem;
+}
+
+.demo2-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  text-transform: uppercase;
+}
+
+.demo2-steps li + li {
+  margin-top: 0.55rem;
+}
+
+.demo2-proof-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.demo2-proof-grid div {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.7rem 0.8rem;
+  border: var(--demo2-line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.demo2-proof-grid strong {
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.demo2-proof-grid span {
+  font-size: 0.82rem;
+  color: var(--demo2-ink-soft);
+  line-height: 1.35;
+}
+
+.demo2-manifesto {
+  max-width: 42rem;
+  margin: 0;
+}
+
+.demo2-contact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.25rem 1.35rem;
+  border-radius: 1.8rem 3.2rem 1.9rem 2.8rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58)),
+    linear-gradient(135deg, rgba(255, 106, 0, 0.16), rgba(56, 216, 255, 0.18));
+}
+
+.demo2-contact h2 {
+  max-width: 16ch;
+  margin: 0;
+  font-family: "Demo2Mono", "Courier New", monospace;
+  font-size: clamp(2rem, 5vw, 3.9rem);
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.demo2-contact__actions {
+  display: grid;
+  gap: 0.8rem;
+  justify-items: start;
+}
+
+.demo2-contact__actions p {
+  max-width: 18rem;
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.card {
+  padding: 1rem 1.2rem;
+  border-radius: 1.4rem 1.9rem 1.4rem 2rem;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.card p {
+  margin: 0;
+}
+
+@keyframes demo2-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo2-noise__track {
+    animation: none;
+  }
+
+  .demo2-button,
+  .demo2-inline,
+  body[data-page="demo2"] nav a {
+    transition: none;
+  }
+}
+
+@media (max-width: 70rem) {
+  .demo2-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .demo2-rail {
+    grid-template-columns: minmax(0, 1fr) 5rem;
+    align-items: center;
+  }
+
+  .demo2-rail__label {
+    writing-mode: initial;
+    transform: none;
+  }
+
+  .demo2-board,
+  .demo2-field {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .demo2-tile--ticket,
+  .demo2-tile--photo,
+  .demo2-tile--orbit,
+  .demo2-tile--quote,
+  .demo2-module--services,
+  .demo2-module--process,
+  .demo2-module--proof,
+  .demo2-module--manifesto {
+    grid-column: span 12;
+    transform: none;
+  }
+
+  .demo2-contact {
+    grid-template-columns: 1fr;
+  }
+
+  .demo2-contact h2 {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 46rem) {
+  .demo2-shell {
+    gap: 0.95rem;
+    padding-bottom: 2rem;
+  }
+
+  .demo2-copy,
+  .demo2-module,
+  .demo2-contact,
+  .card {
+    border-radius: 1.35rem;
+  }
+
+  .demo2-title span {
+    font-size: clamp(2.1rem, 14vw, 4rem);
+  }
+
+  .demo2-actions {
+    display: grid;
+  }
+
+  .demo2-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .demo2-dial {
+    width: min(12rem, 100%);
+    margin: 0 auto;
+  }
+
+  .demo2-button,
+  .demo2-inline,
+  body[data-page="demo2"] nav a {
+    width: 100%;
+  }
+}

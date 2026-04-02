@@ -24,14 +24,15 @@ Spaceface is not:
 
 The current composition root is [`app/main.ts`](./app/main.ts).
 
-Startup does four things:
+Startup does five things:
 
 1. attach the console log sink
 2. apply current nav state
-3. start shared activity tracking
-4. register and start contract-defined features
+3. run optional startup-sequence enhancement wiring
+4. start shared activity tracking
+5. register and start contract-defined features
 
-The app layer reaches runtime code through the public API in [`src/spaceface.ts`](./src/spaceface.ts), not by importing deep internal paths.
+The app layer reaches shared runtime code through the public API in [`src/spaceface.ts`](./src/spaceface.ts), while app-owned boot wiring stays under `app/`.
 
 Current repo behavior:
 
@@ -89,6 +90,25 @@ Rules:
 - mount context passes a feature-scoped child logger
 - failures should not be silently swallowed if they matter for debugging
 
+### Startup Sequence
+
+The startup-sequence enhancer lives in [`app/startup/initStartupSequence.ts`](./app/startup/initStartupSequence.ts) and is owned by the app layer instead of the shared runtime API.
+
+Contract:
+
+- it looks for `[data-startup-sequence]`
+- it requires `[data-startup-splash]` and `[data-startup-intro]` inside that root
+- it resolves `[data-startup-layout]` from the startup root first, then from `data-layout-target`, then from the document-level layout selector
+- it accepts authored timing overrides from `data-delay` and `data-intro-delay`
+- it accepts authored click-dismiss control through `data-dismiss-on-click`
+- it marks completed roots with the runtime-owned `data-startup-complete="true"` replay guard
+
+Behavior:
+
+- if any required node is missing, it returns `null` and does nothing
+- if the contract is present, it temporarily locks scrolling, hides the target layout, reveals startup states through `has-startup-lock`, `is-startup-active`, `is-startup-intro-visible`, `is-startup-complete`, and `is-startup-layout-hidden`, then cleans up timers and listeners after exit
+- if the root already has `data-startup-complete="true"`, it does not replay unless the caller passes `replay: true`
+
 ## Partial Model
 
 There are two kinds of partial usage:
@@ -101,6 +121,7 @@ Asset path rule:
 - partial assets are authored relative to the partial file itself
 - build-time includes rebase asset refs into the including file
 - runtime loads rebase asset refs against the fetched partial URL before insertion
+- stylesheet links inside partials follow the same rebasing rule, so feature-local CSS can live beside the partial that owns it
 
 ## Contract Manifest
 
@@ -112,19 +133,24 @@ Asset path rule:
 - Doc sync command: `npm run sync:contracts`
 
 ### Routes
-- `index.html`: page id `index`; nav id `index`; hooks `none`; features `slideshow`, `floating-images`, `screensaver`
-- `skeleton.html`: page id `skeleton`; nav id `skeleton`; hooks `none`; features `screensaver`
+- `index.html`: page id `index`; nav id `index`; hooks required `[data-startup-sequence]`, `[data-startup-splash]`, `[data-startup-intro]`, `[data-startup-layout]`, `[data-layout-target="#app"]`; features `slideshow`, `floating-images`, `screensaver`
+- `demo2.html`: page id `demo2`; nav id `demo2`; hooks `none`; features `screensaver`
+- `demo3.html`: page id `demo3`; nav id `demo3`; hooks `none`; features `screensaver`
 - `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; hooks required `[data-slideplayer-stage]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; optional `[data-slideplayer-bullets]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; hooks `none`; features `floating-images`, `screensaver`
+- `portfoliostage.html`: page id `portfoliostage`; nav id `portfoliostage`; hooks required `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`; optional `[data-portfolio-stage-filter]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; features `portfolio-stage`, `screensaver`
 
 ### Features
 - `slideshow`: root `data-feature="slideshow"`; internals `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
 - `slideplayer`: root `data-feature="slideplayer"`; internals `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; singleton note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; internals `[data-floating-item]`
-- `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-partial]`
+- `attractor-scene`: root `data-feature="attractor-scene"`; internals `[data-attractor-scene]`, `[data-attractor-scene-layout]`, `[data-attractor-scene-width]`, `[data-attractor-scene-height]`, `[data-attractor-scene-year]`
+- `portfolio-stage`: root `data-feature="portfolio-stage"`; internals `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-title]`, `[data-portfolio-stage-category]`, `[data-portfolio-stage-summary]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`, `[data-portfolio-stage-filter]`, `[data-portfolio-stage-filter-value]`, `[data-portfolio-stage-slot]`, `[data-portfolio-stage-wrap-enter]`, `[data-portfolio-stage-current-title]`, `[data-portfolio-stage-current-category]`, `[data-portfolio-stage-current-index]`, `[data-portfolio-stage-current-summary]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; singleton note: Exactly one portfolio-stage per page; smoke validation fails duplicates and runtime warns on extra mounts.
+- `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-scene]`, `[data-screensaver-idle-ms]`, `[data-screensaver-partial]`; singleton note: Exactly one screensaver per page; smoke validation fails duplicates and runtime warns on extra mounts.
 
 ### Partials
-- `resources/features/screensaver/index.html`: host hook `[data-screensaver-partial]`; features `floating-images`; hooks required `[data-floating-item]`, `class="screensaver-floating"`
+- `resources/features/screensaver-scenes/attractor.html`: host hook `[data-screensaver-partial]`; features `attractor-scene`; hooks required `[data-attractor-scene]`, `[data-attractor-scene-layout]`, `[data-attractor-scene-width]`, `[data-attractor-scene-height]`, `[data-attractor-scene-year]`, `class="attractor-scene"`
+- `resources/features/screensaver-scenes/floating-images.html`: host hook `[data-screensaver-partial]`; features `floating-images`; hooks required `[data-floating-item]`, `class="screensaver-floating"`
 
 ### Shared Rules
 - Activity reset inputs: `mousemove`, `wheel`, `keydown`, `pointerdown`, `visibilitychange`
@@ -140,11 +166,25 @@ The screensaver:
 
 - listens to `userActivitySignal`
 - toggles `screensaverActiveSignal`
-- fetches and injects its partial on demand
+- fetches and injects the authored partial for the selected scene on demand
+- resolves the visual scene from `data-screensaver-scene`, defaulting to the configured floating-images scene
+- supports per-host idle timing overrides through `data-screensaver-idle-ms`
 - can also be started manually with `Ctrl+Shift+.` on all platforms
 - aborts in-flight partial loads when activity resumes
+- keeps the current scene mounted between activations so repeat starts are instant
 
 The screensaver does not directly instantiate child features. It relies on the registry to see injected `data-feature` markup.
+
+### Attractor Scene
+
+`AttractorSceneFeature` is the branded editorial scene used inside the screensaver shell.
+
+It:
+
+- rotates authored visual layouts on a timer instead of running a floating-object system
+- updates viewport-width, viewport-height, and year labels while mounted
+- starts and stops purely from `screensaverActiveSignal` instead of owning idle timing itself
+- stays swappable because the shell only depends on scene partial paths, not on attractor-specific logic
 
 ### SlidePlayer
 
@@ -160,6 +200,25 @@ Residual risk to remember later:
 
 - if the authored contract ever allows dynamic slideplayer replacement or more than one mounted instance, the current singleton keyboard-owner model should be revisited so ownership can transfer cleanly instead of staying with the first instance that bound the document listener
 
+### Portfolio Stage
+
+`PortfolioStageFeature` is the page-level, editorial work navigator.
+
+Deliberate current constraint:
+
+- one portfolio stage per page is the enforced authored pattern
+- smoke validation fails duplicate mounts and runtime warns if an extra instance is mounted anyway
+
+It:
+
+- keeps one active project in a large stage
+- supports direct prev/next navigation plus filters
+- stores authored item metadata on `data-portfolio-stage-title`, `data-portfolio-stage-category`, and `data-portfolio-stage-summary`
+- updates text outputs from the active item metadata
+- keeps details as an optional secondary layer instead of an always-open text block
+- resolves blank-stage click fallbacks from the live rendered card boxes so CSS positioning remains authoritative
+- owns transient runtime attrs `data-portfolio-stage-filter-value`, `data-portfolio-stage-slot`, and `data-portfolio-stage-wrap-enter`
+
 ### Floating Images
 
 `FloatingImagesFeature` owns animation state and scheduler subscription only.
@@ -167,7 +226,7 @@ Residual risk to remember later:
 It:
 
 - waits for images before full initialization
-- pauses on screensaver activity unless the instance lives inside the screensaver
+- pauses on screensaver activity when mounted on the page and only runs while the screensaver is active when mounted inside the screensaver shell
 - restores temporary inline styles during teardown
 
 ## Non-Goals

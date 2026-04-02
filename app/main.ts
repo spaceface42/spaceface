@@ -8,6 +8,7 @@ import {
 } from "../src/spaceface.js";
 import { APP_CONTRACT, getDefaultLogLevel, getDocumentMode } from "./contract.js";
 import { createRuntimeFeatureDefinitions } from "./runtime.js";
+import { initStartupSequence } from "./startup/initStartupSequence.js";
 
 const DEFAULT_LOG_LEVEL: LogLevel = getDefaultLogLevel(getDocumentMode());
 const logger = createLogger("MU/TH/UR", DEFAULT_LOG_LEVEL);
@@ -18,18 +19,21 @@ function main(): void {
 
   applyCurrentNavState();
 
-  // 1. Initialize Global Shared Signals/Activity
+  // 1. Initialize optional DOM-driven startup enhancements.
+  initStartupSequence();
+
+  // 2. Initialize global shared signals/activity.
   initActivityTracking();
 
-  // 2. Initialize Global Feature Registry
+  // 3. Initialize the global feature registry.
   const registry = new FeatureRegistry({ logger: logger.child("features") });
 
-  // 3. Register Features from the app contract
+  // 4. Register features from the app contract.
   for (const definition of createRuntimeFeatureDefinitions()) {
     registry.register(definition);
   }
 
-  // 4. Start DOM Observation
+  // 5. Start DOM observation.
   registry.start();
   logger.info("boot complete");
 }

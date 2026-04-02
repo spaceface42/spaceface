@@ -20,9 +20,19 @@ export {
 export { initActivityTracking, destroyActivityTracking } from "./features/shared/activity.js";
 
 export {
+  AttractorSceneFeature,
+  type AttractorSceneFeatureOptions,
+} from "./features/attractor-scene/AttractorSceneFeature.js";
+
+export {
   FloatingImagesFeature,
   type FloatingImagesFeatureOptions,
 } from "./features/floating-images/FloatingImagesFeature.js";
+
+export {
+  PortfolioStageFeature,
+  type PortfolioStageFeatureOptions,
+} from "./features/portfolio-stage/PortfolioStageFeature.js";
 
 export {
   ScreensaverFeature,

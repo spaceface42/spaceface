@@ -35,9 +35,11 @@ export interface AppContract {
   sourceDir: string;
   outputDir: string;
   defaults: {
+    attractorSceneRotateMs: number;
     screensaverIdleMs: number;
+    screensaverDefaultScene: string;
+    screensaverScenePartialUrls: Record<string, string>;
     slideshowAutoplayMs: number;
-    screensaverPartialUrl: string;
   };
   pageHooks: string[];
   activityInputs: string[];

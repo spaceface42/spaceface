@@ -1,3 +1,35 @@
+@font-face {
+    font-family: "Apercu";
+    src: url("./fonts/ArrivalApercuPro-Light.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Apercu";
+    src: url("./fonts/ArrivalApercuPro-Regular.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Apercu";
+    src: url("./fonts/ArrivalApercuPro-Medium.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Apercu Mono";
+    src: url("./fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
 @layer reset, base, components, utilities;
 
 @layer reset {
@@ -39,12 +71,10 @@ html {
 
 @layer base {
     body {
-        font-family: system-ui, sans-serif;
+        font-family: "Apercu Mono", "SFMono-Regular", Consolas, monospace;
     }
 
     a {
         color: inherit;
     }
 }
-
-

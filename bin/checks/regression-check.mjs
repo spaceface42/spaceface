@@ -10,9 +10,11 @@ async function run() {
       sourcefile: "regression-check-harness.ts",
       contents: `
         export { FeatureRegistry } from "./src/core/feature.ts";
+        export { initStartupSequence } from "./app/startup/initStartupSequence.ts";
         export { SlideshowFeature } from "./src/features/slideshow/SlideshowFeature.ts";
         export { SlidePlayerFeature } from "./src/features/slideplayer/SlidePlayerFeature.ts";
         export { FloatingImagesFeature } from "./src/features/floating-images/FloatingImagesFeature.ts";
+        export { PortfolioStageFeature } from "./src/features/portfolio-stage/PortfolioStageFeature.ts";
         export { ScreensaverFeature } from "./src/features/screensaver/ScreensaverFeature.ts";
         export { screensaverActiveSignal } from "./src/features/shared/screensaverState.ts";
         export { userActivitySignal, initActivityTracking, destroyActivityTracking } from "./src/features/shared/activity.ts";
@@ -66,6 +68,9 @@ async function run() {
       testFeatureRegistryMountContext(runtime);
       await testFeatureRegistryAsyncMountFailure(runtime);
       await testFeatureRegistryAsyncMountAbort(runtime);
+      testStartupSequenceNoopWhenMarkupIsIncomplete(runtime);
+      testStartupSequenceCompletesAndRequiresExplicitReplay(runtime);
+      testStartupSequenceKeepsNestedLayoutsMounted(runtime);
       testSlideshowScreensaverPause(runtime);
       testSlideshowAutoplayResumeUsesRemainingTime(runtime);
       testSlideshowManualNavigationResetsAutoplay(runtime);
@@ -76,11 +81,19 @@ async function run() {
       testSlidePlayerSingletonKeyboardBinding(runtime);
       testSlidePlayerSwipeNavigation(runtime);
       testSlidePlayerTouchSwipeNavigation(runtime);
+      testPortfolioStageSingletonKeyboardBinding(runtime);
+      testPortfolioStageDestroyRestoresAuthoredDom(runtime);
+      await testPortfolioStageWrapEntersFromDestinationSide(runtime);
+      await testPortfolioStageNavigationAndFiltering(runtime);
+      testPortfolioStageBlankClickUsesLiveRects(runtime);
       await testActivityTracking(runtime);
       await testScreensaverManualShortcut(runtime);
+      await testScreensaverSceneSelection(runtime);
+      await testScreensaverCustomIdleDelay(runtime);
       await testScreensaverLoadFailure(runtime);
       await testScreensaverLoadAbort(runtime);
       await testScreensaverHideWaitsForTransitionDelay(runtime);
+      testScreensaverSingletonBinding(runtime);
       testScreensaverDestroyRemovesInjectedMarkup(runtime);
       await testFloatingImagesScreensaverPause(runtime);
       await testFloatingImagesContainerResize(runtime);
@@ -263,6 +276,100 @@ async function testFeatureRegistryAsyncMountAbort(runtime) {
     globalThis.queueMicrotask = originalQueueMicrotask;
     restoreDomGlobals();
   }
+}
+
+function testStartupSequenceNoopWhenMarkupIsIncomplete(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = new FakeElement(
+    "div",
+    {
+      "data-startup-sequence": "",
+      "data-layout-target": "#app",
+    },
+    { hidden: true }
+  );
+  root.append(new FakeElement("div", { "data-startup-splash": "" }));
+  body.append(root);
+  body.append(new FakeElement("main", { id: "app", "data-startup-layout": "" }));
+
+  const handle = runtime.initStartupSequence();
+  assert.equal(handle, null, "startup sequence should no-op when required child markup is missing");
+  assert.equal(body.classList.contains("has-startup-lock"), false, "startup no-ops should not lock scrolling");
+  assert.equal(root.hidden, true, "startup no-ops should preserve authored hidden state");
+
+  restoreDomGlobals();
+}
+
+function testStartupSequenceCompletesAndRequiresExplicitReplay(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createStartupSequenceRoot({ hidden: true, layoutTarget: "#app" });
+  const layout = new FakeElement("main", { id: "app", "data-startup-layout": "" });
+  body.append(root);
+  body.append(layout);
+
+  const handle = runtime.initStartupSequence({ exitMs: 24 });
+  assert.notEqual(handle, null, "startup sequence should initialize when the authored contract is present");
+  assert.equal(root.hidden, false, "external startup roots should unhide while active");
+  assert.equal(root.classList.contains("is-startup-active"), true, "startup root should receive the active class");
+  assert.equal(layout.classList.contains("is-startup-layout-hidden"), true, "target layout should stay hidden during the intro");
+  assert.equal(body.classList.contains("has-startup-lock"), true, "startup sequence should lock page scrolling during playback");
+
+  clock.advance(40);
+  assert.equal(root.classList.contains("is-startup-intro-visible"), true, "startup intro should become visible after its delay");
+  assert.equal(
+    root.querySelector("[data-startup-intro]").classList.contains("is-hidden"),
+    false,
+    "startup intro should remove the hidden helper class once revealed"
+  );
+
+  clock.advance(60);
+  assert.equal(root.getAttribute("data-startup-complete"), "true", "startup sequence should mark completed roots");
+  assert.equal(layout.classList.contains("is-startup-layout-hidden"), false, "layout should be revealed when startup completes");
+  assert.equal(body.classList.contains("has-startup-lock"), false, "scrolling should unlock once startup completes");
+
+  clock.advance(24);
+  assert.equal(root.hidden, true, "external startup roots should hide again after exit cleanup");
+  assert.equal(root.classList.contains("is-startup-active"), false, "startup cleanup should remove runtime classes");
+
+  const skippedHandle = runtime.initStartupSequence();
+  assert.notEqual(skippedHandle, null, "completed startup roots should still return a safe handle");
+  assert.equal(root.classList.contains("is-startup-active"), false, "completed startup roots should not replay by default");
+
+  runtime.initStartupSequence({ replay: true, exitMs: 0 });
+  assert.equal(root.classList.contains("is-startup-active"), true, "startup sequence should replay when explicitly requested");
+
+  clock.restore();
+  restoreDomGlobals();
+}
+
+function testStartupSequenceKeepsNestedLayoutsMounted(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createStartupSequenceRoot({ nestedLayout: true });
+  body.append(root);
+
+  const handle = runtime.initStartupSequence({ exitMs: 12 });
+  assert.notEqual(handle, null, "startup sequence should support layouts nested inside the startup root");
+
+  clock.advance(100);
+  clock.advance(12);
+
+  assert.equal(root.hidden, false, "nested startup roots should remain mounted after cleanup");
+  assert.equal(
+    root.querySelector("[data-startup-layout]").classList.contains("is-startup-layout-hidden"),
+    false,
+    "nested layouts should be revealed when the intro finishes"
+  );
+
+  clock.restore();
+  restoreDomGlobals();
 }
 
 function testSlideshowScreensaverPause(runtime) {
@@ -560,7 +667,9 @@ async function testActivityTracking(runtime) {
 
     const feature = new runtime.ScreensaverFeature({
       idleMs: 100,
-      partialUrl: "./ok.html",
+      scenePartialUrls: {
+        "floating-images": "./ok.html",
+      },
     });
     feature.mount(root);
 
@@ -610,7 +719,9 @@ async function testScreensaverManualShortcut(runtime) {
 
     const feature = new runtime.ScreensaverFeature({
       idleMs: 500,
-      partialUrl: "/partial/screensaver.html",
+      scenePartialUrls: {
+        "floating-images": "/partial/screensaver.html",
+      },
     });
     feature.mount(root);
 
@@ -653,6 +764,85 @@ async function testScreensaverManualShortcut(runtime) {
   }
 }
 
+async function testScreensaverSceneSelection(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  let requestedUrl = "";
+  runtime.__setLoadPartialHtml(async (url) => {
+    requestedUrl = String(url);
+    return "<div class='scene-shell'>ok</div>";
+  });
+
+  try {
+    const root = new FakeElement("div", { "data-screensaver": "true", "data-screensaver-scene": "attractor" }, { hidden: true });
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      defaultScene: "floating-images",
+      scenePartialUrls: {
+        "floating-images": "/partial/floating-images.html",
+        attractor: "/partial/attractor.html",
+      },
+    });
+
+    feature.target = root;
+    await feature.showScreensaver(0, "manual");
+
+    assert.equal(requestedUrl, "/partial/attractor.html", "screensaver should load the partial for the authored scene");
+    assert.equal(feature.loadedSceneId, "attractor", "screensaver should remember which scene is mounted");
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    restoreDomGlobals();
+  }
+}
+
+async function testScreensaverCustomIdleDelay(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const clock = installFakeClock();
+  runtime.__setLoadPartialHtml(async () => "<div class='screensaver-label'>ok</div>");
+
+  try {
+    runtime.destroyActivityTracking();
+    runtime.initActivityTracking();
+    runtime.screensaverActiveSignal.value = false;
+
+    const root = new FakeElement(
+      "div",
+      {
+        "data-screensaver": "true",
+        "data-screensaver-idle-ms": "200",
+      },
+      { hidden: true }
+    );
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      idleMs: 100,
+      defaultScene: "floating-images",
+      scenePartialUrls: {
+        "floating-images": "/partial/floating-images.html",
+      },
+    });
+    feature.mount(root);
+
+    clock.advance(100);
+    await flushMicrotasks(4);
+    assert.equal(root.hidden, true, "screensaver should respect a host-specific idle delay before activating");
+
+    clock.advance(100);
+    await flushMicrotasks(4);
+    assert.equal(root.hidden, false, "screensaver should activate after the host-specific idle delay elapses");
+
+    feature.destroy();
+  } finally {
+    runtime.destroyActivityTracking();
+    runtime.screensaverActiveSignal.value = false;
+    clock.restore();
+    restoreDomGlobals();
+  }
+}
+
 async function testScreensaverLoadFailure(runtime) {
   const clock = installFakeClock();
   const body = new FakeElement("body");
@@ -670,7 +860,9 @@ async function testScreensaverLoadFailure(runtime) {
 
     const feature = new runtime.ScreensaverFeature({
       idleMs: 100,
-      partialUrl: "./missing.html",
+      scenePartialUrls: {
+        "floating-images": "./missing.html",
+      },
     });
 
     feature.mount(root);
@@ -717,7 +909,9 @@ async function testScreensaverLoadAbort(runtime) {
 
     const feature = new runtime.ScreensaverFeature({
       idleMs: 100,
-      partialUrl: "./slow.html",
+      scenePartialUrls: {
+        "floating-images": "./slow.html",
+      },
     });
 
     feature.mount(root);
@@ -753,18 +947,71 @@ async function testScreensaverHideWaitsForTransitionDelay(runtime) {
     feature.target = root;
     feature.isShowing = true;
     feature.partialLoaded = true;
+    runtime.screensaverActiveSignal.value = true;
 
     feature.hideScreensaver();
     clock.advance(300);
     assert.equal(root.hidden, false, "screensaver should stay visible until delay plus duration has elapsed");
+    assert.equal(runtime.screensaverActiveSignal.value, true, "screensaver should keep the shared active state until the hide transition completes");
 
     clock.advance(60);
     assert.equal(root.hidden, true, "screensaver should hide after delay plus duration completes");
-    assert.equal(feature.partialLoaded, false, "screensaver hide cleanup should reset the partial loaded flag");
+    assert.equal(runtime.screensaverActiveSignal.value, false, "screensaver should release the shared active state after the hide transition completes");
+    assert.equal(feature.partialLoaded, true, "screensaver should keep the current scene mounted between activations");
   } finally {
     runtime.screensaverActiveSignal.value = false;
     globalThis.getComputedStyle = originalGetComputedStyle;
     clock.restore();
+  }
+}
+
+function testScreensaverSingletonBinding(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const clock = installFakeClock();
+
+  const warnSpy = spy();
+  const logger = {
+    child() {
+      return this;
+    },
+    debug() {},
+    info() {},
+    warn() {
+      warnSpy();
+    },
+    error() {},
+  };
+
+  try {
+    const firstRoot = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    const secondRoot = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    body.append(firstRoot);
+    body.append(secondRoot);
+
+    const firstFeature = new runtime.ScreensaverFeature({
+      scenePartialUrls: {
+        "floating-images": "/partial/floating-images.html",
+      },
+    });
+    firstFeature.mount(firstRoot, { signal: new AbortController().signal, logger });
+
+    const secondFeature = new runtime.ScreensaverFeature({
+      scenePartialUrls: {
+        "floating-images": "/partial/floating-images.html",
+      },
+    });
+    secondFeature.mount(secondRoot, { signal: new AbortController().signal, logger });
+
+    assert.equal((documentListeners.get("keydown") ?? []).length, 1, "only one screensaver should bind the global shortcut listener");
+    assert.equal(warnSpy.calls, 1, "duplicate screensaver mounts should warn at runtime");
+
+    secondFeature.destroy();
+    firstFeature.destroy();
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    clock.restore();
+    restoreDomGlobals();
   }
 }
 
@@ -783,6 +1030,7 @@ function testScreensaverDestroyRemovesInjectedMarkup(runtime) {
     const feature = new runtime.ScreensaverFeature();
     feature.target = root;
     feature.partialLoaded = true;
+    feature.ownsSingleton = true;
     runtime.screensaverActiveSignal.value = true;
 
     feature.destroy();
@@ -822,6 +1070,266 @@ function testSlidePlayerTouchSwipeNavigation(runtime) {
     changedTouches: [{ clientX: 120, clientY: 82 }],
   });
   assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "right touch swipe should move the slideplayer backward");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
+}
+
+function testPortfolioStageSingletonKeyboardBinding(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const firstRoot = createPortfolioStageRoot();
+  const secondRoot = createPortfolioStageRoot();
+  body.append(firstRoot);
+  body.append(secondRoot);
+
+  runtime.screensaverActiveSignal.value = false;
+  const firstFeature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
+  const secondFeature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
+  firstFeature.mount(firstRoot);
+  secondFeature.mount(secondRoot);
+
+  assert.equal((documentListeners.get("keydown") ?? []).length, 1, "only one portfolio stage should bind the global keyboard handler");
+
+  dispatchDocumentEvent("keydown", {
+    key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {},
+    target: firstRoot,
+  });
+
+  assert.equal(firstRoot.querySelector("[data-portfolio-stage-current-title]").textContent, "Velvet Broadcast", "the first portfolio stage should retain global keyboard ownership");
+  assert.equal(secondRoot.querySelector("[data-portfolio-stage-current-title]").textContent, "Afterglow Frames", "duplicate portfolio stages must not bind a second global keyboard handler");
+
+  secondFeature.destroy();
+  firstFeature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
+}
+
+function testPortfolioStageDestroyRestoresAuthoredDom(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createPortfolioStageRoot();
+  body.append(root);
+
+  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
+  feature.mount(root);
+
+  dispatchDocumentEvent("keydown", {
+    key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {},
+    target: root,
+  });
+  dispatchElementEvent(root.querySelectorAll("[data-portfolio-stage-filter]")[2], "click", {});
+  dispatchElementEvent(root.querySelector("[data-portfolio-stage-details-toggle]"), "click", {});
+
+  feature.destroy();
+
+  const items = root.querySelectorAll("[data-portfolio-stage-item]");
+  assert.equal(items[0].hidden, false, "destroy should restore the authored visibility of the leading card");
+  assert.equal(items[1].hidden, true, "destroy should restore hidden authored cards");
+  assert.equal(items[0].getAttribute("data-portfolio-stage-slot"), null, "destroy should remove runtime slot attributes");
+  assert.equal(items[0].getAttribute("aria-hidden"), null, "destroy should restore authored aria-hidden state");
+  assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "", "destroy should restore authored text outputs");
+  assert.equal(root.querySelector("[data-portfolio-stage-details]").hidden, true, "destroy should restore the authored details visibility");
+  assert.equal(root.querySelector("[data-portfolio-stage-details-toggle]").getAttribute("aria-expanded"), null, "destroy should restore details toggle attributes");
+  assert.equal(root.querySelectorAll("[data-portfolio-stage-filter]")[2].classList.contains("is-selected"), false, "destroy should restore authored filter button classes");
+  assert.equal(root.getAttribute("data-portfolio-stage-filter-value"), null, "destroy should remove runtime root filter state");
+
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
+}
+
+async function testPortfolioStageWrapEntersFromDestinationSide(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createPortfolioStageRoot();
+  body.append(root);
+
+  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
+  feature.mount(root);
+
+  dispatchDocumentEvent("keydown", {
+    key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {},
+    target: root,
+  });
+
+  const wrappedItem = root.querySelector('[data-portfolio-stage-title="Chrome Runner"]');
+  assert.equal(
+    wrappedItem.getAttribute("data-portfolio-stage-wrap-enter"),
+    "right",
+    "advancing should re-enter the far-left item from the right edge"
+  );
+
+  await waitForTimers(1);
+  assert.equal(
+    wrappedItem.getAttribute("data-portfolio-stage-wrap-enter"),
+    null,
+    "wrap-enter state should clear after the entry transition is armed"
+  );
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  restoreDomGlobals();
+}
+
+async function testPortfolioStageNavigationAndFiltering(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createPortfolioStageRoot();
+  body.append(root);
+
+  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
+  feature.mount(root);
+
+  assert.equal(root.querySelectorAll("[data-portfolio-stage-item]").filter((node) => !node.hidden).length, 5, "portfolio stage should show a stack of visible cards");
+  assert.equal(root.querySelector('[data-portfolio-stage-slot="0"]').getAttribute("data-portfolio-stage-title"), "Afterglow Frames");
+  assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "Afterglow Frames");
+  assert.equal(root.querySelector("[data-portfolio-stage-current-index]").textContent, "01 / 05");
+
+  dispatchDocumentEvent("keydown", {
+    key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    target: root,
+  });
+  assert.equal(root.querySelector('[data-portfolio-stage-slot="0"]').getAttribute("data-portfolio-stage-title"), "Velvet Broadcast", "ArrowRight should advance the portfolio stage");
+  assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "Velvet Broadcast");
+
+  dispatchElementEvent(root.querySelectorAll("[data-portfolio-stage-filter]")[2], "click", {});
+  assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "Signal Form", "filtering should jump to the first matching item");
+  assert.equal(root.querySelector("[data-portfolio-stage-current-index]").textContent, "01 / 02", "filtering should update the visible item count");
+
+  dispatchElementEvent(root.querySelector("[data-portfolio-stage-details-toggle]"), "click", {});
+  assert.equal(root.querySelector("[data-portfolio-stage-details]").hidden, false, "details toggle should reveal the details panel");
+
+  dispatchDocumentEvent("keydown", {
+    key: "Escape",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    target: root,
+  });
+  assert.equal(root.querySelector("[data-portfolio-stage-details]").hidden, true, "Escape should close the details panel");
+
+  runtime.screensaverActiveSignal.value = true;
+  dispatchDocumentEvent("keydown", {
+    key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    target: root,
+  });
+  assert.equal(
+    root.querySelector("[data-portfolio-stage-current-title]").textContent,
+    "Signal Form",
+    "document-wide keyboard navigation should pause while screensaver is active"
+  );
+  runtime.screensaverActiveSignal.value = false;
+
+  dispatchElementEvent(root.querySelectorAll("[data-portfolio-stage-filter]")[0], "click", {});
+  dispatchElementEvent(root.querySelector('[data-portfolio-stage-title="Chrome Runner"]'), "click", {});
+  assert.equal(
+    root.querySelector("[data-portfolio-stage-current-title]").textContent,
+    "Signal Form Two",
+    "clicking a farther card should start stepping through the carousel"
+  );
+  await waitForTimers(2);
+  assert.equal(
+    root.querySelector("[data-portfolio-stage-current-title]").textContent,
+    "Chrome Runner",
+    "clicking a visible card should play the carousel to that item"
+  );
+
+  feature.destroy();
+  restoreDomGlobals();
+}
+
+function testPortfolioStageBlankClickUsesLiveRects(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createPortfolioStageRoot();
+  body.append(root);
+
+  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
+  feature.mount(root);
+
+  const stage = root.querySelector("[data-portfolio-stage-stage]");
+  setFakeRect(stage, { left: 0, top: 0, width: 600, height: 400 });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Afterglow Frames"]'), {
+    left: 240,
+    top: 110,
+    width: 120,
+    height: 160,
+  });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Velvet Broadcast"]'), {
+    left: 80,
+    top: 120,
+    width: 60,
+    height: 100,
+  });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Signal Form"]'), {
+    left: 470,
+    top: 100,
+    width: 70,
+    height: 100,
+  });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Chrome Runner"]'), {
+    left: 360,
+    top: 150,
+    width: 70,
+    height: 90,
+  });
+  setFakeRect(root.querySelector('[data-portfolio-stage-title="Signal Form Two"]'), {
+    left: 160,
+    top: 135,
+    width: 60,
+    height: 90,
+  });
+
+  dispatchElementEvent(stage, "click", {
+    target: stage,
+    clientX: 70,
+    clientY: 170,
+  });
+
+  assert.equal(
+    root.querySelector("[data-portfolio-stage-current-title]").textContent,
+    "Velvet Broadcast",
+    "blank-stage click targeting should follow the rendered card boxes"
+  );
 
   feature.destroy();
   runtime.screensaverActiveSignal.value = false;
@@ -868,8 +1376,12 @@ async function testFloatingImagesScreensaverPause(runtime) {
     const screensaverFeature = new runtime.FloatingImagesFeature();
     await screensaverFeature.mount(screensaverRoot);
 
+    assert.equal(addCalls, 0, "screensaver-owned floating images should stay paused until the screensaver activates");
     runtime.screensaverActiveSignal.value = true;
-    assert.equal(unsubscribers[0].calls, 0, "screensaver-owned floating images must keep running during screensaver activity");
+    assert.equal(addCalls, 1, "screensaver-owned floating images should subscribe when the screensaver activates");
+
+    runtime.screensaverActiveSignal.value = false;
+    assert.equal(unsubscribers[0].calls, 1, "screensaver-owned floating images should unsubscribe when the screensaver hides");
     screensaverFeature.destroy();
   } finally {
     runtime.globalScheduler.add = originalAdd;
@@ -1152,6 +1664,22 @@ function activeIndex(root, selector) {
   return root.querySelectorAll(selector).findIndex((node) => !node.hidden);
 }
 
+function setFakeRect(node, { left, top, width, height }) {
+  node.clientWidth = width;
+  node.clientHeight = height;
+  node.getBoundingClientRect = () => ({
+    width,
+    height,
+    top,
+    left,
+    right: left + width,
+    bottom: top + height,
+    x: left,
+    y: top,
+    toJSON: () => ({}),
+  });
+}
+
 function createFloatingRoot() {
   const root = new FakeElement("div");
   root.clientWidth = 320;
@@ -1171,6 +1699,32 @@ function createSlideshowRoot() {
   return root;
 }
 
+function createStartupSequenceRoot({ hidden = false, layoutTarget = null, nestedLayout = false } = {}) {
+  const attributes = {
+    "data-startup-sequence": "",
+    "data-delay": "100",
+    "data-intro-delay": "40",
+  };
+
+  if (layoutTarget) {
+    attributes["data-layout-target"] = layoutTarget;
+  }
+
+  const root = new FakeElement("div", attributes, { hidden });
+  const splash = new FakeElement("div", { "data-startup-splash": "" });
+  const intro = new FakeElement("p", { "data-startup-intro": "" });
+  intro.classList.add("is-hidden");
+
+  root.append(splash);
+  root.append(intro);
+
+  if (nestedLayout) {
+    root.append(new FakeElement("main", { "data-startup-layout": "" }));
+  }
+
+  return root;
+}
+
 function createSlidePlayerRoot() {
   const root = new FakeElement("section");
   root.append(new FakeElement("button", { "data-slideplayer-prev": "" }));
@@ -1187,6 +1741,86 @@ function createSlidePlayerRoot() {
   bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
   bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
   root.append(bullets);
+
+  return root;
+}
+
+function createPortfolioStageRoot() {
+  const root = new FakeElement("section", { "data-feature": "portfolio-stage" });
+  root.append(new FakeElement("button", { "data-portfolio-stage-prev": "" }));
+  root.append(new FakeElement("button", { "data-portfolio-stage-next": "" }));
+  root.append(new FakeElement("button", { "data-portfolio-stage-details-toggle": "" }));
+  root.append(new FakeElement("button", { "data-portfolio-stage-filter": "all" }));
+  root.append(new FakeElement("button", { "data-portfolio-stage-filter": "film" }));
+  root.append(new FakeElement("button", { "data-portfolio-stage-filter": "branding" }));
+  root.append(new FakeElement("p", { "data-portfolio-stage-current-index": "" }));
+  root.append(new FakeElement("h2", { "data-portfolio-stage-current-title": "" }));
+  root.append(new FakeElement("p", { "data-portfolio-stage-current-category": "" }));
+  root.append(new FakeElement("p", { "data-portfolio-stage-current-summary": "" }));
+  root.append(new FakeElement("div", { "data-portfolio-stage-details": "" }, { hidden: true }));
+
+  const stage = new FakeElement("div", { "data-portfolio-stage-stage": "" });
+  stage.append(
+    new FakeElement(
+      "figure",
+      {
+        "data-portfolio-stage-item": "",
+        "data-portfolio-stage-title": "Afterglow Frames",
+        "data-portfolio-stage-category": "Film",
+        "data-portfolio-stage-summary": "A film-led opener.",
+      },
+      { hidden: false }
+    )
+  );
+  stage.append(
+    new FakeElement(
+      "figure",
+      {
+        "data-portfolio-stage-item": "",
+        "data-portfolio-stage-title": "Velvet Broadcast",
+        "data-portfolio-stage-category": "Fashion, Commercial",
+        "data-portfolio-stage-summary": "A fashion-commercial crossover.",
+      },
+      { hidden: true }
+    )
+  );
+  stage.append(
+    new FakeElement(
+      "figure",
+      {
+        "data-portfolio-stage-item": "",
+        "data-portfolio-stage-title": "Signal Form",
+        "data-portfolio-stage-category": "Branding",
+        "data-portfolio-stage-summary": "A branding-led composition.",
+      },
+      { hidden: true }
+    )
+  );
+  stage.append(
+    new FakeElement(
+      "figure",
+      {
+        "data-portfolio-stage-item": "",
+        "data-portfolio-stage-title": "Chrome Runner",
+        "data-portfolio-stage-category": "Commercial",
+        "data-portfolio-stage-summary": "A warm commercial frame.",
+      },
+      { hidden: true }
+    )
+  );
+  stage.append(
+    new FakeElement(
+      "figure",
+      {
+        "data-portfolio-stage-item": "",
+        "data-portfolio-stage-title": "Signal Form Two",
+        "data-portfolio-stage-category": "Branding",
+        "data-portfolio-stage-summary": "A second branding frame.",
+      },
+      { hidden: true }
+    )
+  );
+  root.append(stage);
 
   return root;
 }
@@ -1363,6 +1997,12 @@ function dispatchElementEvent(node, type, event) {
   }
 }
 
+async function waitForTimers(count = 1) {
+  for (let i = 0; i < count; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+}
+
 function matchSelector(node, selector) {
   if (!selector) return false;
   if (selector === ":scope") return true;
@@ -1377,6 +2017,10 @@ function matchSelector(node, selector) {
 
   if (selector.startsWith(".")) {
     return node.classList.contains(selector.slice(1));
+  }
+
+  if (selector.startsWith("#")) {
+    return node.getAttribute("id") === selector.slice(1);
   }
 
   return false;

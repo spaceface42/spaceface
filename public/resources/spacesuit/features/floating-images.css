@@ -1,0 +1,26 @@
+/* FloatingImagesFeature */
+
+[data-feature="floating-images"] {
+    position: relative;
+    height: 260px;
+    overflow: hidden;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    background:
+        radial-gradient(circle at 10% 10%, #e8fffb, transparent 45%),
+        radial-gradient(circle at 90% 85%, #dbeafe, transparent 45%), #ffffff;
+}
+
+body[data-page="floatingimages"] [data-feature="floating-images"] {
+    height: calc(100vh - 108px);
+}
+
+[data-floating-item] {
+    width: 12%;
+    height: auto;
+    display: grid;
+    place-items: center;
+    font-size: 28px;
+    user-select: none;
+    pointer-events: auto;
+}

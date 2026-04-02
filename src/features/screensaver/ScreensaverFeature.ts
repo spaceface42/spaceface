@@ -2,36 +2,40 @@
 import type { Feature, FeatureMountContext } from "../../core/feature.js";
 import { createLogger, type Logger } from "../../core/logger.js";
 import { createEffect } from "../../core/signals.js";
-import { userActivitySignal } from "../shared/activity.js";
-import { screensaverActiveSignal } from "../shared/screensaverState.js";
 import { loadPartialHtml } from "../../core/partials.js";
-// We don't import or tightly couple to FloatingImagesFeature directly in the code logic.
-// Instead, we just write the HTML. The FeatureRegistry will automatically see it
-// and spawn a FloatingImagesFeature for us.
+import { userActivitySignal } from "../shared/activity.js";
+import { isManualIdleShortcut } from "../shared/manualIdleShortcut.js";
+import { screensaverActiveSignal } from "../shared/screensaverState.js";
 
 export interface ScreensaverFeatureOptions {
   idleMs?: number;
-  partialUrl?: string;
+  defaultScene?: string;
+  scenePartialUrls?: Record<string, string>;
   partialAssetAttributes?: string[];
 }
 
 export class ScreensaverFeature implements Feature {
+  private static activeInstance: ScreensaverFeature | null = null;
+
   private options: Required<ScreensaverFeatureOptions>;
   private target: HTMLElement | null = null;
   private cleanupEffect?: () => void;
   private timer: number | null = null;
   private isShowing = false;
   private partialLoaded = false;
-
-  // For cleanup timings
+  private loadedSceneId: string | null = null;
   private hideCleanupTimer: number | null = null;
   private showRequestId = 0;
   private partialLoadController: AbortController | null = null;
+  private injectedSceneAttribute = false;
+  private injectedSceneValue: string | null = null;
   private logger: Logger = createLogger("screensaver", "warn");
+  private ownsSingleton = false;
+
   private readonly handleManualStartKeydown = (event: KeyboardEvent): void => {
     if (!this.target) return;
     if (this.isShowing) return;
-    if (!isManualScreensaverShortcut(event)) return;
+    if (!isManualIdleShortcut(event)) return;
 
     event.preventDefault();
     const requestId = ++this.showRequestId;
@@ -43,7 +47,8 @@ export class ScreensaverFeature implements Feature {
   constructor(options: ScreensaverFeatureOptions = {}) {
     this.options = {
       idleMs: options.idleMs ?? 60000,
-      partialUrl: options.partialUrl ?? "",
+      defaultScene: options.defaultScene ?? "floating-images",
+      scenePartialUrls: options.scenePartialUrls ?? {},
       partialAssetAttributes: options.partialAssetAttributes ?? ["src", "poster", "data-src"],
     };
   }
@@ -54,10 +59,22 @@ export class ScreensaverFeature implements Feature {
     this.target.hidden = true;
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");
+
+    if (ScreensaverFeature.activeInstance && ScreensaverFeature.activeInstance !== this) {
+      this.logger.warn("ignored duplicate screensaver mount", {
+        reason: "singleton-enforced",
+      });
+      return;
+    }
+
+    ScreensaverFeature.activeInstance = this;
+    this.ownsSingleton = true;
+    this.resolveSceneId(this.target);
     document.addEventListener("keydown", this.handleManualStartKeydown);
 
-    // Start watching user activity via our shiny new Signal primitive
     this.cleanupEffect = createEffect(() => {
+      const target = this.target;
+      if (!target) return;
       void userActivitySignal.value;
       const requestId = ++this.showRequestId;
       this.cancelPendingPartialLoad();
@@ -69,7 +86,7 @@ export class ScreensaverFeature implements Feature {
 
       this.timer = window.setTimeout(() => {
         void this.showScreensaver(requestId, "idle");
-      }, this.options.idleMs);
+      }, this.resolveIdleMs(target));
     });
   }
 
@@ -78,7 +95,6 @@ export class ScreensaverFeature implements Feature {
       this.logger.debug("screensaver stopped", { reason: "destroy" });
     }
     this.isShowing = false;
-    this.partialLoaded = false;
     this.showRequestId += 1;
     this.cancelPendingPartialLoad();
     this.resetTimer();
@@ -93,15 +109,20 @@ export class ScreensaverFeature implements Feature {
 
     if (this.target) {
       this.clearPartialMount(this.target);
+      this.restoreInjectedSceneAttribute(this.target);
       this.target.classList.remove("is-active");
       this.target.hidden = true;
       this.target.setAttribute("aria-hidden", "true");
-      screensaverActiveSignal.value = false;
-      // The FeatureRegistry takes care of destroying child features automatically
-      // if we remove them from the DOM, but for fade-outs, we just hide them.
+      if (this.ownsSingleton) {
+        screensaverActiveSignal.value = false;
+      }
     }
 
     this.target = null;
+    if (this.ownsSingleton && ScreensaverFeature.activeInstance === this) {
+      ScreensaverFeature.activeInstance = null;
+    }
+    this.ownsSingleton = false;
   }
 
   private resetTimer(): void {
@@ -129,58 +150,59 @@ export class ScreensaverFeature implements Feature {
     this.isShowing = true;
     screensaverActiveSignal.value = true;
     this.target.hidden = false;
-    // We force a reflow before adding the active class so the fade-in CSS transitions trigger
     void this.target.offsetWidth;
     this.target.classList.add("is-active");
     this.target.setAttribute("aria-hidden", "false");
-    this.logger.debug("screensaver started", { partialLoaded: this.partialLoaded, reason });
-
-    // We don't have to manually instantiate FloatingImagesFeature.
-    // By loading the partial containing `data-feature="floating-images"`, the
-    // central MutationObserver handles instantiating it.
+    this.logger.debug("screensaver started", {
+      partialLoaded: this.partialLoaded,
+      reason,
+      scene: this.loadedSceneId,
+    });
   }
 
   private hideScreensaver(): void {
     if (!this.target || !this.isShowing) return;
     this.isShowing = false;
-    screensaverActiveSignal.value = false;
-    this.logger.debug("screensaver stopped", { reason: "activity" });
+    this.logger.debug("screensaver stopped", {
+      reason: "activity",
+      scene: this.loadedSceneId,
+    });
 
     this.target.classList.remove("is-active");
     this.target.setAttribute("aria-hidden", "true");
 
-    // Wait for fade out animation before stopping the floating elements
     const durationMs = this.getTransitionDurationMs(this.target);
     this.hideCleanupTimer = window.setTimeout(() => {
       if (!this.target || this.isShowing) return;
       this.target.hidden = true;
-
-      // We can drop the floating images from the DOM entirely to destroy them
-      const floatingRoot = this.target.querySelector('[data-feature="floating-images"]');
-      if (floatingRoot) {
-        floatingRoot.remove();
-        // The MutationObserver will instantly see this removal and call `destroy()`
-        // on the FloatingImagesFeature instance gracefully!
-      }
-      this.partialLoaded = false;
+      screensaverActiveSignal.value = false;
     }, durationMs);
   }
 
   private async prepareScreensaverMarkup(target: HTMLElement, requestId: number): Promise<boolean> {
-    if (!this.options.partialUrl) {
+    const sceneId = this.resolveSceneId(target);
+    if (!sceneId) {
       return false;
     }
-    if (this.partialLoaded) {
+
+    const partialUrl = this.options.scenePartialUrls[sceneId];
+    if (!partialUrl) {
+      this.logger.warn("missing screensaver scene partial", { scene: sceneId });
+      return false;
+    }
+
+    if (this.partialLoaded && this.loadedSceneId === sceneId) {
       if (target.querySelector("[data-screensaver-partial]")) {
         return true;
       }
       this.partialLoaded = false;
+      this.loadedSceneId = null;
     }
 
     try {
       const controller = new AbortController();
       this.partialLoadController = controller;
-      const html = await loadPartialHtml(this.options.partialUrl, {
+      const html = await loadPartialHtml(partialUrl, {
         cache: true,
         signal: controller.signal,
         assetAttributes: this.options.partialAssetAttributes,
@@ -190,20 +212,18 @@ export class ScreensaverFeature implements Feature {
       }
 
       const mount = this.getOrCreatePartialMount(target);
-
-      // Modifying innerHTML triggers the global FeatureRegistry's MutationObserver.
-      // If the HTML contains `<div data-feature="floating-images"></div>`, it
-      // will instantly instantiate a FloatingImagesFeature.
       mount.innerHTML = html;
 
       this.partialLoaded = true;
+      this.loadedSceneId = sceneId;
       return true;
     } catch (error) {
       if (isAbortError(error)) {
         return false;
       }
-      this.logger.warn("failed to load screensaver partial", {
-        partialUrl: this.options.partialUrl,
+      this.logger.warn("failed to load screensaver scene partial", {
+        scene: sceneId,
+        partialUrl,
         error,
       });
       return false;
@@ -226,10 +246,50 @@ export class ScreensaverFeature implements Feature {
     return mount;
   }
 
+  private resolveIdleMs(target: HTMLElement): number {
+    const configured = Number.parseInt(target.getAttribute("data-screensaver-idle-ms") ?? "", 10);
+    if (Number.isFinite(configured) && configured >= 0) {
+      return configured;
+    }
+    return this.options.idleMs;
+  }
+
+  private resolveSceneId(target: HTMLElement): string | null {
+    const hasSceneAttribute = target.getAttribute("data-screensaver-scene") !== null;
+    const authoredScene = target.getAttribute("data-screensaver-scene")?.trim();
+    const fallbackScene = this.options.defaultScene || (Object.keys(this.options.scenePartialUrls)[0] ?? "");
+    const sceneId = authoredScene || fallbackScene;
+    if (!sceneId) {
+      return null;
+    }
+
+    if (!hasSceneAttribute || !authoredScene) {
+      target.setAttribute("data-screensaver-scene", sceneId);
+      this.injectedSceneAttribute = true;
+      this.injectedSceneValue = sceneId;
+    } else if (this.injectedSceneAttribute && authoredScene === this.injectedSceneValue) {
+      return authoredScene;
+    } else {
+      this.injectedSceneAttribute = false;
+      this.injectedSceneValue = null;
+    }
+
+    return sceneId;
+  }
+
+  private restoreInjectedSceneAttribute(target: HTMLElement): void {
+    if (this.injectedSceneAttribute && target.getAttribute("data-screensaver-scene") === this.injectedSceneValue) {
+      target.removeAttribute("data-screensaver-scene");
+    }
+    this.injectedSceneAttribute = false;
+    this.injectedSceneValue = null;
+  }
+
   private clearPartialMount(target: HTMLElement): void {
     const mount = target.querySelector<HTMLElement>("[data-screensaver-partial]");
     mount?.remove();
     this.partialLoaded = false;
+    this.loadedSceneId = null;
   }
 
   private getTransitionDurationMs(element: HTMLElement): number {
@@ -274,25 +334,4 @@ function parseTransitionTimeMs(value: string): number {
   const numericValue = Number.parseFloat(value);
   if (Number.isNaN(numericValue)) return Number.NaN;
   return value.endsWith("ms") ? numericValue : numericValue * 1000;
-}
-
-function isManualScreensaverShortcut(event: KeyboardEvent): boolean {
-  if (event.defaultPrevented || event.repeat) return false;
-  if (isEditableEventTarget(event.target)) return false;
-
-  const isTriggerKey = event.code === "Period" || event.key === "." || event.key === ">";
-  if (!isTriggerKey) return false;
-
-  return event.ctrlKey && !event.metaKey && !event.altKey && event.shiftKey;
-}
-
-function isEditableEventTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tagName = target.tagName.toLowerCase();
-  return (
-    tagName === "input" ||
-    tagName === "textarea" ||
-    tagName === "select" ||
-    target.isContentEditable
-  );
 }
