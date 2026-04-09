@@ -128,6 +128,7 @@ Full verification:
 ## Related Docs
 
 - [`architecture.md`](./architecture.md)
+- [`FRAMEWORK_EVOLUTION_PLAN.md`](./FRAMEWORK_EVOLUTION_PLAN.md)
 - [`V4_ARCHITECTURE_NOTE.md`](./V4_ARCHITECTURE_NOTE.md)
 - [`RELEASE_NOTES.md`](./RELEASE_NOTES.md)
 - [`ROADMAP.md`](./ROADMAP.md)
