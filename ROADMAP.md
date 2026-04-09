@@ -13,15 +13,19 @@ This roadmap tracks only the current static-page runtime.
 2. Keep DOM feature contracts small and documented.
 3. Add tests only where lifecycle, timing, or path rebasing logic can realistically regress.
 4. Keep the screensaver shell small and stable while letting authored scenes carry the visual ambition.
+5. Land Phase 1 framework packaging so `src/` builds into a reusable `dist/` package without breaking the current site app.
 
 ## Next Useful Work
 
 1. Add direct coverage for partial asset rebasing at build time and runtime.
 2. Extend partial asset rebasing to cover `srcset` when responsive images are introduced.
 3. Add targeted tests for `math-utils.ts` and autoplay timing behavior.
-4. Revisit `SlidePlayerFeature` keyboard ownership if dynamic replacement or more than one slideplayer per page is ever allowed. The current document-level singleton binding is fine for the present contract, but it does not hand keyboard ownership to an already-mounted secondary instance when the first owner goes away.
+4. Decide whether `PortfolioStageFeature` should eventually broaden beyond the current singleton authored contract. Keyboard handling is already root-scoped; the remaining question is authored semantics and warning strategy.
 5. Decide whether the contract manifest should eventually generate more than docs and smoke checks.
 6. Explore a screensaver-safe `terminal-scene`: terminal-style message playback with a typewriter effect, authored as a scene inside the screensaver partial instead of coupled into the shell runtime.
+7. Decide whether `FeatureDefinition.selector` should remain as a long-term compatibility alias or eventually be removed after the `featureId` migration settles.
+8. Dogfood `FeatureMountContext.services` inside one built-in feature so the public extension API is validated by shipped runtime code as well as examples.
+9. Keep the screensaver authored contract singleton-only while other runtime pieces become more reusable.
 
 ## Not Planned
 

@@ -79,7 +79,7 @@ export interface PortfolioStageFeatureOptions {
 export class PortfolioStageFeature implements Feature {
   private static readonly SWIPE_THRESHOLD_PX = 42;
   private static readonly SWIPE_OFF_AXIS_THRESHOLD_PX = 26;
-  private static keyboardOwner: PortfolioStageFeature | null = null;
+  private static activeMountCount = 0;
 
   private options: Required<PortfolioStageFeatureOptions>;
   private root: HTMLElement | null = null;
@@ -103,7 +103,7 @@ export class PortfolioStageFeature implements Feature {
   private detachTouchCancel?: () => void;
   private detachStageClick?: () => void;
   private addedRootTabIndex = false;
-  private ownsKeyboardBinding = false;
+  private countedAsMounted = false;
   private playTimer: ReturnType<typeof setTimeout> | null = null;
   private swipePointerId: number | null = null;
   private swipeStartX = 0;
@@ -140,6 +140,14 @@ export class PortfolioStageFeature implements Feature {
     this.currentVisibleIndex = 0;
     this.detailsOpen = false;
     this.initialDomSnapshot = this.captureInitialDomSnapshot();
+
+    if (PortfolioStageFeature.activeMountCount > 0) {
+      this.logger.warn("duplicate portfolio-stage mount", {
+        reason: "singleton-authored-contract",
+      });
+    }
+    PortfolioStageFeature.activeMountCount += 1;
+    this.countedAsMounted = true;
 
     if (this.root.getAttribute("tabindex") === null) {
       this.root.setAttribute("tabindex", "0");
@@ -199,10 +207,10 @@ export class PortfolioStageFeature implements Feature {
     this.detailsOpen = false;
     this.addedRootTabIndex = false;
     this.initialDomSnapshot = null;
-    if (this.ownsKeyboardBinding && PortfolioStageFeature.keyboardOwner === this) {
-      PortfolioStageFeature.keyboardOwner = null;
+    if (this.countedAsMounted) {
+      PortfolioStageFeature.activeMountCount = Math.max(0, PortfolioStageFeature.activeMountCount - 1);
+      this.countedAsMounted = false;
     }
-    this.ownsKeyboardBinding = false;
     this.swipePointerId = null;
     this.swipeStartX = 0;
     this.swipeStartY = 0;
@@ -258,39 +266,33 @@ export class PortfolioStageFeature implements Feature {
         if (visiblePosition === -1) return;
         if (visiblePosition === this.currentVisibleIndex) {
           this.toggleDetails();
+          this.focusRoot();
           return;
         }
         this.playToVisibleIndex(visiblePosition);
+        this.focusRoot();
       };
       item.el.addEventListener("click", onClick);
       return () => item.el.removeEventListener("click", onClick);
     });
 
-    if (PortfolioStageFeature.keyboardOwner === null) {
-      const onKeydown = (event: KeyboardEvent) => {
-        if (screensaverActiveSignal.value || shouldIgnoreKeydown(event)) return;
+    const onKeydown = (event: KeyboardEvent) => {
+      if (screensaverActiveSignal.value || shouldIgnoreKeydown(event)) return;
 
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          this.prev();
-        } else if (event.key === "ArrowRight") {
-          event.preventDefault();
-          this.next();
-        } else if (event.key === "Escape" && this.detailsOpen) {
-          event.preventDefault();
-          this.detailsOpen = false;
-          this.render();
-        }
-      };
-      document.addEventListener("keydown", onKeydown);
-      this.detachKeydown = () => document.removeEventListener("keydown", onKeydown);
-      PortfolioStageFeature.keyboardOwner = this;
-      this.ownsKeyboardBinding = true;
-    } else if (PortfolioStageFeature.keyboardOwner !== this) {
-      this.logger.warn("ignored duplicate portfolio-stage keyboard binding", {
-        reason: "singleton-enforced",
-      });
-    }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        this.prev();
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        this.next();
+      } else if (event.key === "Escape" && this.detailsOpen) {
+        event.preventDefault();
+        this.detailsOpen = false;
+        this.render();
+      }
+    };
+    this.root.addEventListener("keydown", onKeydown);
+    this.detachKeydown = () => this.root?.removeEventListener("keydown", onKeydown);
 
     if (!this.stage) return;
 

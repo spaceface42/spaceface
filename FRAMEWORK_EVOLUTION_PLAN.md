@@ -33,7 +33,7 @@ Today, the least reusable parts are:
 
 - the app-first packaging and build shape
 - singleton assumptions inside several built-in features
-- direct coupling from generic features to screensaver state
+- remaining direct coupling from generic features to screensaver state
 - framework-facing APIs that still reflect this repo's internal naming and structure
 
 ## Recommended Order
@@ -86,7 +86,7 @@ Make custom feature authoring a first-class supported workflow.
 
 - Decide which runtime primitives are public and export them intentionally.
 - Either export core helpers directly or surface them through mount context.
-- Rename `FeatureDefinition.selector` to something more accurate such as `featureId`.
+- Prefer `FeatureDefinition.featureId` as the runtime-facing name and keep `selector` only as a compatibility alias during migration.
 - Expand `FeatureMountContext` into a stable service surface rather than only `signal` and `logger`.
 - Document how third-party features should be written, mounted, paused, and cleaned up.
 
@@ -103,9 +103,9 @@ Make custom feature authoring a first-class supported workflow.
 
 - `signal`
 - `logger`
-- optional scheduler access
-- optional activity/visibility hooks
-- optional partial loading utilities
+- stable scheduler access
+- stable activity/visibility hooks
+- stable partial loading utilities
 - optional runtime services object for future expansion
 
 ### Success Criteria
@@ -113,6 +113,7 @@ Make custom feature authoring a first-class supported workflow.
 - A custom feature can be authored without deep-importing internal files.
 - Public naming reflects framework concepts instead of repo history.
 - Future refactors can happen behind stable public entrypoints.
+- The repo includes at least one tiny custom-feature example that uses only the public package surface.
 
 ## Phase 3: Make The Runtime Host-Scoped And Multi-Instance
 
@@ -135,6 +136,10 @@ Allow Spaceface to mount into one subtree, one widget, or multiple independent a
 - root-scoped keyboard handling for interactive features
 - instance ownership transfer instead of "first mounted instance wins"
 
+Deliberate exception:
+
+- keep the screensaver singleton contract; not every feature needs to become multi-instance
+
 ### Success Criteria
 
 - Two separate Spaceface roots can run on the same page.
@@ -155,8 +160,9 @@ Keep the core runtime small and reusable while preserving the current high-chara
 
 - Treat screensaver behavior as an optional module, not a core runtime assumption.
 - Move editorial features such as floating images, portfolio stage, and slideplayer into optional packages or modules.
-- Replace direct `screensaverActiveSignal` imports in generic features with a more general pause or visibility service.
+- Continue replacing direct `screensaverActiveSignal` imports in generic features with a more general pause or visibility service.
 - Keep the current example site as the reference integration of these modules.
+- Preserve the screensaver itself as a singleton contract even if other features become more composable.
 
 ### Module Shape
 
@@ -206,10 +212,10 @@ This is the shortest credible path forward:
 
 1. Add a real library build from `src/spaceface.ts`.
 2. Keep the current site app intact, but treat it as the first example consumer.
-3. Rename or alias `FeatureDefinition.selector` to `featureId`.
+3. Migrate callers to `FeatureDefinition.featureId` and decide whether `selector` should remain as a compatibility alias long-term.
 4. Add host-scoped registry startup.
-5. Remove singleton keyboard ownership from one built-in feature as the pilot refactor.
-6. Introduce a generic pause or visibility service and migrate one feature off direct screensaver coupling.
+5. Use one built-in feature as the pilot refactor for root-scoped keyboard handling, then apply the pattern to the remaining interactive features.
+6. Introduce a generic pause or visibility service and begin migrating features off direct screensaver coupling.
 7. Move screensaver and editorial features behind clearer module boundaries.
 8. Add a minimal example that uses only the core runtime.
 

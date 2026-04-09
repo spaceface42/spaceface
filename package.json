@@ -2,6 +2,24 @@
     "name": "spaceface",
     "version": "4.0.0",
     "type": "module",
+    "main": "./dist/spaceface.js",
+    "module": "./dist/spaceface.js",
+    "types": "./dist/spaceface.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/spaceface.d.ts",
+            "import": "./dist/spaceface.js",
+            "default": "./dist/spaceface.js"
+        },
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "RELEASE_NOTES.md",
+        "architecture.md",
+        "FRAMEWORK_EVOLUTION_PLAN.md"
+    ],
     "devDependencies": {
         "@eslint/js": "^9.39.3",
         "cross-env": "^7.0.3",
@@ -11,7 +29,9 @@
         "typescript-eslint": "^8.56.1"
     },
     "scripts": {
-        "build": "npm run build:prod",
+        "build": "npm run build:all:prod",
+        "build:all:dev": "npm run build:docs && npm run build:lib:dev && npm run build:lib:types",
+        "build:all:prod": "npm run build:docs:prod && npm run build:lib:prod && npm run build:lib:types",
         "build:dev": "npm run build:html && npm run build:js:dev",
         "build:prod": "npm run build:html && npm run build:js:prod",
         "build:js:dev": "esbuild ./app/main.ts --bundle --format=esm --target=es2022 --sourcemap --outfile=./docs/bin/app.js",
@@ -19,6 +39,10 @@
         "build:html": "node ./bin/build-public-html.mjs",
         "build:docs": "npm run build:dev",
         "build:docs:prod": "npm run build:prod",
+        "build:lib": "npm run build:lib:prod && npm run build:lib:types",
+        "build:lib:dev": "esbuild ./src/spaceface.ts --bundle --format=esm --target=es2022 --sourcemap --outfile=./dist/spaceface.js",
+        "build:lib:prod": "esbuild ./src/spaceface.ts --bundle --format=esm --target=es2022 --minify --outfile=./dist/spaceface.js",
+        "build:lib:types": "tsc -p ./tsconfig.lib.json",
         "sync:contracts": "node ./bin/checks/contract-docs.mjs --write",
         "check:contract-docs": "node ./bin/checks/contract-docs.mjs",
         "typecheck:docs": "tsc -p ./tsconfig.json --noEmit",

@@ -16,7 +16,7 @@ export interface SlidePlayerFeatureOptions {
 export class SlidePlayerFeature implements Feature {
   private static readonly SWIPE_THRESHOLD_PX = 36;
   private static readonly SWIPE_OFF_AXIS_THRESHOLD_PX = 24;
-  private static keyboardOwner: SlidePlayerFeature | null = null;
+  private static activeMountCount = 0;
 
   private options: Required<SlidePlayerFeatureOptions>;
   private root: HTMLElement | null = null;
@@ -43,7 +43,8 @@ export class SlidePlayerFeature implements Feature {
   private swipeStartX = 0;
   private swipeStartY = 0;
   private logger: Logger = createLogger("slideplayer", "warn");
-  private ownsKeyboardBinding = false;
+  private addedRootTabIndex = false;
+  private countedAsMounted = false;
 
   constructor(options: SlidePlayerFeatureOptions = {}) {
     this.options = {
@@ -65,6 +66,19 @@ export class SlidePlayerFeature implements Feature {
     this.slides = Array.from(this.root.querySelectorAll<HTMLElement>(this.options.slideSelector));
     this.bullets = this.collectBullets();
     this.index = this.readInitialIndex();
+
+    if (SlidePlayerFeature.activeMountCount > 0) {
+      this.logger.warn("duplicate slideplayer mount", {
+        reason: "singleton-authored-contract",
+      });
+    }
+    SlidePlayerFeature.activeMountCount += 1;
+    this.countedAsMounted = true;
+
+    if (this.root.getAttribute("tabindex") === null) {
+      this.root.setAttribute("tabindex", "0");
+      this.addedRootTabIndex = true;
+    }
 
     this.render();
     this.bindControls();
@@ -103,6 +117,10 @@ export class SlidePlayerFeature implements Feature {
     }
     this.detachBulletClicks = [];
 
+    if (this.root && this.addedRootTabIndex) {
+      this.root.removeAttribute("tabindex");
+    }
+
     this.root = null;
     this.stage = null;
     this.slides = [];
@@ -113,10 +131,11 @@ export class SlidePlayerFeature implements Feature {
     this.swipePointerId = null;
     this.swipeStartX = 0;
     this.swipeStartY = 0;
-    if (this.ownsKeyboardBinding && SlidePlayerFeature.keyboardOwner === this) {
-      SlidePlayerFeature.keyboardOwner = null;
+    this.addedRootTabIndex = false;
+    if (this.countedAsMounted) {
+      SlidePlayerFeature.activeMountCount = Math.max(0, SlidePlayerFeature.activeMountCount - 1);
+      this.countedAsMounted = false;
     }
-    this.ownsKeyboardBinding = false;
   }
 
   private collectBullets(): HTMLButtonElement[] {
@@ -139,47 +158,48 @@ export class SlidePlayerFeature implements Feature {
 
     const prevButton = this.root.querySelector<HTMLElement>(this.options.prevSelector);
     if (prevButton) {
-      const onPrev = () => this.prev(true);
+      const onPrev = () => {
+        this.prev(true);
+        this.focusRoot();
+      };
       prevButton.addEventListener("click", onPrev);
       this.detachPrevClick = () => prevButton.removeEventListener("click", onPrev);
     }
 
     const nextButton = this.root.querySelector<HTMLElement>(this.options.nextSelector);
     if (nextButton) {
-      const onNext = () => this.next(true);
+      const onNext = () => {
+        this.next(true);
+        this.focusRoot();
+      };
       nextButton.addEventListener("click", onNext);
       this.detachNextClick = () => nextButton.removeEventListener("click", onNext);
     }
 
     this.detachBulletClicks = this.bullets.map((button, index) => {
-      const onClick = () => this.goTo(index, true);
+      const onClick = () => {
+        this.goTo(index, true);
+        this.focusRoot();
+      };
       button.addEventListener("click", onClick);
       return () => button.removeEventListener("click", onClick);
     });
 
-    if (SlidePlayerFeature.keyboardOwner === null) {
-      const onKeydown = (event: KeyboardEvent) => {
-        if (this.pausedByScreensaver || this.slides.length <= 1 || shouldIgnoreKeydown(event)) {
-          return;
-        }
+    const onKeydown = (event: KeyboardEvent) => {
+      if (this.pausedByScreensaver || this.slides.length <= 1 || shouldIgnoreKeydown(event)) {
+        return;
+      }
 
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          this.prev(true);
-        } else if (event.key === "ArrowRight") {
-          event.preventDefault();
-          this.next(true);
-        }
-      };
-      document.addEventListener("keydown", onKeydown);
-      this.detachKeydown = () => document.removeEventListener("keydown", onKeydown);
-      SlidePlayerFeature.keyboardOwner = this;
-      this.ownsKeyboardBinding = true;
-    } else if (SlidePlayerFeature.keyboardOwner !== this) {
-      this.logger.warn("ignored duplicate slideplayer keyboard binding", {
-        reason: "singleton-enforced",
-      });
-    }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        this.prev(true);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        this.next(true);
+      }
+    };
+    this.root.addEventListener("keydown", onKeydown);
+    this.detachKeydown = () => this.root?.removeEventListener("keydown", onKeydown);
 
     if (this.stage) {
       const onPointerDown = (event: PointerEvent) => {
@@ -188,6 +208,7 @@ export class SlidePlayerFeature implements Feature {
         this.swipePointerId = event.pointerId;
         this.swipeStartX = event.clientX;
         this.swipeStartY = event.clientY;
+        this.focusRoot();
         if (typeof this.stage?.setPointerCapture === "function") {
           try {
             this.stage.setPointerCapture(event.pointerId);
@@ -212,6 +233,7 @@ export class SlidePlayerFeature implements Feature {
         this.swipePointerId = -1;
         this.swipeStartX = touch.clientX;
         this.swipeStartY = touch.clientY;
+        this.focusRoot();
       };
       const onTouchEnd = (event: TouchEvent) => {
         if (this.swipePointerId !== -1) return;
@@ -317,6 +339,12 @@ export class SlidePlayerFeature implements Feature {
     if (this.autoplayTimer === null) return;
     clearTimeout(this.autoplayTimer);
     this.autoplayTimer = null;
+  }
+
+  private focusRoot(): void {
+    if (this.root && typeof this.root.focus === "function") {
+      this.root.focus();
+    }
   }
 
   private resetSwipeState(): void {

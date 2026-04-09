@@ -3,8 +3,26 @@ export {
   type Feature,
   type FeatureDefinition,
   type FeatureMountContext,
+  type FeatureServices,
   type FeatureRegistryOptions,
 } from "./core/feature.js";
+
+export {
+  createEffect,
+  createSignal,
+  type Signal,
+} from "./core/signals.js";
+
+export {
+  loadPartialHtml,
+  type LoadPartialOptions,
+} from "./core/partials.js";
+
+export {
+  FrameScheduler,
+  globalScheduler,
+  type ScheduledTask,
+} from "./core/scheduler.js";
 
 export {
   attachConsoleLogSink,
@@ -17,7 +35,13 @@ export {
   type LogScopeMatcher,
 } from "./core/logger.js";
 
-export { initActivityTracking, destroyActivityTracking } from "./features/shared/activity.js";
+export {
+  initActivityTracking,
+  destroyActivityTracking,
+  userActivitySignal,
+} from "./features/shared/activity.js";
+export { featurePauseSignal } from "./features/shared/pauseState.js";
+export { screensaverActiveSignal } from "./features/shared/screensaverState.js";
 
 export {
   AttractorSceneFeature,

@@ -16,6 +16,8 @@ async function run() {
         export { FloatingImagesFeature } from "./src/features/floating-images/FloatingImagesFeature.ts";
         export { PortfolioStageFeature } from "./src/features/portfolio-stage/PortfolioStageFeature.ts";
         export { ScreensaverFeature } from "./src/features/screensaver/ScreensaverFeature.ts";
+        export { PauseAwareStatusFeature } from "./examples/public-api/PauseAwareStatusFeature.ts";
+        export { featurePauseSignal } from "./src/spaceface.ts";
         export { screensaverActiveSignal } from "./src/features/shared/screensaverState.ts";
         export { userActivitySignal, initActivityTracking, destroyActivityTracking } from "./src/features/shared/activity.ts";
         export { globalScheduler } from "./src/core/scheduler.ts";
@@ -66,6 +68,9 @@ async function run() {
     async (runtime) => {
       testFeatureRegistryAttributeToggling(runtime);
       testFeatureRegistryMountContext(runtime);
+      testFeatureRegistryFeatureIdCompatibility(runtime);
+      testPublicApiCustomFeatureExample(runtime);
+      testFeatureRegistryHostScopedStart(runtime);
       await testFeatureRegistryAsyncMountFailure(runtime);
       await testFeatureRegistryAsyncMountAbort(runtime);
       testStartupSequenceNoopWhenMarkupIsIncomplete(runtime);
@@ -78,10 +83,10 @@ async function run() {
       testSlidePlayerAutoplayResumeUsesRemainingTime(runtime);
       testSlidePlayerManualNavigationResetsAutoplay(runtime);
       testSlidePlayerKeyboardNavigation(runtime);
-      testSlidePlayerSingletonKeyboardBinding(runtime);
+      testSlidePlayerScopedKeyboardHandling(runtime);
       testSlidePlayerSwipeNavigation(runtime);
       testSlidePlayerTouchSwipeNavigation(runtime);
-      testPortfolioStageSingletonKeyboardBinding(runtime);
+      testPortfolioStageScopedKeyboardHandling(runtime);
       testPortfolioStageDestroyRestoresAuthoredDom(runtime);
       await testPortfolioStageWrapEntersFromDestinationSide(runtime);
       await testPortfolioStageNavigationAndFiltering(runtime);
@@ -163,6 +168,131 @@ function testFeatureRegistryMountContext(runtime) {
   assert.equal(receivedContext?.signal instanceof AbortSignal, true, "feature mounts should receive an abort signal");
   assert.equal(typeof receivedContext?.logger?.warn, "function", "feature mounts should receive a scoped logger");
   assert.equal(typeof receivedContext?.logger?.child, "function", "feature mounts should receive a composable logger");
+  assert.equal(receivedContext?.services?.activity?.signal, runtime.userActivitySignal, "mount context should expose the shared activity signal");
+  assert.equal(receivedContext?.services?.pause?.signal, runtime.featurePauseSignal, "mount context should expose the shared pause signal");
+  assert.equal(typeof receivedContext?.services?.partials?.loadHtml, "function", "mount context should expose partial loading");
+  assert.equal(receivedContext?.services?.scheduler?.frame, runtime.globalScheduler, "mount context should expose the shared frame scheduler");
+
+  registry.stop();
+  restoreDomGlobals();
+}
+
+function testFeatureRegistryFeatureIdCompatibility(runtime) {
+  const observerState = installMutationObserverStub();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  class FeatureIdProbeFeature {
+    static mounts = 0;
+    mount() {
+      FeatureIdProbeFeature.mounts += 1;
+    }
+  }
+
+  class LegacySelectorProbeFeature {
+    static mounts = 0;
+    mount() {
+      LegacySelectorProbeFeature.mounts += 1;
+    }
+  }
+
+  const registry = new runtime.FeatureRegistry();
+  registry.register({ featureId: "feature-by-id", create: () => new FeatureIdProbeFeature() });
+  assert.throws(
+    () => registry.register({ selector: "feature-by-id", create: () => new LegacySelectorProbeFeature() }),
+    /Feature already registered for featureId: feature-by-id/,
+    "legacy selector registrations should collide with matching featureId registrations"
+  );
+  assert.throws(
+    () =>
+      registry.register({
+        featureId: "feature-alpha",
+        selector: "feature-beta",
+        create: () => new LegacySelectorProbeFeature(),
+      }),
+    /FeatureDefinition `featureId` and `selector` must match/,
+    "feature definitions should reject mismatched feature ids"
+  );
+  registry.register({ selector: "feature-by-selector", create: () => new LegacySelectorProbeFeature() });
+  registry.start();
+
+  const host = new FakeElement("div");
+  body.append(host);
+
+  host.setAttribute("data-feature", "feature-by-id feature-by-selector");
+  observerState.callback([{ type: "attributes", target: host }]);
+
+  assert.equal(FeatureIdProbeFeature.mounts, 1, "featureId registrations should mount from matching data-feature ids");
+  assert.equal(
+    LegacySelectorProbeFeature.mounts,
+    1,
+    "legacy selector registrations should remain compatible while the alias exists"
+  );
+
+  registry.stop();
+  restoreDomGlobals();
+}
+
+function testPublicApiCustomFeatureExample(runtime) {
+  const observerState = installMutationObserverStub();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  runtime.featurePauseSignal.value = false;
+  runtime.userActivitySignal.value = 100;
+
+  const registry = new runtime.FeatureRegistry();
+  registry.register({
+    featureId: "public-api-example",
+    create: () => new runtime.PauseAwareStatusFeature(),
+  });
+  registry.start();
+
+  const host = new FakeElement("section");
+  body.append(host);
+
+  host.setAttribute("data-feature", "public-api-example");
+  observerState.callback([{ type: "attributes", target: host }]);
+
+  assert.equal(host.textContent, "active:100:ready:partials", "public api example should render from mount-context services");
+  assert.equal(host.getAttribute("aria-busy"), "false", "public api example should reflect the unpaused state");
+  assert.equal(host.getAttribute("title"), "public-api-example", "public api example should mount through the public package API");
+
+  runtime.featurePauseSignal.value = true;
+  assert.equal(host.textContent, "paused:100:ready:partials", "public api example should react to the shared pause service");
+  assert.equal(host.getAttribute("aria-busy"), "true", "public api example should reflect the paused state");
+
+  runtime.userActivitySignal.value = 101;
+  assert.equal(host.textContent, "paused:101:ready:partials", "public api example should react to the shared activity service");
+
+  registry.stop();
+  runtime.featurePauseSignal.value = false;
+  restoreDomGlobals();
+}
+
+function testFeatureRegistryHostScopedStart(runtime) {
+  const observerState = installMutationObserverStub();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  class ProbeFeature {
+    static mounts = 0;
+    mount() {
+      ProbeFeature.mounts += 1;
+    }
+  }
+
+  const scopedRoot = new FakeElement("section", { "data-feature": "probe" });
+  scopedRoot.append(new FakeElement("div", { "data-feature": "probe" }));
+  body.append(scopedRoot);
+  body.append(new FakeElement("div", { "data-feature": "probe" }));
+
+  const registry = new runtime.FeatureRegistry();
+  registry.register(createDefinition("probe", () => new ProbeFeature()));
+  registry.start(scopedRoot);
+
+  assert.equal(observerState.target, scopedRoot, "feature registry should observe the provided host root");
+  assert.equal(ProbeFeature.mounts, 2, "feature registry should mount only the host root subtree during initial scan");
 
   registry.stop();
   restoreDomGlobals();
@@ -372,7 +502,7 @@ function testSlideshowScreensaverPause(runtime) {
   const root = createSlideshowRoot();
   body.append(root);
 
-  runtime.screensaverActiveSignal.value = false;
+  runtime.featurePauseSignal.value = false;
   const feature = new runtime.SlideshowFeature({ autoplayMs: 100 });
   feature.mount(root);
 
@@ -380,16 +510,16 @@ function testSlideshowScreensaverPause(runtime) {
   clock.advance(100);
   assert.equal(activeIndex(root, "[data-slide]"), 1, "slideshow should advance before screensaver activates");
 
-  runtime.screensaverActiveSignal.value = true;
+  runtime.featurePauseSignal.value = true;
   clock.advance(300);
   assert.equal(activeIndex(root, "[data-slide]"), 1, "slideshow should pause while screensaver is active");
 
-  runtime.screensaverActiveSignal.value = false;
+  runtime.featurePauseSignal.value = false;
   clock.advance(100);
   assert.equal(activeIndex(root, "[data-slide]"), 2, "slideshow should resume after screensaver hides");
 
   feature.destroy();
-  runtime.screensaverActiveSignal.value = false;
+  runtime.featurePauseSignal.value = false;
   clock.restore();
   restoreDomGlobals();
 }
@@ -401,18 +531,18 @@ function testSlideshowAutoplayResumeUsesRemainingTime(runtime) {
   const root = createSlideshowRoot();
   body.append(root);
 
-  runtime.screensaverActiveSignal.value = false;
+  runtime.featurePauseSignal.value = false;
   const feature = new runtime.SlideshowFeature({ autoplayMs: 100 });
   feature.mount(root);
 
   assert.equal(activeIndex(root, "[data-slide]"), 0, "slideshow timing test should start on the first slide");
 
   clock.advance(40);
-  runtime.screensaverActiveSignal.value = true;
+  runtime.featurePauseSignal.value = true;
   clock.advance(200);
   assert.equal(activeIndex(root, "[data-slide]"), 0, "slideshow should stay paused while the screensaver is active");
 
-  runtime.screensaverActiveSignal.value = false;
+  runtime.featurePauseSignal.value = false;
   clock.advance(59);
   assert.equal(activeIndex(root, "[data-slide]"), 0, "slideshow should wait for its saved remaining autoplay time after resuming");
 
@@ -420,7 +550,7 @@ function testSlideshowAutoplayResumeUsesRemainingTime(runtime) {
   assert.equal(activeIndex(root, "[data-slide]"), 1, "slideshow should resume using the remaining autoplay time");
 
   feature.destroy();
-  runtime.screensaverActiveSignal.value = false;
+  runtime.featurePauseSignal.value = false;
   clock.restore();
   restoreDomGlobals();
 }
@@ -432,7 +562,7 @@ function testSlideshowManualNavigationResetsAutoplay(runtime) {
   const root = createSlideshowRoot();
   body.append(root);
 
-  runtime.screensaverActiveSignal.value = false;
+  runtime.featurePauseSignal.value = false;
   const feature = new runtime.SlideshowFeature({ autoplayMs: 100 });
   feature.mount(root);
 
@@ -447,13 +577,13 @@ function testSlideshowManualNavigationResetsAutoplay(runtime) {
   assert.equal(activeIndex(root, "[data-slide]"), 2, "slideshow should autoplay after the reset interval elapses");
 
   feature.destroy();
-  runtime.screensaverActiveSignal.value = false;
+  runtime.featurePauseSignal.value = false;
   clock.restore();
   restoreDomGlobals();
 }
 
-function createDefinition(selector, create) {
-  return { selector, create };
+function createDefinition(featureId, create) {
+  return { featureId, create };
 }
 
 function testSlidePlayerScreensaverPause(runtime) {
@@ -558,8 +688,12 @@ function testSlidePlayerKeyboardNavigation(runtime) {
 
   assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "slideplayer keyboard test should start on the first slide");
 
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(root, "keydown", {
     key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
     target: body,
     preventDefault() {
       this.defaultPrevented = true;
@@ -567,8 +701,12 @@ function testSlidePlayerKeyboardNavigation(runtime) {
   });
   assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 1, "ArrowRight should advance the slideplayer");
 
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(root, "keydown", {
     key: "ArrowLeft",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
     target: body,
     preventDefault() {
       this.defaultPrevented = true;
@@ -581,7 +719,7 @@ function testSlidePlayerKeyboardNavigation(runtime) {
   restoreDomGlobals();
 }
 
-function testSlidePlayerSingletonKeyboardBinding(runtime) {
+function testSlidePlayerScopedKeyboardHandling(runtime) {
   const body = new FakeElement("body");
   installDomGlobals(body);
 
@@ -596,9 +734,9 @@ function testSlidePlayerSingletonKeyboardBinding(runtime) {
   firstFeature.mount(firstRoot);
   secondFeature.mount(secondRoot);
 
-  assert.equal((documentListeners.get("keydown") ?? []).length, 1, "only one slideplayer should bind the global keyboard handler");
+  assert.equal((documentListeners.get("keydown") ?? []).length, 0, "slideplayer should not bind a document-wide keyboard handler");
 
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(firstRoot, "keydown", {
     key: "ArrowRight",
     defaultPrevented: false,
     altKey: false,
@@ -608,8 +746,18 @@ function testSlidePlayerSingletonKeyboardBinding(runtime) {
     target: firstRoot,
   });
 
-  assert.equal(activeIndex(firstRoot, "[data-slideplayer-slide]"), 1, "the first slideplayer should retain global keyboard ownership");
-  assert.equal(activeIndex(secondRoot, "[data-slideplayer-slide]"), 0, "duplicate slideplayers must not bind a second global keyboard handler");
+  dispatchElementEvent(secondRoot, "keydown", {
+    key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {},
+    target: secondRoot,
+  });
+
+  assert.equal(activeIndex(firstRoot, "[data-slideplayer-slide]"), 1, "the first slideplayer should respond to key events on its own root");
+  assert.equal(activeIndex(secondRoot, "[data-slideplayer-slide]"), 1, "the second slideplayer should also respond to key events on its own root");
 
   secondFeature.destroy();
   firstFeature.destroy();
@@ -1069,7 +1217,7 @@ function testSlidePlayerTouchSwipeNavigation(runtime) {
   restoreDomGlobals();
 }
 
-function testPortfolioStageSingletonKeyboardBinding(runtime) {
+function testPortfolioStageScopedKeyboardHandling(runtime) {
   const body = new FakeElement("body");
   installDomGlobals(body);
 
@@ -1084,9 +1232,9 @@ function testPortfolioStageSingletonKeyboardBinding(runtime) {
   firstFeature.mount(firstRoot);
   secondFeature.mount(secondRoot);
 
-  assert.equal((documentListeners.get("keydown") ?? []).length, 1, "only one portfolio stage should bind the global keyboard handler");
+  assert.equal((documentListeners.get("keydown") ?? []).length, 0, "portfolio stage should not bind a document-wide keyboard handler");
 
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(firstRoot, "keydown", {
     key: "ArrowRight",
     defaultPrevented: false,
     altKey: false,
@@ -1096,8 +1244,18 @@ function testPortfolioStageSingletonKeyboardBinding(runtime) {
     target: firstRoot,
   });
 
-  assert.equal(firstRoot.querySelector("[data-portfolio-stage-current-title]").textContent, "Velvet Broadcast", "the first portfolio stage should retain global keyboard ownership");
-  assert.equal(secondRoot.querySelector("[data-portfolio-stage-current-title]").textContent, "Afterglow Frames", "duplicate portfolio stages must not bind a second global keyboard handler");
+  dispatchElementEvent(secondRoot, "keydown", {
+    key: "ArrowRight",
+    defaultPrevented: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    preventDefault() {},
+    target: secondRoot,
+  });
+
+  assert.equal(firstRoot.querySelector("[data-portfolio-stage-current-title]").textContent, "Velvet Broadcast", "the first portfolio stage should respond to key events on its own root");
+  assert.equal(secondRoot.querySelector("[data-portfolio-stage-current-title]").textContent, "Velvet Broadcast", "the second portfolio stage should also respond to key events on its own root");
 
   secondFeature.destroy();
   firstFeature.destroy();
@@ -1115,7 +1273,7 @@ function testPortfolioStageDestroyRestoresAuthoredDom(runtime) {
   const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
   feature.mount(root);
 
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(root, "keydown", {
     key: "ArrowRight",
     defaultPrevented: false,
     altKey: false,
@@ -1154,7 +1312,7 @@ async function testPortfolioStageWrapEntersFromDestinationSide(runtime) {
   const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
   feature.mount(root);
 
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(root, "keydown", {
     key: "ArrowRight",
     defaultPrevented: false,
     altKey: false,
@@ -1198,7 +1356,7 @@ async function testPortfolioStageNavigationAndFiltering(runtime) {
   assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "Afterglow Frames");
   assert.equal(root.querySelector("[data-portfolio-stage-current-index]").textContent, "01 / 05");
 
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(root, "keydown", {
     key: "ArrowRight",
     defaultPrevented: false,
     altKey: false,
@@ -1219,7 +1377,7 @@ async function testPortfolioStageNavigationAndFiltering(runtime) {
   dispatchElementEvent(root.querySelector("[data-portfolio-stage-details-toggle]"), "click", {});
   assert.equal(root.querySelector("[data-portfolio-stage-details]").hidden, false, "details toggle should reveal the details panel");
 
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(root, "keydown", {
     key: "Escape",
     defaultPrevented: false,
     altKey: false,
@@ -1233,7 +1391,7 @@ async function testPortfolioStageNavigationAndFiltering(runtime) {
   assert.equal(root.querySelector("[data-portfolio-stage-details]").hidden, true, "Escape should close the details panel");
 
   runtime.screensaverActiveSignal.value = true;
-  dispatchDocumentEvent("keydown", {
+  dispatchElementEvent(root, "keydown", {
     key: "ArrowRight",
     defaultPrevented: false,
     altKey: false,
@@ -1247,7 +1405,7 @@ async function testPortfolioStageNavigationAndFiltering(runtime) {
   assert.equal(
     root.querySelector("[data-portfolio-stage-current-title]").textContent,
     "Signal Form",
-    "document-wide keyboard navigation should pause while screensaver is active"
+    "portfolio stage keyboard navigation should pause while screensaver is active"
   );
   runtime.screensaverActiveSignal.value = false;
 
@@ -1492,12 +1650,15 @@ async function testFloatingImagesRestoreInlineStyles(runtime) {
 }
 
 function installMutationObserverStub() {
-  const state = { callback: () => {} };
+  const state = { callback: () => {}, target: null, options: null };
   globalThis.MutationObserver = class {
     constructor(callback) {
       state.callback = callback;
     }
-    observe() {}
+    observe(target, options) {
+      state.target = target;
+      state.options = options;
+    }
     disconnect() {}
   };
   return state;

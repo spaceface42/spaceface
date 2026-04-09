@@ -3,7 +3,8 @@ import { createSignal } from "../../core/signals.js";
 
 /**
  * A globally available reactive signal that is `true` when the Screensaver is visible
- * and `false` otherwise. Other features (like the Slideshow) can subscribe to this
- * to pause themselves while the screensaver is playing.
+ * and `false` otherwise. Features that need screensaver-specific behavior can
+ * subscribe here directly, while generic reusable features should prefer
+ * `featurePauseSignal`.
  */
 export const screensaverActiveSignal = createSignal<boolean>(false);

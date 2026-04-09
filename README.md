@@ -1,6 +1,6 @@
 # Spaceface
 
-Spaceface is a small TypeScript runtime for static pages authored in `public/` and generated into `docs/`.
+Spaceface is a small TypeScript runtime for static pages authored in `public/`, generated into `docs/`, and bundled from `src/` into `dist/` for package-style reuse.
 
 The system stays deliberately narrow:
 
@@ -13,6 +13,7 @@ The system stays deliberately narrow:
 
 - Authored pages and partials: `public/`
 - Generated site: `docs/`
+- Generated package build: `dist/`
 - Site app wiring: `app/`
 - Public runtime API: `src/spaceface.ts`
 - Shared contract data: `app/contract-data.js`
@@ -22,19 +23,23 @@ The system stays deliberately narrow:
 - Core runtime primitives: `src/core/`
 - DOM features: `src/features/`
 
-Current repo behavior stays explicit: the project ships one authored site in `public/` and one app wiring layer in `app/`.
+Current repo behavior stays explicit: the project ships one authored site in `public/`, one app wiring layer in `app/`, and one generated runtime package built from `src/spaceface.ts`.
 
 Feature-authored assets can stay colocated under `public/resources/features/<feature>/`, including partial markup and feature-local CSS.
 
 ## Runtime Model
 
-- `FeatureRegistry` mounts and destroys features from `data-feature="..."`
+- `FeatureRegistry` mounts and destroys features from `data-feature="..."` within one host root
+- Runtime feature definitions prefer `featureId`; legacy `selector` is still accepted as a compatibility alias
 - `app/` imports shared runtime code through `src/spaceface.ts`, while app-owned boot wiring stays in `app/`
+- The registry can start on a provided host root; the shipped app currently passes `document.body`
 - `initStartupSequence()` is an app-owned progressive DOM enhancement that returns early unless the startup markup contract is present
-- Feature mounts may be async and receive one mount context with `signal` and `logger`
+- Feature mounts may be async and receive one mount context with `signal`, `logger`, and `services`
+- `FeatureMountContext.services` currently exposes `activity.signal`, `pause.signal`, `partials.loadHtml(...)`, and `scheduler.frame`
 - Failed async mounts are torn down before the error is surfaced
 - `userActivitySignal` tracks last interaction time
-- `screensaverActiveSignal` pauses page features while the screensaver is active
+- `screensaverActiveSignal` tracks whether the screensaver shell is active
+- `featurePauseSignal` is the generic pause hook for reusable page features and currently follows the screensaver shell state
 - `ScreensaverFeature` is the shared idle shell, and it can load different visual scenes from authored partials
 - `Ctrl+Shift+.` starts the screensaver shell on all platforms, regardless of which scene the page selects
 - `AttractorSceneFeature` is the editorial scene runtime: it updates viewport metadata and rotates authored layouts while the shell is active
@@ -95,12 +100,20 @@ Integration points:
 
 ```bash
 npm ci
-npm run build:dev
-npm run build:prod
+npm run build:docs
+npm run build:docs:prod
+npm run build:lib
+npm run build
 npm run serve:docs
 npm run sync:contracts
 npm run verify:docs
 ```
+
+Build notes:
+
+- `npm run build:docs` builds the authored site into `docs/`
+- `npm run build:lib` builds the reusable runtime package into `dist/`
+- `npm run build` builds both the site and the package outputs
 
 ## Validation
 
@@ -118,6 +131,19 @@ Full verification:
 
 - `npm run verify:docs`
 
+## Custom Feature Example
+
+See [`examples/public-api/PauseAwareStatusFeature.ts`](./examples/public-api/PauseAwareStatusFeature.ts) for a tiny custom feature mounted as `data-feature="public-api-example"`.
+
+It only imports from [`src/spaceface.ts`](./src/spaceface.ts) and uses the supported public surface:
+
+- `Feature` and `FeatureMountContext`
+- `createEffect`
+- `context.services.activity.signal`
+- `context.services.pause.signal`
+- `context.services.partials.loadHtml(...)`
+- `context.services.scheduler.frame`
+
 ## Scope Limits
 
 - no router or PJAX shell
@@ -129,6 +155,7 @@ Full verification:
 
 - [`architecture.md`](./architecture.md)
 - [`FRAMEWORK_EVOLUTION_PLAN.md`](./FRAMEWORK_EVOLUTION_PLAN.md)
+- [`FRAMEWORK_EVOLUTION_STATUS.md`](./FRAMEWORK_EVOLUTION_STATUS.md)
 - [`V4_ARCHITECTURE_NOTE.md`](./V4_ARCHITECTURE_NOTE.md)
 - [`RELEASE_NOTES.md`](./RELEASE_NOTES.md)
 - [`ROADMAP.md`](./ROADMAP.md)

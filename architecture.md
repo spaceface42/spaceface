@@ -9,9 +9,10 @@ Spaceface is:
 - a static-page runtime
 - authored in `public/`
 - generated into `docs/`
+- bundled from `src/` into `dist/` for package consumption
 - activated from `data-feature="..."`
 - driven by shared contract data in `app/contract-data.js`
-- separated into authored markup in `public/`, app wiring in `app/`, and runtime internals in `src/`
+- separated into authored markup in `public/`, app wiring in `app/`, runtime internals in `src/`, and generated package output in `dist/`
 
 Spaceface is not:
 
@@ -38,13 +39,20 @@ Current repo behavior:
 
 - `public/` is the authored site tree
 - `docs/` is generated output
+- `dist/` is the generated package output for the public runtime API
 - multi-site scaffolding has been removed on purpose
+
+Current package direction:
+
+- `src/spaceface.ts` is the public library entrypoint
+- the site app still boots from `app/main.ts`
+- Phase 1 packaging work keeps the current site intact while making the runtime buildable as a reusable package
 
 ## Core Runtime Pieces
 
 ### Feature Registry
 
-The registry in [`src/core/feature.ts`](./src/core/feature.ts) watches `document.body` with one `MutationObserver`.
+The registry in [`src/core/feature.ts`](./src/core/feature.ts) watches one host root with one `MutationObserver`.
 
 It handles:
 
@@ -52,13 +60,28 @@ It handles:
 - added nodes
 - removed nodes
 - `data-feature` attribute changes on existing nodes
+- explicit host-root startup through `start(root)`
 - sync and async mount failures, with failed instances torn down before the error is surfaced
 - aborting in-flight async mounts during teardown
+- runtime feature definitions keyed by `featureId`, with legacy `selector` still accepted as a compatibility alias
+
+Current app behavior:
+
+- [`app/main.ts`](./app/main.ts) still starts the registry on `document.body`
+- host-root startup makes the runtime easier to embed into a subtree later without changing the current site behavior
 
 Each mount receives:
 
 - `signal`
 - `logger`
+- `services`
+
+Current stable services surface:
+
+- `services.activity.signal`
+- `services.pause.signal`
+- `services.partials.loadHtml(...)`
+- `services.scheduler.frame`
 
 ### Signals
 
@@ -66,8 +89,22 @@ The signal layer in [`src/core/signals.ts`](./src/core/signals.ts) is only used 
 
 - `userActivitySignal`
 - `screensaverActiveSignal`
+- `featurePauseSignal`, currently backed by the screensaver shell state for reusable features that only need pause semantics
 
 There is no broader reactive application model on top of it.
+
+### Extension API
+
+The public package entry in [`src/spaceface.ts`](./src/spaceface.ts) now re-exports the runtime primitives that custom features are expected to use directly:
+
+- `createSignal(...)` and `createEffect(...)`
+- `loadPartialHtml(...)`
+- `FrameScheduler` and `globalScheduler`
+- `userActivitySignal`
+- `featurePauseSignal`
+- screensaver-specific `screensaverActiveSignal` when an integration really does need the shell state directly
+
+The repo-level custom feature example lives in [`examples/public-api/PauseAwareStatusFeature.ts`](./examples/public-api/PauseAwareStatusFeature.ts) and mounts as `data-feature="public-api-example"`.
 
 ### Scheduler
 
@@ -167,6 +204,7 @@ The screensaver:
 
 - listens to `userActivitySignal`
 - toggles `screensaverActiveSignal`
+- currently also backs `featurePauseSignal` for reusable page features
 - fetches and injects the authored partial for the selected scene on demand
 - resolves the visual scene from `data-screensaver-scene`, defaulting to the configured floating-images scene
 - supports per-host idle timing overrides through `data-screensaver-idle-ms`
@@ -174,7 +212,21 @@ The screensaver:
 - aborts in-flight partial loads when activity resumes
 - keeps the current scene mounted between activations so repeat starts are instant
 
+Singleton constraint:
+
+- the screensaver remains a deliberate singleton authored contract even as the registry becomes more host-scoped and reusable
+
 The screensaver does not directly instantiate child features. It relies on the registry to see injected `data-feature` markup.
+
+### Generic Pause Service
+
+`featurePauseSignal` is the framework-facing pause hook for reusable page features.
+
+It:
+
+- currently maps directly to the screensaver shell state
+- lets reusable features depend on generic pause semantics instead of importing screensaver-specific state
+- keeps screensaver ownership explicit while allowing future pause drivers to stay behind one shared contract
 
 ### Attractor Scene
 
@@ -195,11 +247,11 @@ Deliberate current constraint:
 
 - one slideplayer per page is the enforced authored pattern
 - smoke validation fails duplicate mounts and runtime warns if an extra instance is mounted anyway
-- document-level keyboard handling is therefore acceptable and kept on purpose
+- keyboard handling is scoped to the slideplayer root rather than `document`
 
 Residual risk to remember later:
 
-- if the authored contract ever allows dynamic slideplayer replacement or more than one mounted instance, the current singleton keyboard-owner model should be revisited so ownership can transfer cleanly instead of staying with the first instance that bound the document listener
+- if the authored contract broadens later, the remaining work is about authored semantics and runtime warnings, not document-level keyboard ownership
 
 ### Portfolio Stage
 
@@ -209,6 +261,7 @@ Deliberate current constraint:
 
 - one portfolio stage per page is the enforced authored pattern
 - smoke validation fails duplicate mounts and runtime warns if an extra instance is mounted anyway
+- keyboard handling is scoped to the portfolio-stage root rather than `document`
 
 It:
 

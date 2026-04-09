@@ -12,18 +12,18 @@ import { APP_CONTRACT, getFeatureContract } from "./contract.js";
 export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
   return [
     {
-      selector: getFeatureContract("floating-images").selector,
+      featureId: getFeatureContract("floating-images").selector,
       create: () => new FloatingImagesFeature(),
     },
     {
-      selector: getFeatureContract("attractor-scene").selector,
+      featureId: getFeatureContract("attractor-scene").selector,
       create: () =>
         new AttractorSceneFeature({
           rotateMs: APP_CONTRACT.defaults.attractorSceneRotateMs,
         }),
     },
     {
-      selector: getFeatureContract("screensaver").selector,
+      featureId: getFeatureContract("screensaver").selector,
       create: () =>
         new ScreensaverFeature({
           idleMs: APP_CONTRACT.defaults.screensaverIdleMs,
@@ -33,18 +33,18 @@ export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
         }),
     },
     {
-      selector: getFeatureContract("portfolio-stage").selector,
+      featureId: getFeatureContract("portfolio-stage").selector,
       create: () => new PortfolioStageFeature(),
     },
     {
-      selector: getFeatureContract("slideshow").selector,
+      featureId: getFeatureContract("slideshow").selector,
       create: () =>
         new SlideshowFeature({
           autoplayMs: APP_CONTRACT.defaults.slideshowAutoplayMs,
         }),
     },
     {
-      selector: getFeatureContract("slideplayer").selector,
+      featureId: getFeatureContract("slideplayer").selector,
       create: () =>
         new SlidePlayerFeature({
           autoplayMs: APP_CONTRACT.defaults.slideshowAutoplayMs,
