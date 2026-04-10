@@ -33,8 +33,8 @@ function main(): void {
     registry.register(definition);
   }
 
-  // 5. Start DOM observation.
-  registry.start();
+  // 5. Start DOM observation within the app host root.
+  registry.start(document.body);
   logger.info("boot complete");
 }
 

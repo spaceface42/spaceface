@@ -32,14 +32,14 @@ if (failures.length === 0) {
   for (const route of APP_CONTRACT.routes) {
     const html = readFileSync(routeFiles.get(route.id), "utf8");
     assertContains(html, `data-page="${route.page}"`, `${route.file} must declare body[data-page="${route.page}"]`);
-    for (const selector of route.featureSelectors) {
-      assertContains(html, `data-feature="${selector}"`, `${route.file} must mount ${selector} via data-feature`);
+    for (const featureId of route.featureIds) {
+      assertContains(html, `data-feature="${featureId}"`, `${route.file} must mount ${featureId} via data-feature`);
     }
     for (const feature of APP_CONTRACT.features) {
       if (!feature.singletonNote) continue;
-      const count = countFeatureMounts(html, feature.selector);
+      const count = countFeatureMounts(html, feature.featureId);
       if (count > 1) {
-        failures.push(`${route.file} must mount at most one ${feature.selector}; found ${count}`);
+        failures.push(`${route.file} must mount at most one ${feature.featureId}; found ${count}`);
       }
     }
     for (const hook of getRequiredHooks(route.hooks ?? [])) {
@@ -53,8 +53,8 @@ if (failures.length === 0) {
 
   for (const partial of APP_CONTRACT.partials) {
     const html = readFileSync(partialFiles.get(partial.id), "utf8");
-    for (const selector of partial.featureSelectors) {
-      assertContains(html, `data-feature="${selector}"`, `${partial.file} must mount ${selector} via data-feature`);
+    for (const featureId of partial.featureIds) {
+      assertContains(html, `data-feature="${featureId}"`, `${partial.file} must mount ${featureId} via data-feature`);
     }
     for (const hook of getRequiredHooks(partial.hooks)) {
       assertContains(html, stripHookBrackets(hook), `${partial.file} must expose ${hook}`);
@@ -67,7 +67,7 @@ if (failures.length === 0) {
   }
   assertContains(bundle, "app/main.ts", "bundle sourcemap path should reflect the app entrypoint");
   for (const feature of APP_CONTRACT.features) {
-    assertContains(bundle, `"${feature.selector}"`, `bundle should include ${feature.selector} feature wiring`);
+    assertContains(bundle, `"${feature.featureId}"`, `bundle should include ${feature.featureId} feature wiring`);
   }
 
   if (bundleSize <= 0) {

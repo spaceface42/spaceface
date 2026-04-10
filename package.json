@@ -2,6 +2,34 @@
     "name": "spaceface",
     "version": "4.0.0",
     "type": "module",
+    "main": "./dist/spaceface.js",
+    "module": "./dist/spaceface.js",
+    "types": "./dist/spaceface.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/spaceface.d.ts",
+            "import": "./dist/spaceface.js",
+            "default": "./dist/spaceface.js"
+        },
+        "./editorial": {
+            "types": "./dist/editorial.d.ts",
+            "import": "./dist/editorial.js",
+            "default": "./dist/editorial.js"
+        },
+        "./screensaver": {
+            "types": "./dist/screensaver.d.ts",
+            "import": "./dist/screensaver.js",
+            "default": "./dist/screensaver.js"
+        },
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "RELEASE_NOTES.md",
+        "architecture.md",
+        "FRAMEWORK_EVOLUTION_PLAN.md"
+    ],
     "devDependencies": {
         "@eslint/js": "^9.39.3",
         "cross-env": "^7.0.3",
@@ -11,7 +39,9 @@
         "typescript-eslint": "^8.56.1"
     },
     "scripts": {
-        "build": "npm run build:prod",
+        "build": "npm run build:all:prod",
+        "build:all:dev": "npm run build:docs && npm run build:lib:dev && npm run build:lib:types",
+        "build:all:prod": "npm run build:docs:prod && npm run build:lib:prod && npm run build:lib:types",
         "build:dev": "npm run build:html && npm run build:js:dev",
         "build:prod": "npm run build:html && npm run build:js:prod",
         "build:js:dev": "esbuild ./app/main.ts --bundle --format=esm --target=es2022 --sourcemap --outfile=./docs/bin/app.js",
@@ -19,16 +49,22 @@
         "build:html": "node ./bin/build-public-html.mjs",
         "build:docs": "npm run build:dev",
         "build:docs:prod": "npm run build:prod",
+        "build:lib": "npm run build:lib:prod && npm run build:lib:types",
+        "build:lib:dev": "esbuild ./src/spaceface.ts ./src/editorial.ts ./src/screensaver.ts --bundle --format=esm --target=es2022 --sourcemap --outdir=./dist",
+        "build:lib:prod": "esbuild ./src/spaceface.ts ./src/editorial.ts ./src/screensaver.ts --bundle --format=esm --target=es2022 --minify --outdir=./dist",
+        "build:lib:types": "tsc -p ./tsconfig.lib.json",
         "sync:contracts": "node ./bin/checks/contract-docs.mjs --write",
         "check:contract-docs": "node ./bin/checks/contract-docs.mjs",
         "typecheck:docs": "tsc -p ./tsconfig.json --noEmit",
         "check:core": "node ./bin/checks/core-check.mjs",
+        "check:package-compat": "node ./bin/checks/package-compat-check.mjs",
         "check:regressions": "node ./bin/checks/regression-check.mjs",
         "smoke:docs": "node ./bin/checks/smoke-check.mjs",
         "check:partial-paths": "node ./bin/checks/partial-paths-check.mjs",
-        "verify:docs": "npm run typecheck:docs && npm run check:core && npm run check:regressions && npm run check:partial-paths && npm run check:contract-docs && npm run build:dev && npm run smoke:docs",
+        "verify:docs": "npm run typecheck:docs && npm run build:lib && npm run check:package-compat && npm run check:core && npm run check:regressions && npm run check:partial-paths && npm run check:contract-docs && npm run build:dev && npm run smoke:docs",
         "start:docs": "npm run serve:docs",
         "serve:docs": "node ./bin/serve-docs.mjs",
+        "serve:root": "node ./bin/serve-root.mjs",
         "demo:docs": "npm run build:dev && npm run serve:docs",
         "typecheck": "tsc --noEmit",
         "lint": "node ./bin/lint.mjs",

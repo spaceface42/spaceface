@@ -1,6 +1,13 @@
 // src/core/feature.ts
 import type { Logger } from "./logger.js";
 import { createLogger } from "./logger.js";
+import type { LoadPartialOptions } from "./partials.js";
+import { loadPartialHtml } from "./partials.js";
+import type { FrameScheduler } from "./scheduler.js";
+import { globalScheduler } from "./scheduler.js";
+import type { Signal } from "./signals.js";
+import { userActivitySignal } from "../features/shared/activity.js";
+import { featurePauseSignal } from "../features/shared/pauseState.js";
 
 /**
  * Base interface for all features in the v4 runtime.
@@ -14,19 +21,50 @@ export interface Feature {
 }
 
 export interface FeatureDefinition {
-  selector: string;
+  featureId: string;
   create(): Feature;
   loggerScope?: string;
+}
+
+export interface FeatureServices {
+  activity: {
+    signal: Signal<number>;
+  };
+  pause: {
+    signal: Signal<boolean>;
+  };
+  partials: {
+    loadHtml(url: string, options?: LoadPartialOptions): Promise<string>;
+  };
+  scheduler: {
+    frame: FrameScheduler;
+  };
 }
 
 export interface FeatureMountContext {
   signal: AbortSignal;
   logger: Logger;
+  services: FeatureServices;
 }
 
 export interface FeatureRegistryOptions {
   logger?: Logger;
 }
+
+const defaultFeatureServices: FeatureServices = {
+  activity: {
+    signal: userActivitySignal,
+  },
+  pause: {
+    signal: featurePauseSignal,
+  },
+  partials: {
+    loadHtml: loadPartialHtml,
+  },
+  scheduler: {
+    frame: globalScheduler,
+  },
+};
 
 /**
  * Global Registry that watches the DOM using a MutationObserver
@@ -36,6 +74,7 @@ export class FeatureRegistry {
   private featureDefinitions = new Map<string, FeatureDefinition>();
   private activeInstances = new Map<HTMLElement, Map<string, ActiveFeatureRecord>>();
   private observer: MutationObserver | null = null;
+  private hostRoot: HTMLElement | null = null;
   private logger: Logger;
 
   constructor(options: FeatureRegistryOptions = {}) {
@@ -43,16 +82,19 @@ export class FeatureRegistry {
   }
 
   register(definition: FeatureDefinition): void {
-    if (this.featureDefinitions.has(definition.selector)) {
-      throw new Error(`Feature already registered for selector: ${definition.selector}`);
+    const featureId = getDefinitionFeatureId(definition);
+    if (this.featureDefinitions.has(featureId)) {
+      throw new Error(`Feature already registered for featureId: ${featureId}`);
     }
-    this.featureDefinitions.set(definition.selector, definition);
+    this.featureDefinitions.set(featureId, definition);
   }
 
-  start(): void {
+  start(root?: HTMLElement): void {
     if (this.observer) return;
 
-    this.scanAndMount(document.body);
+    const hostRoot = this.resolveHostRoot(root);
+    this.hostRoot = hostRoot;
+    this.scanAndMount(hostRoot);
 
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -78,7 +120,7 @@ export class FeatureRegistry {
       }
     });
 
-    this.observer.observe(document.body, {
+    this.observer.observe(hostRoot, {
       childList: true,
       subtree: true,
       attributes: true,
@@ -104,6 +146,14 @@ export class FeatureRegistry {
     for (const el of elements) {
       this.reconcileNodeFeatures(el);
     }
+  }
+
+  private resolveHostRoot(root?: HTMLElement): HTMLElement {
+    const nextRoot = root ?? this.hostRoot ?? document.body;
+    if (!(nextRoot instanceof HTMLElement)) {
+      throw new Error("FeatureRegistry requires an HTMLElement host root");
+    }
+    return nextRoot;
   }
 
   private reconcileNodeFeatures(node: HTMLElement): void {
@@ -170,6 +220,7 @@ export class FeatureRegistry {
       const mountResult = record.instance.mount?.(node, {
         signal: record.mountController.signal,
         logger: record.logger,
+        services: defaultFeatureServices,
       });
       if (!isPromiseLike(mountResult)) {
         this.markMounted(node, id, record);
@@ -191,7 +242,7 @@ export class FeatureRegistry {
             return;
           }
 
-          record.logger.error("feature mount failed", { selector: id, error });
+          record.logger.error("feature mount failed", { featureId: id, error });
           this.disposeRecord(node, id, record);
           queueMicrotask(() => {
             throw error;
@@ -206,7 +257,7 @@ export class FeatureRegistry {
 
   private disposeRecord(node: HTMLElement, id: string, record: ActiveFeatureRecord): void {
     if (record.mounted) {
-      record.logger.debug("feature stopped", { selector: id, node: describeNode(node) });
+      record.logger.debug("feature stopped", { featureId: id, node: describeNode(node) });
       record.mounted = false;
     }
     record.mountController.abort();
@@ -228,7 +279,7 @@ export class FeatureRegistry {
     }
 
     record.mounted = true;
-    record.logger.debug("feature started", { selector: id, node: describeNode(node) });
+    record.logger.debug("feature started", { featureId: id, node: describeNode(node) });
   }
 
   private removeRecord(node: HTMLElement, id: string, record: ActiveFeatureRecord): void {
@@ -254,6 +305,18 @@ interface ActiveFeatureRecord {
   mountController: AbortController;
   mounted: boolean;
   logger: Logger;
+}
+
+function getDefinitionFeatureId(definition: FeatureDefinition): string {
+  if ("selector" in (definition as FeatureDefinition & { selector?: unknown })) {
+    throw new Error("FeatureDefinition `selector` is no longer supported; use `featureId`");
+  }
+
+  const featureId = definition.featureId;
+  if (!featureId) {
+    throw new Error("FeatureDefinition requires `featureId`");
+  }
+  return featureId;
 }
 
 function parseFeatureIds(raw: string | null): string[] {

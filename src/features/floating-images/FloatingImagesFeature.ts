@@ -59,6 +59,8 @@ export class FloatingImagesFeature implements Feature {
   private insideScreensaver = false;
   private restoreContainerPosition = false;
   private originalContainerInlinePosition = "";
+  private pauseSignal = screensaverActiveSignal;
+  private frameScheduler = globalScheduler;
 
   constructor(options: FloatingImagesFeatureOptions = {}) {
     this.options = {
@@ -77,6 +79,8 @@ export class FloatingImagesFeature implements Feature {
     this.originalItemStyles.clear();
     this.restoreContainerPosition = false;
     this.originalContainerInlinePosition = this.container?.style.position ?? "";
+    this.pauseSignal = context?.services?.pause?.signal ?? screensaverActiveSignal;
+    this.frameScheduler = context?.services?.scheduler?.frame ?? globalScheduler;
 
     if (!this.container) return;
     if (context?.signal.aborted) return;
@@ -84,8 +88,8 @@ export class FloatingImagesFeature implements Feature {
     this.insideScreensaver = this.container.closest("[data-screensaver]") !== null;
     this.cleanupEffect = createEffect(() => {
       this.pausedByScreensaver = this.insideScreensaver
-        ? !screensaverActiveSignal.value
-        : screensaverActiveSignal.value;
+        ? !this.pauseSignal.value
+        : this.pauseSignal.value;
       this.updateAnimationState();
     });
 
@@ -163,6 +167,8 @@ export class FloatingImagesFeature implements Feature {
     this.insideScreensaver = false;
     this.restoreContainerPosition = false;
     this.originalContainerInlinePosition = "";
+    this.pauseSignal = screensaverActiveSignal;
+    this.frameScheduler = globalScheduler;
   }
 
   private updateAnimationState(): void {
@@ -178,7 +184,7 @@ export class FloatingImagesFeature implements Feature {
     }
 
     if (!this.unsubScheduler) {
-      this.unsubScheduler = globalScheduler.add({
+      this.unsubScheduler = this.frameScheduler.add({
         update: this.updateLogic,
         render: this.renderDOM,
       });

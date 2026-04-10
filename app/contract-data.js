@@ -18,13 +18,13 @@ export const APP_CONTRACT = {
   features: [
     {
       id: "slideshow",
-      selector: "slideshow",
+      featureId: "slideshow",
       root: 'data-feature="slideshow"',
       internals: ["[data-slide]", "[data-slide-prev]", "[data-slide-next]"],
     },
     {
       id: "slideplayer",
-      selector: "slideplayer",
+      featureId: "slideplayer",
       root: 'data-feature="slideplayer"',
       internals: [
         "[data-slideplayer-stage]",
@@ -38,13 +38,13 @@ export const APP_CONTRACT = {
     },
     {
       id: "floating-images",
-      selector: "floating-images",
+      featureId: "floating-images",
       root: 'data-feature="floating-images"',
       internals: ["[data-floating-item]"],
     },
     {
       id: "attractor-scene",
-      selector: "attractor-scene",
+      featureId: "attractor-scene",
       root: 'data-feature="attractor-scene"',
       internals: [
         "[data-attractor-scene]",
@@ -56,7 +56,7 @@ export const APP_CONTRACT = {
     },
     {
       id: "portfolio-stage",
-      selector: "portfolio-stage",
+      featureId: "portfolio-stage",
       root: 'data-feature="portfolio-stage"',
       internals: [
         "[data-portfolio-stage-stage]",
@@ -81,7 +81,7 @@ export const APP_CONTRACT = {
     },
     {
       id: "screensaver",
-      selector: "screensaver",
+      featureId: "screensaver",
       root: 'data-feature="screensaver"',
       internals: [
         "[data-screensaver]",
@@ -98,7 +98,7 @@ export const APP_CONTRACT = {
       file: "index.html",
       page: "index",
       navLabel: "Home",
-      featureSelectors: ["slideshow", "floating-images", "screensaver"],
+      featureIds: ["slideshow", "floating-images", "screensaver"],
       hooks: [
         { selector: "[data-startup-sequence]", presence: "required" },
         { selector: "[data-startup-splash]", presence: "required" },
@@ -112,7 +112,7 @@ export const APP_CONTRACT = {
       file: "demo2.html",
       page: "demo2",
       navLabel: "Demo 2",
-      featureSelectors: ["screensaver"],
+      featureIds: ["screensaver"],
       hooks: [],
     },
     {
@@ -120,7 +120,7 @@ export const APP_CONTRACT = {
       file: "demo3.html",
       page: "demo3",
       navLabel: "Demo 3",
-      featureSelectors: ["screensaver"],
+      featureIds: ["screensaver"],
       hooks: [],
     },
     {
@@ -128,7 +128,7 @@ export const APP_CONTRACT = {
       file: "slideplayer.html",
       page: "slideplayer",
       navLabel: "Slideplayer",
-      featureSelectors: ["slideplayer", "screensaver"],
+      featureIds: ["slideplayer", "screensaver"],
       hooks: [
         { selector: "[data-slideplayer-stage]", presence: "required" },
         { selector: "[data-slideplayer-prev]", presence: "required" },
@@ -142,7 +142,7 @@ export const APP_CONTRACT = {
       file: "floatingimages.html",
       page: "floatingimages",
       navLabel: "Floating images",
-      featureSelectors: ["floating-images", "screensaver"],
+      featureIds: ["floating-images", "screensaver"],
       hooks: [],
     },
     {
@@ -150,7 +150,7 @@ export const APP_CONTRACT = {
       file: "portfoliostage.html",
       page: "portfoliostage",
       navLabel: "Portfolio stage",
-      featureSelectors: ["portfolio-stage", "screensaver"],
+      featureIds: ["portfolio-stage", "screensaver"],
       hooks: [
         { selector: "[data-portfolio-stage-stage]", presence: "required" },
         { selector: "[data-portfolio-stage-item]", presence: "required" },
@@ -167,7 +167,7 @@ export const APP_CONTRACT = {
       id: "screensaver-scene-attractor",
       file: "resources/features/screensaver-scenes/attractor.html",
       hostHook: "[data-screensaver-partial]",
-      featureSelectors: ["attractor-scene"],
+      featureIds: ["attractor-scene"],
       hooks: [
         { selector: "[data-attractor-scene]", presence: "required" },
         { selector: "[data-attractor-scene-layout]", presence: "required" },
@@ -181,7 +181,7 @@ export const APP_CONTRACT = {
       id: "screensaver-scene-floating-images",
       file: "resources/features/screensaver-scenes/floating-images.html",
       hostHook: "[data-screensaver-partial]",
-      featureSelectors: ["floating-images"],
+      featureIds: ["floating-images"],
       hooks: [
         { selector: "[data-floating-item]", presence: "required" },
         { selector: 'class="screensaver-floating"', presence: "required" },

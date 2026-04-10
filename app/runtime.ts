@@ -1,29 +1,33 @@
 import {
-  AttractorSceneFeature,
   type FeatureDefinition,
+} from "../src/spaceface.js";
+import {
   FloatingImagesFeature,
   PortfolioStageFeature,
-  ScreensaverFeature,
   SlidePlayerFeature,
   SlideshowFeature,
-} from "../src/spaceface.js";
+} from "../src/editorial.js";
+import {
+  AttractorSceneFeature,
+  ScreensaverFeature,
+} from "../src/screensaver.js";
 import { APP_CONTRACT, getFeatureContract } from "./contract.js";
 
 export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
   return [
     {
-      selector: getFeatureContract("floating-images").selector,
+      featureId: getFeatureContract("floating-images").featureId,
       create: () => new FloatingImagesFeature(),
     },
     {
-      selector: getFeatureContract("attractor-scene").selector,
+      featureId: getFeatureContract("attractor-scene").featureId,
       create: () =>
         new AttractorSceneFeature({
           rotateMs: APP_CONTRACT.defaults.attractorSceneRotateMs,
         }),
     },
     {
-      selector: getFeatureContract("screensaver").selector,
+      featureId: getFeatureContract("screensaver").featureId,
       create: () =>
         new ScreensaverFeature({
           idleMs: APP_CONTRACT.defaults.screensaverIdleMs,
@@ -33,18 +37,18 @@ export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
         }),
     },
     {
-      selector: getFeatureContract("portfolio-stage").selector,
+      featureId: getFeatureContract("portfolio-stage").featureId,
       create: () => new PortfolioStageFeature(),
     },
     {
-      selector: getFeatureContract("slideshow").selector,
+      featureId: getFeatureContract("slideshow").featureId,
       create: () =>
         new SlideshowFeature({
           autoplayMs: APP_CONTRACT.defaults.slideshowAutoplayMs,
         }),
     },
     {
-      selector: getFeatureContract("slideplayer").selector,
+      featureId: getFeatureContract("slideplayer").featureId,
       create: () =>
         new SlidePlayerFeature({
           autoplayMs: APP_CONTRACT.defaults.slideshowAutoplayMs,

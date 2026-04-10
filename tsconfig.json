@@ -13,6 +13,6 @@
         "forceConsistentCasingInFileNames": true,
         "noEmit": true
     },
-    "include": ["app/**/*", "src/**/*"],
+    "include": ["app/**/*", "src/**/*", "examples/**/*"],
     "exclude": ["docs/**/*", "node_modules/**/*"]
 }

@@ -1,7 +1,7 @@
 // src/features/slideshow/SlideshowFeature.ts
-import type { Feature } from "../../core/feature.js";
+import type { Feature, FeatureMountContext } from "../../core/feature.js";
 import { createEffect } from "../../core/signals.js";
-import { screensaverActiveSignal } from "../shared/screensaverState.js";
+import { featurePauseSignal } from "../shared/pauseState.js";
 
 export interface SlideshowFeatureOptions {
   autoplayMs?: number;
@@ -19,7 +19,7 @@ export class SlideshowFeature implements Feature {
   private autoplayTimer: number | null = null;
   private autoplayStartTime = 0;
   private autoplayRemainingMs = 0;
-  private pausedByScreensaver = false;
+  private pausedByFeaturePause = false;
 
   // Cleanup references
   private cleanupEffect?: () => void;
@@ -35,9 +35,10 @@ export class SlideshowFeature implements Feature {
     this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
-  mount(el: HTMLElement): void {
+  mount(el: HTMLElement, context?: FeatureMountContext): void {
     this.root = el;
     this.slides = Array.from(this.root.querySelectorAll<HTMLElement>("[data-slide]"));
+    const pauseSignal = context?.services.pause.signal ?? featurePauseSignal;
 
     // Attempt to resume from currently active slide if restoring from cache
     let activeIndex = this.slides.findIndex(s => s.getAttribute("aria-hidden") === "false");
@@ -49,10 +50,9 @@ export class SlideshowFeature implements Feature {
     this.render();
     this.bindControls();
 
-    // Listen to screensaver state reactively
+    // Listen to generic feature pause state reactively.
     this.cleanupEffect = createEffect(() => {
-      const isScreensaverActive = screensaverActiveSignal.value;
-      this.pausedByScreensaver = isScreensaverActive;
+      this.pausedByFeaturePause = pauseSignal.value;
       this.updateAutoplayState();
     });
   }
@@ -69,7 +69,7 @@ export class SlideshowFeature implements Feature {
 
     this.root = null;
     this.slides = [];
-    this.pausedByScreensaver = false;
+    this.pausedByFeaturePause = false;
     this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
@@ -127,7 +127,7 @@ export class SlideshowFeature implements Feature {
 
   private resetAutoplay(): void {
     this.autoplayRemainingMs = this.options.autoplayMs;
-    if (this.autoplayTimer !== null && !this.pausedByScreensaver) {
+    if (this.autoplayTimer !== null && !this.pausedByFeaturePause) {
       this.scheduleNextAutoplay(this.options.autoplayMs);
     }
   }
@@ -139,7 +139,7 @@ export class SlideshowFeature implements Feature {
     }
 
     // If we're paused or don't have enough slides, stop the timer but save elapsed time
-    if (!this.root || this.slides.length <= 1 || this.pausedByScreensaver) {
+    if (!this.root || this.slides.length <= 1 || this.pausedByFeaturePause) {
       if (this.autoplayTimer !== null) {
         const elapsed = Date.now() - this.autoplayStartTime;
         this.autoplayRemainingMs = Math.max(0, this.autoplayRemainingMs - elapsed);
