@@ -19,7 +19,7 @@ Spaceface is not:
 - a router framework
 - a component framework
 - a feature dependency graph
-- a legacy selector compatibility layer
+- a compatibility-first API layer
 
 ## Boot Flow
 
@@ -33,7 +33,7 @@ Startup does five things:
 4. start shared activity tracking
 5. register and start contract-defined features
 
-The app layer reaches shared runtime code through the public API in [`src/spaceface.ts`](./src/spaceface.ts), while app-owned boot wiring stays under `app/`.
+The app layer reaches shared runtime code through the public entries in [`src/spaceface.ts`](./src/spaceface.ts), [`src/editorial.ts`](./src/editorial.ts), and [`src/screensaver.ts`](./src/screensaver.ts), while app-owned boot wiring stays under `app/`.
 
 Current repo behavior:
 
@@ -44,9 +44,11 @@ Current repo behavior:
 
 Current package direction:
 
-- `src/spaceface.ts` is the public library entrypoint
+- `src/spaceface.ts` is the public core entrypoint
+- `src/editorial.ts` is the optional editorial feature entrypoint
+- `src/screensaver.ts` is the optional screensaver entrypoint
 - the site app still boots from `app/main.ts`
-- Phase 1 packaging work keeps the current site intact while making the runtime buildable as a reusable package
+- Phase 1 packaging work keeps the current site intact while making the runtime buildable as a reusable package with clearer optional-module boundaries
 
 ## Core Runtime Pieces
 
@@ -63,7 +65,7 @@ It handles:
 - explicit host-root startup through `start(root)`
 - sync and async mount failures, with failed instances torn down before the error is surfaced
 - aborting in-flight async mounts during teardown
-- runtime feature definitions keyed by `featureId`, with legacy `selector` still accepted as a compatibility alias
+- runtime feature definitions keyed by `featureId`
 
 Current app behavior:
 
@@ -95,16 +97,30 @@ There is no broader reactive application model on top of it.
 
 ### Extension API
 
-The public package entry in [`src/spaceface.ts`](./src/spaceface.ts) now re-exports the runtime primitives that custom features are expected to use directly:
+The public core package entry in [`src/spaceface.ts`](./src/spaceface.ts) now re-exports the runtime primitives that custom features are expected to use directly:
 
 - `createSignal(...)` and `createEffect(...)`
 - `loadPartialHtml(...)`
 - `FrameScheduler` and `globalScheduler`
 - `userActivitySignal`
 - `featurePauseSignal`
-- screensaver-specific `screensaverActiveSignal` when an integration really does need the shell state directly
+
+The optional package entries are now:
+
+- [`src/editorial.ts`](./src/editorial.ts) for `SlideshowFeature`, `SlidePlayerFeature`, `FloatingImagesFeature`, and `PortfolioStageFeature`
+- [`src/screensaver.ts`](./src/screensaver.ts) for `ScreensaverFeature`, `AttractorSceneFeature`, and `screensaverActiveSignal`
+
+Package-level compatibility coverage now checks all three entrypoints through self-imported package names and TypeScript consumer compilation, so the public runtime surface is exercised as a real package boundary rather than only by repo-local deep paths.
 
 The repo-level custom feature example lives in [`examples/public-api/PauseAwareStatusFeature.ts`](./examples/public-api/PauseAwareStatusFeature.ts) and mounts as `data-feature="public-api-example"`.
+
+The repo also now includes a true core-only starter in [`examples/minimal-core/`](./examples/minimal-core/README.md), which mounts one custom feature from the generated core bundle without depending on any optional editorial or screensaver module.
+
+`SlideshowFeature` is now the first shipped built-in feature to read pause state through `context.services.pause.signal` when mount context is available, while still preserving the shared pause alias as the fallback for direct/manual mounts.
+
+`ScreensaverFeature` now also dogfoods mount-context services by reading activity from `context.services.activity.signal` and fetching scene partials through `context.services.partials.loadHtml(...)` when available, while still remaining the sole owner of `screensaverActiveSignal`.
+
+`FloatingImagesFeature` now also prefers `context.services.pause.signal` and `context.services.scheduler.frame` when mount context is available, while preserving its existing screensaver-owned inversion so floating scenes only animate when the singleton screensaver shell is active.
 
 ### Scheduler
 

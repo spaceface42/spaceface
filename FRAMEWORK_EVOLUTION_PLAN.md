@@ -86,7 +86,7 @@ Make custom feature authoring a first-class supported workflow.
 
 - Decide which runtime primitives are public and export them intentionally.
 - Either export core helpers directly or surface them through mount context.
-- Prefer `FeatureDefinition.featureId` as the runtime-facing name and keep `selector` only as a compatibility alias during migration.
+- Prefer `FeatureDefinition.featureId` as the runtime-facing name and remove `selector` once the migration is complete.
 - Expand `FeatureMountContext` into a stable service surface rather than only `signal` and `logger`.
 - Document how third-party features should be written, mounted, paused, and cleaned up.
 
@@ -212,7 +212,7 @@ This is the shortest credible path forward:
 
 1. Add a real library build from `src/spaceface.ts`.
 2. Keep the current site app intact, but treat it as the first example consumer.
-3. Migrate callers to `FeatureDefinition.featureId` and decide whether `selector` should remain as a compatibility alias long-term.
+3. Migrate callers to `FeatureDefinition.featureId` and remove `selector` once the migration is complete.
 4. Add host-scoped registry startup.
 5. Use one built-in feature as the pilot refactor for root-scoped keyboard handling, then apply the pattern to the remaining interactive features.
 6. Introduce a generic pause or visibility service and begin migrating features off direct screensaver coupling.

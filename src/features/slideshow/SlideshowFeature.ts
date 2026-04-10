@@ -1,5 +1,5 @@
 // src/features/slideshow/SlideshowFeature.ts
-import type { Feature } from "../../core/feature.js";
+import type { Feature, FeatureMountContext } from "../../core/feature.js";
 import { createEffect } from "../../core/signals.js";
 import { featurePauseSignal } from "../shared/pauseState.js";
 
@@ -35,9 +35,10 @@ export class SlideshowFeature implements Feature {
     this.autoplayRemainingMs = this.options.autoplayMs;
   }
 
-  mount(el: HTMLElement): void {
+  mount(el: HTMLElement, context?: FeatureMountContext): void {
     this.root = el;
     this.slides = Array.from(this.root.querySelectorAll<HTMLElement>("[data-slide]"));
+    const pauseSignal = context?.services.pause.signal ?? featurePauseSignal;
 
     // Attempt to resume from currently active slide if restoring from cache
     let activeIndex = this.slides.findIndex(s => s.getAttribute("aria-hidden") === "false");
@@ -51,7 +52,7 @@ export class SlideshowFeature implements Feature {
 
     // Listen to generic feature pause state reactively.
     this.cleanupEffect = createEffect(() => {
-      this.pausedByFeaturePause = featurePauseSignal.value;
+      this.pausedByFeaturePause = pauseSignal.value;
       this.updateAutoplayState();
     });
   }

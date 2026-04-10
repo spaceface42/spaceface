@@ -15,7 +15,9 @@ The system stays deliberately narrow:
 - Generated site: `docs/`
 - Generated package build: `dist/`
 - Site app wiring: `app/`
-- Public runtime API: `src/spaceface.ts`
+- Public core runtime API: `src/spaceface.ts`
+- Optional editorial feature API: `src/editorial.ts`
+- Optional screensaver API: `src/screensaver.ts`
 - Shared contract data: `app/contract-data.js`
 - TypeScript contract helpers: `app/contract.ts`
 - Runtime registration: `app/runtime.ts`
@@ -23,26 +25,26 @@ The system stays deliberately narrow:
 - Core runtime primitives: `src/core/`
 - DOM features: `src/features/`
 
-Current repo behavior stays explicit: the project ships one authored site in `public/`, one app wiring layer in `app/`, and one generated runtime package built from `src/spaceface.ts`.
+Current repo behavior stays explicit: the project ships one authored site in `public/`, one app wiring layer in `app/`, one core package entry built from `src/spaceface.ts`, and optional package entries built from `src/editorial.ts` and `src/screensaver.ts`.
 
 Feature-authored assets can stay colocated under `public/resources/features/<feature>/`, including partial markup and feature-local CSS.
 
 ## Runtime Model
 
 - `FeatureRegistry` mounts and destroys features from `data-feature="..."` within one host root
-- Runtime feature definitions prefer `featureId`; legacy `selector` is still accepted as a compatibility alias
-- `app/` imports shared runtime code through `src/spaceface.ts`, while app-owned boot wiring stays in `app/`
+- Runtime feature definitions use `featureId`
+- `app/` imports core runtime code through `src/spaceface.ts` and optional built-ins through `src/editorial.ts` and `src/screensaver.ts`, while app-owned boot wiring stays in `app/`
 - The registry can start on a provided host root; the shipped app currently passes `document.body`
 - `initStartupSequence()` is an app-owned progressive DOM enhancement that returns early unless the startup markup contract is present
 - Feature mounts may be async and receive one mount context with `signal`, `logger`, and `services`
 - `FeatureMountContext.services` currently exposes `activity.signal`, `pause.signal`, `partials.loadHtml(...)`, and `scheduler.frame`
 - Failed async mounts are torn down before the error is surfaced
 - `userActivitySignal` tracks last interaction time
-- `screensaverActiveSignal` tracks whether the screensaver shell is active
 - `featurePauseSignal` is the generic pause hook for reusable page features and currently follows the screensaver shell state
 - `ScreensaverFeature` is the shared idle shell, and it can load different visual scenes from authored partials
+- `screensaverActiveSignal` tracks whether the screensaver shell is active and is exported from `src/screensaver.ts`
 - `Ctrl+Shift+.` starts the screensaver shell on all platforms, regardless of which scene the page selects
-- `AttractorSceneFeature` is the editorial scene runtime: it updates viewport metadata and rotates authored layouts while the shell is active
+- `AttractorSceneFeature` is the screensaver-scene runtime: it updates viewport metadata and rotates authored layouts while the shell is active
 - `FrameScheduler` runs animated features in update-then-render order
 
 ## Contract Snapshot
@@ -105,6 +107,8 @@ npm run build:docs:prod
 npm run build:lib
 npm run build
 npm run serve:docs
+npm run serve:root
+npm run check:package-compat
 npm run sync:contracts
 npm run verify:docs
 ```
@@ -113,6 +117,7 @@ Build notes:
 
 - `npm run build:docs` builds the authored site into `docs/`
 - `npm run build:lib` builds the reusable runtime package into `dist/`
+- the package root is the core runtime entry, with optional `editorial` and `screensaver` subpath entries
 - `npm run build` builds both the site and the package outputs
 
 ## Validation
@@ -126,10 +131,12 @@ Minimum validation before commit:
 Additional contract validation:
 
 - `npm run check:contract-docs`
+- `npm run check:package-compat`
 
 Full verification:
 
 - `npm run verify:docs`
+  This now builds the library package and verifies the exported `spaceface`, `spaceface/editorial`, and `spaceface/screensaver` entrypoints before the site checks run.
 
 ## Custom Feature Example
 
@@ -143,6 +150,18 @@ It only imports from [`src/spaceface.ts`](./src/spaceface.ts) and uses the suppo
 - `context.services.pause.signal`
 - `context.services.partials.loadHtml(...)`
 - `context.services.scheduler.frame`
+
+## Minimal Core Starter
+
+See [`examples/minimal-core/README.md`](./examples/minimal-core/README.md) for the smallest standalone setup in the repo.
+
+It demonstrates:
+
+- one authored HTML page outside the site app
+- one custom `featureId` mounted from `data-feature="counter-card"`
+- host-scoped startup through `registry.start(appRoot)`
+- imports from the generated core bundle only at `dist/spaceface.js`
+- no screensaver or editorial feature dependency
 
 ## Scope Limits
 

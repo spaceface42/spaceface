@@ -11,14 +11,10 @@ async function run() {
       contents: `
         export { FeatureRegistry } from "./src/core/feature.ts";
         export { initStartupSequence } from "./app/startup/initStartupSequence.ts";
-        export { SlideshowFeature } from "./src/features/slideshow/SlideshowFeature.ts";
-        export { SlidePlayerFeature } from "./src/features/slideplayer/SlidePlayerFeature.ts";
-        export { FloatingImagesFeature } from "./src/features/floating-images/FloatingImagesFeature.ts";
-        export { PortfolioStageFeature } from "./src/features/portfolio-stage/PortfolioStageFeature.ts";
-        export { ScreensaverFeature } from "./src/features/screensaver/ScreensaverFeature.ts";
+        export { SlideshowFeature, SlidePlayerFeature, FloatingImagesFeature, PortfolioStageFeature } from "./src/editorial.ts";
+        export { ScreensaverFeature, AttractorSceneFeature, screensaverActiveSignal } from "./src/screensaver.ts";
         export { PauseAwareStatusFeature } from "./examples/public-api/PauseAwareStatusFeature.ts";
-        export { featurePauseSignal } from "./src/spaceface.ts";
-        export { screensaverActiveSignal } from "./src/features/shared/screensaverState.ts";
+        export { createSignal, featurePauseSignal } from "./src/spaceface.ts";
         export { userActivitySignal, initActivityTracking, destroyActivityTracking } from "./src/features/shared/activity.ts";
         export { globalScheduler } from "./src/core/scheduler.ts";
         export { __setWaitForImagesReady } from "mock:images";
@@ -68,7 +64,7 @@ async function run() {
     async (runtime) => {
       testFeatureRegistryAttributeToggling(runtime);
       testFeatureRegistryMountContext(runtime);
-      testFeatureRegistryFeatureIdCompatibility(runtime);
+      testFeatureRegistryFeatureIdValidation(runtime);
       testPublicApiCustomFeatureExample(runtime);
       testFeatureRegistryHostScopedStart(runtime);
       await testFeatureRegistryAsyncMountFailure(runtime);
@@ -79,6 +75,7 @@ async function run() {
       testSlideshowScreensaverPause(runtime);
       testSlideshowAutoplayResumeUsesRemainingTime(runtime);
       testSlideshowManualNavigationResetsAutoplay(runtime);
+      testSlideshowRespectsContextPauseService(runtime);
       testSlidePlayerScreensaverPause(runtime);
       testSlidePlayerAutoplayResumeUsesRemainingTime(runtime);
       testSlidePlayerManualNavigationResetsAutoplay(runtime);
@@ -92,6 +89,7 @@ async function run() {
       await testPortfolioStageNavigationAndFiltering(runtime);
       testPortfolioStageBlankClickUsesLiveRects(runtime);
       await testActivityTracking(runtime);
+      await testScreensaverRespectsContextServices(runtime);
       await testScreensaverManualShortcut(runtime);
       await testScreensaverSceneSelection(runtime);
       await testScreensaverCustomIdleDelay(runtime);
@@ -100,6 +98,7 @@ async function run() {
       await testScreensaverHideWaitsForTransitionDelay(runtime);
       testScreensaverSingletonBinding(runtime);
       testScreensaverDestroyRemovesInjectedMarkup(runtime);
+      await testFloatingImagesRespectsContextServices(runtime);
       await testFloatingImagesScreensaverPause(runtime);
       await testFloatingImagesContainerResize(runtime);
       await testFloatingImagesAsyncDestroy(runtime);
@@ -177,7 +176,7 @@ function testFeatureRegistryMountContext(runtime) {
   restoreDomGlobals();
 }
 
-function testFeatureRegistryFeatureIdCompatibility(runtime) {
+function testFeatureRegistryFeatureIdValidation(runtime) {
   const observerState = installMutationObserverStub();
   const body = new FakeElement("body");
   installDomGlobals(body);
@@ -189,45 +188,32 @@ function testFeatureRegistryFeatureIdCompatibility(runtime) {
     }
   }
 
-  class LegacySelectorProbeFeature {
-    static mounts = 0;
-    mount() {
-      LegacySelectorProbeFeature.mounts += 1;
-    }
-  }
-
   const registry = new runtime.FeatureRegistry();
+  assert.throws(
+    () => registry.register({ selector: "feature-by-selector", create: () => new FeatureIdProbeFeature() }),
+    /FeatureDefinition `selector` is no longer supported; use `featureId`/,
+    "feature definitions should reject the removed selector alias"
+  );
+  assert.throws(
+    () => registry.register({ create: () => new FeatureIdProbeFeature() }),
+    /FeatureDefinition requires `featureId`/,
+    "feature definitions should require an explicit featureId"
+  );
   registry.register({ featureId: "feature-by-id", create: () => new FeatureIdProbeFeature() });
   assert.throws(
-    () => registry.register({ selector: "feature-by-id", create: () => new LegacySelectorProbeFeature() }),
+    () => registry.register({ featureId: "feature-by-id", create: () => new FeatureIdProbeFeature() }),
     /Feature already registered for featureId: feature-by-id/,
-    "legacy selector registrations should collide with matching featureId registrations"
+    "feature definitions should still reject duplicate featureId registrations"
   );
-  assert.throws(
-    () =>
-      registry.register({
-        featureId: "feature-alpha",
-        selector: "feature-beta",
-        create: () => new LegacySelectorProbeFeature(),
-      }),
-    /FeatureDefinition `featureId` and `selector` must match/,
-    "feature definitions should reject mismatched feature ids"
-  );
-  registry.register({ selector: "feature-by-selector", create: () => new LegacySelectorProbeFeature() });
   registry.start();
 
   const host = new FakeElement("div");
   body.append(host);
 
-  host.setAttribute("data-feature", "feature-by-id feature-by-selector");
+  host.setAttribute("data-feature", "feature-by-id");
   observerState.callback([{ type: "attributes", target: host }]);
 
   assert.equal(FeatureIdProbeFeature.mounts, 1, "featureId registrations should mount from matching data-feature ids");
-  assert.equal(
-    LegacySelectorProbeFeature.mounts,
-    1,
-    "legacy selector registrations should remain compatible while the alias exists"
-  );
 
   registry.stop();
   restoreDomGlobals();
@@ -582,6 +568,51 @@ function testSlideshowManualNavigationResetsAutoplay(runtime) {
   restoreDomGlobals();
 }
 
+function testSlideshowRespectsContextPauseService(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const root = createSlideshowRoot();
+  body.append(root);
+
+  const pauseSignal = runtime.createSignal(false);
+  const feature = new runtime.SlideshowFeature({ autoplayMs: 100 });
+  feature.mount(root, {
+    signal: new AbortController().signal,
+    logger: createTestLogger(),
+    services: {
+      activity: { signal: runtime.userActivitySignal },
+      pause: { signal: pauseSignal },
+      partials: { loadHtml: async () => "" },
+      scheduler: { frame: runtime.globalScheduler },
+    },
+  });
+
+  clock.advance(100);
+  assert.equal(activeIndex(root, "[data-slide]"), 1, "slideshow should still autoplay when mounted with an explicit context");
+
+  runtime.featurePauseSignal.value = true;
+  clock.advance(100);
+  assert.equal(
+    activeIndex(root, "[data-slide]"),
+    2,
+    "shared pause alias alone should not stop a slideshow that is reading pause from mount-context services"
+  );
+
+  pauseSignal.value = true;
+  clock.advance(100);
+  assert.equal(activeIndex(root, "[data-slide]"), 2, "context-provided pause should stop slideshow autoplay");
+
+  pauseSignal.value = false;
+  clock.advance(100);
+  assert.equal(activeIndex(root, "[data-slide]"), 0, "slideshow should resume when the context-provided pause signal clears");
+
+  feature.destroy();
+  runtime.featurePauseSignal.value = false;
+  clock.restore();
+  restoreDomGlobals();
+}
+
 function createDefinition(featureId, create) {
   return { featureId, create };
 }
@@ -833,6 +864,81 @@ async function testActivityTracking(runtime) {
   } finally {
     runtime.screensaverActiveSignal.value = false;
     runtime.destroyActivityTracking();
+    clock.restore();
+    restoreDomGlobals();
+  }
+}
+
+async function testScreensaverRespectsContextServices(runtime) {
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+  const clock = installFakeClock();
+  const originalGetComputedStyle = globalThis.getComputedStyle;
+  let sharedLoadCalls = 0;
+  let contextLoadCalls = 0;
+  let requestedUrl = "";
+
+  globalThis.window.getComputedStyle = () => ({
+    transitionDuration: "0ms",
+    transitionDelay: "0ms",
+  });
+  globalThis.getComputedStyle = globalThis.window.getComputedStyle;
+  runtime.__setLoadPartialHtml(async () => {
+    sharedLoadCalls += 1;
+    throw new Error("shared partial loader should not be used when screensaver has context services");
+  });
+
+  try {
+    runtime.screensaverActiveSignal.value = false;
+    runtime.userActivitySignal.value = 0;
+
+    const activitySignal = runtime.createSignal(0);
+    const root = new FakeElement("div", { "data-screensaver": "true" }, { hidden: true });
+    body.append(root);
+
+    const feature = new runtime.ScreensaverFeature({
+      idleMs: 100,
+      scenePartialUrls: {
+        "floating-images": "./context-scene.html",
+      },
+    });
+    feature.mount(root, {
+      signal: new AbortController().signal,
+      logger: createTestLogger(),
+      services: {
+        activity: { signal: activitySignal },
+        pause: { signal: runtime.featurePauseSignal },
+        partials: {
+          loadHtml: async (url) => {
+            contextLoadCalls += 1;
+            requestedUrl = String(url);
+            return "<div class='context-scene'>ok</div>";
+          },
+        },
+        scheduler: { frame: runtime.globalScheduler },
+      },
+    });
+
+    runtime.userActivitySignal.value = 1;
+    clock.advance(100);
+    await flushMicrotasks(4);
+
+    assert.equal(sharedLoadCalls, 0, "screensaver should not fall back to the shared partial loader when context services provide one");
+    assert.equal(contextLoadCalls, 1, "screensaver should use the context partial loader");
+    assert.equal(requestedUrl, "./context-scene.html", "screensaver should request the authored scene partial through the context service");
+    assert.equal(root.hidden, false, "screensaver should still activate from the context-provided activity service");
+    assert.equal(runtime.screensaverActiveSignal.value, true, "screensaver should remain the owner of the shared active state");
+
+    activitySignal.value = 2;
+    clock.advance(0);
+
+    assert.equal(root.hidden, true, "context-provided activity should still hide the screensaver");
+    assert.equal(runtime.screensaverActiveSignal.value, false, "screensaver should release the shared active state after context-driven activity");
+
+    feature.destroy();
+  } finally {
+    runtime.screensaverActiveSignal.value = false;
+    globalThis.getComputedStyle = originalGetComputedStyle;
     clock.restore();
     restoreDomGlobals();
   }
@@ -1541,6 +1647,69 @@ async function testFloatingImagesScreensaverPause(runtime) {
   }
 }
 
+async function testFloatingImagesRespectsContextServices(runtime) {
+  installWindowForFloatingImages();
+  runtime.__setWaitForImagesReady(async () => []);
+
+  const originalAdd = runtime.globalScheduler.add.bind(runtime.globalScheduler);
+  let globalAddCalls = 0;
+  runtime.globalScheduler.add = () => {
+    globalAddCalls += 1;
+    return () => {};
+  };
+
+  const customUnsubscribers = [];
+  let customAddCalls = 0;
+  const customScheduler = {
+    add() {
+      customAddCalls += 1;
+      const unsubscribe = spy();
+      customUnsubscribers.push(unsubscribe);
+      return unsubscribe;
+    },
+  };
+
+  try {
+    runtime.featurePauseSignal.value = false;
+    const pauseSignal = runtime.createSignal(false);
+    const root = createFloatingRoot();
+    const feature = new runtime.FloatingImagesFeature();
+    await feature.mount(root, {
+      signal: new AbortController().signal,
+      logger: createTestLogger(),
+      services: {
+        activity: { signal: runtime.userActivitySignal },
+        pause: { signal: pauseSignal },
+        partials: { loadHtml: async () => "" },
+        scheduler: { frame: customScheduler },
+      },
+    });
+
+    assert.equal(globalAddCalls, 0, "floating images should not subscribe to the global scheduler when a context scheduler is provided");
+    assert.equal(customAddCalls, 1, "floating images should subscribe through the context scheduler on mount");
+
+    runtime.featurePauseSignal.value = true;
+    assert.equal(
+      customUnsubscribers[0].calls,
+      0,
+      "shared pause alias alone should not stop floating images that are reading pause from mount-context services"
+    );
+
+    pauseSignal.value = true;
+    assert.equal(customUnsubscribers[0].calls, 1, "context-provided pause should stop floating images");
+
+    pauseSignal.value = false;
+    assert.equal(customAddCalls, 2, "floating images should resubscribe through the context scheduler when the context pause clears");
+
+    feature.destroy();
+    assert.equal(customUnsubscribers[1].calls, 1, "destroy should unsubscribe the active context-scheduler subscription");
+  } finally {
+    runtime.globalScheduler.add = originalAdd;
+    runtime.featurePauseSignal.value = false;
+    restoreFloatingWindow();
+  }
+}
+
 async function testFloatingImagesContainerResize(runtime) {
   const floatingWindow = installWindowForFloatingImages();
   runtime.__setWaitForImagesReady(async () => []);
@@ -1981,6 +2150,19 @@ function spy() {
   };
   fn.calls = 0;
   return fn;
+}
+
+function createTestLogger() {
+  const logger = {
+    debug() {},
+    info() {},
+    warn() {},
+    error() {},
+    child() {
+      return logger;
+    },
+  };
+  return logger;
 }
 
 async function flushMicrotasks(count = 1) {

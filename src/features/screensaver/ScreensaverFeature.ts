@@ -31,6 +31,8 @@ export class ScreensaverFeature implements Feature {
   private injectedSceneValue: string | null = null;
   private logger: Logger = createLogger("screensaver", "warn");
   private ownsSingleton = false;
+  private activitySignal = userActivitySignal;
+  private loadPartialHtml = loadPartialHtml;
 
   private readonly handleManualStartKeydown = (event: KeyboardEvent): void => {
     if (!this.target) return;
@@ -55,6 +57,8 @@ export class ScreensaverFeature implements Feature {
 
   mount(el: HTMLElement, context?: FeatureMountContext): void {
     this.logger = context?.logger ?? this.logger;
+    this.activitySignal = context?.services?.activity?.signal ?? userActivitySignal;
+    this.loadPartialHtml = context?.services?.partials?.loadHtml ?? loadPartialHtml;
     this.target = el;
     this.target.hidden = true;
     this.target.classList.remove("is-active");
@@ -75,7 +79,7 @@ export class ScreensaverFeature implements Feature {
     this.cleanupEffect = createEffect(() => {
       const target = this.target;
       if (!target) return;
-      void userActivitySignal.value;
+      void this.activitySignal.value;
       const requestId = ++this.showRequestId;
       this.cancelPendingPartialLoad();
       this.resetTimer();
@@ -123,6 +127,8 @@ export class ScreensaverFeature implements Feature {
       ScreensaverFeature.activeInstance = null;
     }
     this.ownsSingleton = false;
+    this.activitySignal = userActivitySignal;
+    this.loadPartialHtml = loadPartialHtml;
   }
 
   private resetTimer(): void {
@@ -202,7 +208,7 @@ export class ScreensaverFeature implements Feature {
     try {
       const controller = new AbortController();
       this.partialLoadController = controller;
-      const html = await loadPartialHtml(partialUrl, {
+      const html = await this.loadPartialHtml(partialUrl, {
         cache: true,
         signal: controller.signal,
         assetAttributes: this.options.partialAssetAttributes,

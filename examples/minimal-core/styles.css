@@ -1,0 +1,125 @@
+:root {
+  color-scheme: light;
+  --minimal-bg: linear-gradient(160deg, #f5f0e8 0%, #e8edf2 48%, #dce4ea 100%);
+  --minimal-panel: rgba(255, 252, 247, 0.84);
+  --minimal-ink: #1d1e20;
+  --minimal-muted: #5f615f;
+  --minimal-accent: #0f6a63;
+  --minimal-accent-strong: #084d49;
+  --minimal-line: rgba(29, 30, 32, 0.12);
+  --minimal-shadow: 0 24px 80px rgba(30, 38, 44, 0.14);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--minimal-bg);
+  color: var(--minimal-ink);
+}
+
+.minimal-app {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+.minimal-card {
+  width: min(100%, 34rem);
+  padding: 2rem;
+  border: 1px solid var(--minimal-line);
+  border-radius: 1.75rem;
+  background: var(--minimal-panel);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--minimal-shadow);
+}
+
+.minimal-card__eyebrow {
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  color: var(--minimal-muted);
+}
+
+.minimal-card h1 {
+  margin: 0;
+  max-width: 16ch;
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  line-height: 0.94;
+}
+
+.minimal-card__copy {
+  margin: 1rem 0 1.5rem;
+  max-width: 34ch;
+  line-height: 1.55;
+  color: var(--minimal-muted);
+}
+
+.minimal-card__value {
+  margin: 0 0 1.5rem;
+  font-size: clamp(3.5rem, 8vw, 5.5rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+}
+
+.minimal-card__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.minimal-card__button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1.2rem;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.minimal-card__button:hover,
+.minimal-card__button:focus-visible {
+  transform: translateY(-1px);
+}
+
+.minimal-card__button--primary {
+  background: var(--minimal-accent);
+  color: #f7f9f7;
+}
+
+.minimal-card__button--primary:hover,
+.minimal-card__button--primary:focus-visible {
+  background: var(--minimal-accent-strong);
+}
+
+.minimal-card__button--ghost {
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--minimal-ink);
+  border: 1px solid var(--minimal-line);
+}
+
+@media (max-width: 640px) {
+  .minimal-app {
+    padding: 1rem;
+  }
+
+  .minimal-card {
+    padding: 1.5rem;
+    border-radius: 1.3rem;
+  }
+
+  .minimal-card__actions {
+    flex-direction: column;
+  }
+
+  .minimal-card__button {
+    width: 100%;
+  }
+}

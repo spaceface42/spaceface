@@ -39,10 +39,10 @@ This note captures where the framework-evolution work stands on the repo right n
 
 ### 3. API Cleanup
 
-- `FeatureDefinition.featureId` is now the preferred runtime-facing field.
-- Legacy `FeatureDefinition.selector` still works as a compatibility alias.
-- The app runtime definitions already use `featureId`.
-- Regression coverage exists for `featureId` and legacy `selector` compatibility.
+- `FeatureDefinition.featureId` is now the only runtime-facing registration field.
+- The legacy runtime `selector` alias has been removed.
+- The app runtime definitions and contract naming now use `featureId`.
+- Regression coverage exists for `featureId` validation and selector rejection.
 
 ### 4. Extension API Work
 
@@ -58,6 +58,16 @@ This note captures where the framework-evolution work stands on the repo right n
   - activity and pause signals
 - A tiny custom feature example exists in `examples/public-api/PauseAwareStatusFeature.ts`.
 - Regression coverage proves the example can mount using only the public API.
+- `SlideshowFeature` now dogfoods `context.services.pause.signal` when registry mount context is available.
+- `ScreensaverFeature` now dogfoods `context.services.activity.signal` and `context.services.partials.loadHtml(...)` when registry mount context is available.
+- `FloatingImagesFeature` now dogfoods `context.services.pause.signal` and `context.services.scheduler.frame` when registry mount context is available.
+
+### 5. Optional Module Boundaries
+
+- `src/spaceface.ts` is now the core package entry.
+- `src/editorial.ts` groups the optional editorial built-ins.
+- `src/screensaver.ts` groups the optional screensaver shell and scene runtime.
+- The site app now imports built-ins through those module boundaries instead of the root entry alone.
 
 ## Near-Term Plan Status
 
@@ -68,32 +78,32 @@ From the near-term execution plan in `FRAMEWORK_EVOLUTION_PLAN.md`:
 - Done: migrate callers to `FeatureDefinition.featureId`
 - Done: add host-scoped registry startup
 - Done: apply root-scoped keyboard handling to the main interactive pilot features
-- Started: introduce a generic pause service and begin migrating features off direct screensaver coupling
-- Not done: move screensaver and editorial features behind clearer module boundaries
-- Not done: add a minimal example that uses only the core runtime
+- Done: dogfood the `FeatureMountContext.services` surface across representative built-in features without changing the single screensaver-owned pause model
+- Started: move screensaver and editorial features behind clearer module boundaries
+- Done: add a minimal example that uses only the core runtime
+- Done: add package-level compatibility coverage for the core/editorial/screensaver package entry shape
 
-## What Still Needs To Be Done To Finish The Plan
+## Current State And Remaining Work
 
-### 1. Dogfood `FeatureMountContext.services` In A Shipped Built-In Feature
+### 1. Built-In Services Dogfooding Baseline
 
-Recommended first move:
+This pass is now done for the representative built-ins:
 
-- update `SlideshowFeature` to read from `context.services.pause.signal` instead of importing pause state directly
-- optionally read `activity.signal` or `scheduler.frame` only if it improves clarity
-- keep the behavior unchanged: only the screensaver should still control pause
+- `SlideshowFeature` reads from `context.services.pause.signal` when registry context is present
+- `ScreensaverFeature` reads from `context.services.activity.signal` and `context.services.partials.loadHtml(...)` when registry context is present
+- `FloatingImagesFeature` reads from `context.services.pause.signal` and `context.services.scheduler.frame` when registry context is present
 
-Why this matters:
+Important guardrail:
 
-- it validates the public extension API inside real shipped runtime code, not only in the example feature
+- direct/manual mounts still fall back to the shared runtime defaults, so current site behavior remains intact
 
-### 2. Decide The Long-Term Fate Of `selector`
+### 2. Runtime Naming Is Now Settled
 
-There is still one open compatibility decision:
+The runtime registration API now uses `featureId` only:
 
-- keep `FeatureDefinition.selector` permanently as a legacy alias
-- or remove it later after the migration settles
-
-This does not block ongoing framework work, but it should be decided before calling the public API fully stable.
+- `FeatureDefinition.selector` has been removed
+- app contract feature entries now use `featureId`
+- route and partial manifests now use `featureIds`
 
 ### 3. Move Screensaver And Editorial Features Behind Clearer Module Boundaries
 
@@ -110,50 +120,53 @@ Important constraint:
 
 - the screensaver stays singleton-only even if module boundaries become cleaner
 
+Current first slice:
+
+- root exports are now core-focused
+- optional package entries exist for editorial and screensaver features
+- the current site already consumes those new boundaries internally
+
 ### 4. Add A Minimal Core-Only Example
 
-The repo now has a tiny custom-feature example, but it still needs a true minimal starter that shows:
+This is now done:
 
-- a small authored HTML page
-- one custom feature mounted from `data-feature="..."`
-- only the core runtime and public package API
-- no screensaver or editorial feature dependency
+- `examples/minimal-core/` is now the smallest standalone starter in the repo
+- it uses one authored HTML page and one custom `featureId`
+- it imports from the generated core runtime bundle only
+- it does not depend on screensaver or editorial modules
 
-This should become the simplest “start here” example for future reuse.
+It is now the simplest “start here” example for future reuse.
 
 ### 5. Add Package-Level Compatibility Coverage
 
-The runtime is already checked heavily through repo-local imports.
+This is now done:
 
-Still useful to add later:
+- `check:package-compat` exercises `spaceface`, `spaceface/editorial`, and `spaceface/screensaver`
+- the check validates both package-name imports and TypeScript consumer compilation
+- `verify:docs` now includes this package-level coverage automatically
 
-- a compatibility test that exercises the package entry as a real dependency surface
-- possibly a tiny example build that imports from the package-style entry only
+This closes the last planned package-surface gap from the evolution plan.
 
-### 6. Continue Pause Decoupling Carefully
+### 6. Keep The Pause Model Narrow
 
 This should happen only where it genuinely improves reuse.
 
-Recommended order:
+Current outcome:
 
-- `SlideshowFeature`
-- then possibly `FloatingImagesFeature`
-- leave screensaver-specific behavior explicit where it is truly screensaver-owned
-
-Guardrail:
-
-- do not introduce any second pause driver unless there is a real product need
+- no second pause driver was introduced
+- the screensaver remains the only pause source
+- screensaver-specific behavior is still explicit where it is truly screensaver-owned
 
 ## Recommended Next Session Starting Point
 
 If continuing tomorrow or next week, start here:
 
-1. Update `SlideshowFeature` to consume `context.services.pause.signal` instead of importing pause state directly.
-2. Add or update regression coverage so the feature still pauses only when the screensaver pause alias changes.
-3. Re-run `npm run verify:docs`.
-4. Then decide whether to:
-   - continue the same pattern into `FloatingImagesFeature`
-   - or switch to module-boundary work if the extension API already feels stable enough
+1. No required framework-evolution step is currently outstanding from the plan.
+2. If continuing, treat any next work as optional polish:
+   - refine package docs further
+   - add an external-consumer fixture only if publish-time issues appear
+   - smooth any remaining boundary rough edges without reopening the core/screensaver/editorial split
+3. Keep the screensaver shell singleton-only if any follow-up refactors happen.
 
 ## Practical Definition Of “Plan Complete”
 
@@ -169,6 +182,10 @@ The evolution plan is effectively complete when all of the following are true:
 - the repo contains both:
   - a tiny custom feature example
   - a true minimal core-only starter example
+
+Current verdict:
+
+- the evolution plan is now effectively complete
 
 ## Resume Reminder
 

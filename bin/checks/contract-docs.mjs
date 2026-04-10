@@ -59,14 +59,14 @@ function renderReadmeContract(contract) {
   const routes = contract.routes
     .map(
       (route) =>
-        `- \`${route.file}\`: \`body[data-page="${route.page}"]\`; features ${joinInlineCode(route.featureSelectors)}`
+        `- \`${route.file}\`: \`body[data-page="${route.page}"]\`; features ${joinInlineCode(route.featureIds)}`
     )
     .join("\n");
 
   const features = contract.features
     .map((feature) => {
       const note = feature.singletonNote ? `; note: ${feature.singletonNote}` : "";
-      return `- \`${feature.selector}\`: root \`${feature.root}\`; hooks ${joinInlineCode(feature.internals)}${note}`;
+      return `- \`${feature.featureId}\`: root \`${feature.root}\`; hooks ${joinInlineCode(feature.internals)}${note}`;
     })
     .join("\n");
 
@@ -88,21 +88,21 @@ function renderArchitectureContract(contract) {
   const routes = contract.routes
     .map(
       (route) =>
-        `- \`${route.file}\`: page id \`${route.page}\`; nav id \`${route.id}\`; hooks ${formatHookSummary(route.hooks ?? [])}; features ${joinInlineCode(route.featureSelectors)}`
+        `- \`${route.file}\`: page id \`${route.page}\`; nav id \`${route.id}\`; hooks ${formatHookSummary(route.hooks ?? [])}; features ${joinInlineCode(route.featureIds)}`
     )
     .join("\n");
 
   const features = contract.features
     .map((feature) => {
       const singleton = feature.singletonNote ? `; singleton note: ${feature.singletonNote}` : "";
-      return `- \`${feature.selector}\`: root \`${feature.root}\`; internals ${joinInlineCode(feature.internals)}${singleton}`;
+      return `- \`${feature.featureId}\`: root \`${feature.root}\`; internals ${joinInlineCode(feature.internals)}${singleton}`;
     })
     .join("\n");
 
   const partials = contract.partials
     .map(
       (partial) =>
-        `- \`${partial.file}\`: host hook \`${partial.hostHook}\`; features ${joinInlineCode(partial.featureSelectors)}; hooks ${formatHookSummary(partial.hooks)}`
+        `- \`${partial.file}\`: host hook \`${partial.hostHook}\`; features ${joinInlineCode(partial.featureIds)}; hooks ${formatHookSummary(partial.hooks)}`
     )
     .join("\n");
 

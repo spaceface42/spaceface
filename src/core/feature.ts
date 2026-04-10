@@ -21,9 +21,7 @@ export interface Feature {
 }
 
 export interface FeatureDefinition {
-  featureId?: string;
-  /** @deprecated Use `featureId` instead. */
-  selector?: string;
+  featureId: string;
   create(): Feature;
   loggerScope?: string;
 }
@@ -310,15 +308,14 @@ interface ActiveFeatureRecord {
 }
 
 function getDefinitionFeatureId(definition: FeatureDefinition): string {
-  const featureId = definition.featureId ?? definition.selector;
+  if ("selector" in (definition as FeatureDefinition & { selector?: unknown })) {
+    throw new Error("FeatureDefinition `selector` is no longer supported; use `featureId`");
+  }
+
+  const featureId = definition.featureId;
   if (!featureId) {
-    throw new Error("FeatureDefinition requires `featureId` or legacy `selector`");
+    throw new Error("FeatureDefinition requires `featureId`");
   }
-
-  if (definition.featureId && definition.selector && definition.featureId !== definition.selector) {
-    throw new Error("FeatureDefinition `featureId` and `selector` must match when both are provided");
-  }
-
   return featureId;
 }
 

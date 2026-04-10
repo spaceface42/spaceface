@@ -12,10 +12,17 @@
 - Refactored `SlidePlayerFeature` keyboard handling to live on the feature root instead of `document`, while preserving duplicate-mount warnings for the current singleton authored contract.
 - Refactored `PortfolioStageFeature` keyboard handling to live on the feature root instead of `document`, while preserving duplicate-mount warnings for the current singleton authored contract.
 - Added a generic `featurePauseSignal` service, currently backed by the screensaver shell state, and migrated `SlideshowFeature` to depend on it instead of a direct screensaver-state import.
-- Aliased `FeatureDefinition.selector` to `featureId`, kept `selector` as a compatibility path, and migrated the app runtime definitions to the clearer `featureId` field.
+- Migrated runtime registration onto `FeatureDefinition.featureId` and aligned the app runtime definitions around the clearer field name.
 - Expanded `FeatureMountContext` with a stable `services` surface for activity, pause, partial loading, and scheduler access.
 - Re-exported the supported extension primitives from `src/spaceface.ts`, including signals, partial loading, scheduler access, and shared activity/pause signals.
 - Added a tiny public-api custom feature example under `examples/public-api/PauseAwareStatusFeature.ts` and regression coverage proving it mounts without deep imports.
+- Updated `SlideshowFeature` to dogfood `context.services.pause.signal` when registry mount context is available, while keeping the shared pause alias as the fallback for direct/manual mounts.
+- Updated `ScreensaverFeature` to dogfood `context.services.activity.signal` and `context.services.partials.loadHtml(...)` when registry mount context is available, while keeping the screensaver as the sole owner of `screensaverActiveSignal`.
+- Updated `FloatingImagesFeature` to dogfood `context.services.pause.signal` and `context.services.scheduler.frame` when registry mount context is available, while preserving its existing screensaver-owned pause inversion.
+- Split the public package surface into a core entry (`src/spaceface.ts`) plus optional `editorial` and `screensaver` module entries, and switched the site app to import built-ins through those boundaries.
+- Removed the legacy `FeatureDefinition.selector` runtime alias and aligned the app contract naming around `featureId`.
+- Added a true minimal core-only starter under `examples/minimal-core/`, plus a small `serve:root` helper so the example can run against the generated `dist/spaceface.js` bundle without the site app.
+- Added `check:package-compat` coverage for the exported `spaceface`, `spaceface/editorial`, and `spaceface/screensaver` entrypoints, including TypeScript consumer compilation and package-name import validation, and folded it into `verify:docs`.
 
 ### Public Pages
 

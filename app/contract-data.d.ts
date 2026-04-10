@@ -1,6 +1,6 @@
 export interface FeatureContract {
   id: string;
-  selector: string;
+  featureId: string;
   root: string;
   internals: string[];
   singletonNote?: string;
@@ -18,7 +18,7 @@ export interface RouteContract {
   file: string;
   page: string;
   navLabel?: string;
-  featureSelectors: string[];
+  featureIds: string[];
   hooks?: HookContract[];
 }
 
@@ -26,7 +26,7 @@ export interface PartialContract {
   id: string;
   file: string;
   hostHook: string;
-  featureSelectors: string[];
+  featureIds: string[];
   hooks: HookContract[];
 }
 

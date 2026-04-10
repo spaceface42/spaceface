@@ -11,6 +11,16 @@
             "import": "./dist/spaceface.js",
             "default": "./dist/spaceface.js"
         },
+        "./editorial": {
+            "types": "./dist/editorial.d.ts",
+            "import": "./dist/editorial.js",
+            "default": "./dist/editorial.js"
+        },
+        "./screensaver": {
+            "types": "./dist/screensaver.d.ts",
+            "import": "./dist/screensaver.js",
+            "default": "./dist/screensaver.js"
+        },
         "./package.json": "./package.json"
     },
     "files": [
@@ -40,19 +50,21 @@
         "build:docs": "npm run build:dev",
         "build:docs:prod": "npm run build:prod",
         "build:lib": "npm run build:lib:prod && npm run build:lib:types",
-        "build:lib:dev": "esbuild ./src/spaceface.ts --bundle --format=esm --target=es2022 --sourcemap --outfile=./dist/spaceface.js",
-        "build:lib:prod": "esbuild ./src/spaceface.ts --bundle --format=esm --target=es2022 --minify --outfile=./dist/spaceface.js",
+        "build:lib:dev": "esbuild ./src/spaceface.ts ./src/editorial.ts ./src/screensaver.ts --bundle --format=esm --target=es2022 --sourcemap --outdir=./dist",
+        "build:lib:prod": "esbuild ./src/spaceface.ts ./src/editorial.ts ./src/screensaver.ts --bundle --format=esm --target=es2022 --minify --outdir=./dist",
         "build:lib:types": "tsc -p ./tsconfig.lib.json",
         "sync:contracts": "node ./bin/checks/contract-docs.mjs --write",
         "check:contract-docs": "node ./bin/checks/contract-docs.mjs",
         "typecheck:docs": "tsc -p ./tsconfig.json --noEmit",
         "check:core": "node ./bin/checks/core-check.mjs",
+        "check:package-compat": "node ./bin/checks/package-compat-check.mjs",
         "check:regressions": "node ./bin/checks/regression-check.mjs",
         "smoke:docs": "node ./bin/checks/smoke-check.mjs",
         "check:partial-paths": "node ./bin/checks/partial-paths-check.mjs",
-        "verify:docs": "npm run typecheck:docs && npm run check:core && npm run check:regressions && npm run check:partial-paths && npm run check:contract-docs && npm run build:dev && npm run smoke:docs",
+        "verify:docs": "npm run typecheck:docs && npm run build:lib && npm run check:package-compat && npm run check:core && npm run check:regressions && npm run check:partial-paths && npm run check:contract-docs && npm run build:dev && npm run smoke:docs",
         "start:docs": "npm run serve:docs",
         "serve:docs": "node ./bin/serve-docs.mjs",
+        "serve:root": "node ./bin/serve-root.mjs",
         "demo:docs": "npm run build:dev && npm run serve:docs",
         "typecheck": "tsc --noEmit",
         "lint": "node ./bin/lint.mjs",

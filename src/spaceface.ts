@@ -41,34 +41,3 @@ export {
   userActivitySignal,
 } from "./features/shared/activity.js";
 export { featurePauseSignal } from "./features/shared/pauseState.js";
-export { screensaverActiveSignal } from "./features/shared/screensaverState.js";
-
-export {
-  AttractorSceneFeature,
-  type AttractorSceneFeatureOptions,
-} from "./features/attractor-scene/AttractorSceneFeature.js";
-
-export {
-  FloatingImagesFeature,
-  type FloatingImagesFeatureOptions,
-} from "./features/floating-images/FloatingImagesFeature.js";
-
-export {
-  PortfolioStageFeature,
-  type PortfolioStageFeatureOptions,
-} from "./features/portfolio-stage/PortfolioStageFeature.js";
-
-export {
-  ScreensaverFeature,
-  type ScreensaverFeatureOptions,
-} from "./features/screensaver/ScreensaverFeature.js";
-
-export {
-  SlideshowFeature,
-  type SlideshowFeatureOptions,
-} from "./features/slideshow/SlideshowFeature.js";
-
-export {
-  SlidePlayerFeature,
-  type SlidePlayerFeatureOptions,
-} from "./features/slideplayer/SlidePlayerFeature.js";
