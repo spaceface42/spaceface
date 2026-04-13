@@ -102,22 +102,6 @@ export const APP_CONTRACT = {
       hooks: [],
     },
     {
-      id: "demo2",
-      file: "demo2.html",
-      page: "demo2",
-      navLabel: "Demo 2",
-      featureIds: ["screensaver"],
-      hooks: [],
-    },
-    {
-      id: "demo3",
-      file: "demo3.html",
-      page: "demo3",
-      navLabel: "Demo 3",
-      featureIds: ["screensaver"],
-      hooks: [],
-    },
-    {
       id: "slideplayer",
       file: "slideplayer.html",
       page: "slideplayer",

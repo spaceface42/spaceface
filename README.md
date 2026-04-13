@@ -51,8 +51,6 @@ Feature-authored assets can stay colocated under `public/resources/features/<fea
 <!-- CONTRACT:README:START -->
 ### Routes
 - `index.html`: `body[data-page="index"]`; features `slideshow`, `floating-images`, `screensaver`
-- `demo2.html`: `body[data-page="demo2"]`; features `screensaver`
-- `demo3.html`: `body[data-page="demo3"]`; features `screensaver`
 - `slideplayer.html`: `body[data-page="slideplayer"]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: `body[data-page="floatingimages"]`; features `floating-images`, `screensaver`
 - `portfoliostage.html`: `body[data-page="portfoliostage"]`; features `portfolio-stage`, `screensaver`

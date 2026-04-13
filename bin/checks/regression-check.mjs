@@ -66,6 +66,7 @@ async function run() {
       testFeatureRegistryFeatureIdValidation(runtime);
       testPublicApiCustomFeatureExample(runtime);
       testFeatureRegistryHostScopedStart(runtime);
+      testFeatureRegistrySupportsMultipleRoots(runtime);
       await testFeatureRegistryAsyncMountFailure(runtime);
       await testFeatureRegistryAsyncMountAbort(runtime);
       testSlideshowScreensaverPause(runtime);
@@ -277,6 +278,56 @@ function testFeatureRegistryHostScopedStart(runtime) {
   assert.equal(ProbeFeature.mounts, 2, "feature registry should mount only the host root subtree during initial scan");
 
   registry.stop();
+  restoreDomGlobals();
+}
+
+function testFeatureRegistrySupportsMultipleRoots(runtime) {
+  const observerState = installMutationObserverStub();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  class ScopedProbeFeature {
+    static leftMounts = 0;
+    static rightMounts = 0;
+
+    constructor(label) {
+      this.label = label;
+    }
+
+    mount() {
+      if (this.label === "left") {
+        ScopedProbeFeature.leftMounts += 1;
+        return;
+      }
+      ScopedProbeFeature.rightMounts += 1;
+    }
+  }
+
+  const leftRoot = new FakeElement("section", { id: "left-root", "data-feature": "probe" });
+  leftRoot.append(new FakeElement("div", { "data-feature": "probe" }));
+  const rightRoot = new FakeElement("section", { id: "right-root", "data-feature": "probe" });
+  rightRoot.append(new FakeElement("div", { "data-feature": "probe" }));
+
+  body.append(leftRoot);
+  body.append(rightRoot);
+  body.append(new FakeElement("div", { "data-feature": "probe" }));
+
+  const leftRegistry = new runtime.FeatureRegistry();
+  leftRegistry.register(createDefinition("probe", () => new ScopedProbeFeature("left")));
+  leftRegistry.start(leftRoot);
+
+  const rightRegistry = new runtime.FeatureRegistry();
+  rightRegistry.register(createDefinition("probe", () => new ScopedProbeFeature("right")));
+  rightRegistry.start(rightRoot);
+
+  assert.equal(observerState.observers.length, 2, "each registry should install its own observer");
+  assert.equal(observerState.observers[0].target, leftRoot, "left registry should observe only the left root");
+  assert.equal(observerState.observers[1].target, rightRoot, "right registry should observe only the right root");
+  assert.equal(ScopedProbeFeature.leftMounts, 2, "left registry should mount only features inside the left root");
+  assert.equal(ScopedProbeFeature.rightMounts, 2, "right registry should mount only features inside the right root");
+
+  leftRegistry.stop();
+  rightRegistry.stop();
   restoreDomGlobals();
 }
 
@@ -1728,14 +1779,27 @@ async function testFloatingImagesRestoreInlineStyles(runtime) {
 }
 
 function installMutationObserverStub() {
-  const state = { callback: () => {}, target: null, options: null };
+  const observers = [];
+  const state = {
+    observers,
+    get callback() {
+      return observers.at(-1)?.callback ?? (() => {});
+    },
+    get target() {
+      return observers.at(-1)?.target ?? null;
+    },
+    get options() {
+      return observers.at(-1)?.options ?? null;
+    },
+  };
   globalThis.MutationObserver = class {
     constructor(callback) {
-      state.callback = callback;
+      this.record = { callback, target: null, options: null };
+      observers.push(this.record);
     }
     observe(target, options) {
-      state.target = target;
-      state.options = options;
+      this.record.target = target;
+      this.record.options = options;
     }
     disconnect() {}
   };

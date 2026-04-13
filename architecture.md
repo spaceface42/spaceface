@@ -25,7 +25,7 @@ Spaceface is not:
 
 The current composition root is [`app/main.ts`](./app/main.ts).
 
-Startup does five things:
+Startup does four things:
 
 1. attach the console log sink
 2. apply current nav state
@@ -168,8 +168,6 @@ Asset path rule:
 
 ### Routes
 - `index.html`: page id `index`; nav id `index`; hooks `none`; features `slideshow`, `floating-images`, `screensaver`
-- `demo2.html`: page id `demo2`; nav id `demo2`; hooks `none`; features `screensaver`
-- `demo3.html`: page id `demo3`; nav id `demo3`; hooks `none`; features `screensaver`
 - `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; hooks required `[data-slideplayer-stage]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; optional `[data-slideplayer-bullets]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; hooks `none`; features `floating-images`, `screensaver`
 - `portfoliostage.html`: page id `portfoliostage`; nav id `portfoliostage`; hooks required `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`; optional `[data-portfolio-stage-filter]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; features `portfolio-stage`, `screensaver`
