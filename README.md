@@ -35,7 +35,6 @@ Feature-authored assets can stay colocated under `public/resources/features/<fea
 - Runtime feature definitions use `featureId`
 - `app/` imports core runtime code through `src/spaceface.ts` and optional built-ins through `src/editorial.ts` and `src/screensaver.ts`, while app-owned boot wiring stays in `app/`
 - The registry can start on a provided host root; the shipped app currently passes `document.body`
-- `initStartupSequence()` is an app-owned progressive DOM enhancement that returns early unless the startup markup contract is present
 - Feature mounts may be async and receive one mount context with `signal`, `logger`, and `services`
 - `FeatureMountContext.services` currently exposes `activity.signal`, `pause.signal`, `partials.loadHtml(...)`, and `scheduler.frame`
 - Failed async mounts are torn down before the error is surfaced
@@ -52,8 +51,6 @@ Feature-authored assets can stay colocated under `public/resources/features/<fea
 <!-- CONTRACT:README:START -->
 ### Routes
 - `index.html`: `body[data-page="index"]`; features `slideshow`, `floating-images`, `screensaver`
-- `demo2.html`: `body[data-page="demo2"]`; features `screensaver`
-- `demo3.html`: `body[data-page="demo3"]`; features `screensaver`
 - `slideplayer.html`: `body[data-page="slideplayer"]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: `body[data-page="floatingimages"]`; features `floating-images`, `screensaver`
 - `portfoliostage.html`: `body[data-page="portfoliostage"]`; features `portfolio-stage`, `screensaver`
@@ -71,32 +68,6 @@ Feature-authored assets can stay colocated under `public/resources/features/<fea
 - Activity inputs: `mousemove`, `wheel`, `keydown`, `pointerdown`, `visibilitychange`
 - Partial asset attributes rebased at build time and runtime: `src`, `poster`, `data-src`
 <!-- CONTRACT:README:END -->
-
-## Startup Sequence
-
-Spaceface keeps its startup enhancer app-owned through `initStartupSequence()`.
-
-Authored DOM contract:
-
-- Root: `[data-startup-sequence]`
-- Required startup children: `[data-startup-splash]`, `[data-startup-intro]`
-- Layout target: authored on `[data-startup-layout]` and resolved from `data-layout-target`, falling back to `#app`
-- Optional timing and behavior attrs: `data-delay`, `data-intro-delay`, `data-dismiss-on-click`
-- Runtime-owned replay guard: `data-startup-complete="true"`
-
-Minimal class contract:
-
-- `has-startup-lock` on `body` locks scrolling while the intro is active
-- `is-startup-active`, `is-startup-intro-visible`, and `is-startup-complete` control the startup root animation states
-- `is-startup-layout-hidden` hides the layout until the sequence completes
-- `is-hidden` remains available for authored fallback intro markup
-
-Integration points:
-
-- `app/main.ts` calls the app-local `initStartupSequence()` before shared activity tracking and feature registry startup
-- `public/index.html` demonstrates the external-layout pattern through `data-layout-target="#app"`
-- `public/resources/features/startup-sequence/splash.html` owns the startup markup and its inline startup styles so the authored intro stays self-contained
-- If any required startup node is missing, the initializer returns early without mutating the DOM
 
 ## Commands
 

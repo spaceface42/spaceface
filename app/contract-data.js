@@ -99,28 +99,6 @@ export const APP_CONTRACT = {
       page: "index",
       navLabel: "Home",
       featureIds: ["slideshow", "floating-images", "screensaver"],
-      hooks: [
-        { selector: "[data-startup-sequence]", presence: "required" },
-        { selector: "[data-startup-splash]", presence: "required" },
-        { selector: "[data-startup-intro]", presence: "required" },
-        { selector: "[data-startup-layout]", presence: "required" },
-        { selector: '[data-layout-target="#app"]', presence: "required" },
-      ],
-    },
-    {
-      id: "demo2",
-      file: "demo2.html",
-      page: "demo2",
-      navLabel: "Demo 2",
-      featureIds: ["screensaver"],
-      hooks: [],
-    },
-    {
-      id: "demo3",
-      file: "demo3.html",
-      page: "demo3",
-      navLabel: "Demo 3",
-      featureIds: ["screensaver"],
       hooks: [],
     },
     {

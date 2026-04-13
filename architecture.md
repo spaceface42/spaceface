@@ -25,13 +25,12 @@ Spaceface is not:
 
 The current composition root is [`app/main.ts`](./app/main.ts).
 
-Startup does five things:
+Startup does four things:
 
 1. attach the console log sink
 2. apply current nav state
-3. run optional startup-sequence enhancement wiring
-4. start shared activity tracking
-5. register and start contract-defined features
+3. start shared activity tracking
+4. register and start contract-defined features
 
 The app layer reaches shared runtime code through the public entries in [`src/spaceface.ts`](./src/spaceface.ts), [`src/editorial.ts`](./src/editorial.ts), and [`src/screensaver.ts`](./src/screensaver.ts), while app-owned boot wiring stays under `app/`.
 
@@ -143,25 +142,6 @@ Rules:
 - mount context passes a feature-scoped child logger
 - failures should not be silently swallowed if they matter for debugging
 
-### Startup Sequence
-
-The startup-sequence enhancer lives in [`app/startup/initStartupSequence.ts`](./app/startup/initStartupSequence.ts) and is owned by the app layer instead of the shared runtime API.
-
-Contract:
-
-- it looks for `[data-startup-sequence]`
-- it requires `[data-startup-splash]` and `[data-startup-intro]` inside that root
-- it resolves the `[data-startup-layout]` host from `data-layout-target`, falling back to `#app`
-- it accepts authored timing overrides from `data-delay` and `data-intro-delay`
-- it accepts authored click-dismiss control through `data-dismiss-on-click`
-- it marks completed roots with the runtime-owned `data-startup-complete="true"` replay guard
-
-Behavior:
-
-- if any required node is missing, it returns early and does nothing
-- if the contract is present, it temporarily locks scrolling, hides the target layout, reveals startup states through `has-startup-lock`, `is-startup-active`, `is-startup-intro-visible`, `is-startup-complete`, and `is-startup-layout-hidden`, then cleans up timers and listeners after exit
-- if the root already has `data-startup-complete="true"`, it does not replay
-
 ## Partial Model
 
 There are two kinds of partial usage:
@@ -187,9 +167,7 @@ Asset path rule:
 - Doc sync command: `npm run sync:contracts`
 
 ### Routes
-- `index.html`: page id `index`; nav id `index`; hooks required `[data-startup-sequence]`, `[data-startup-splash]`, `[data-startup-intro]`, `[data-startup-layout]`, `[data-layout-target="#app"]`; features `slideshow`, `floating-images`, `screensaver`
-- `demo2.html`: page id `demo2`; nav id `demo2`; hooks `none`; features `screensaver`
-- `demo3.html`: page id `demo3`; nav id `demo3`; hooks `none`; features `screensaver`
+- `index.html`: page id `index`; nav id `index`; hooks `none`; features `slideshow`, `floating-images`, `screensaver`
 - `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; hooks required `[data-slideplayer-stage]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; optional `[data-slideplayer-bullets]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; hooks `none`; features `floating-images`, `screensaver`
 - `portfoliostage.html`: page id `portfoliostage`; nav id `portfoliostage`; hooks required `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`; optional `[data-portfolio-stage-filter]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; features `portfolio-stage`, `screensaver`

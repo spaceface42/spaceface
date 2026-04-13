@@ -5,7 +5,7 @@ This note captures where the framework-evolution work stands on the repo right n
 ## Current Working State
 
 - Branch: `codex/framework-phase1`
-- Status: work is in progress and not yet committed on this branch
+- Status: the framework evolution plan is complete in practice; any current local changes on this branch are follow-up cleanup outside the plan
 - Latest full validation run passed:
   - `npm run typecheck:docs`
   - `npm run build:lib`
@@ -79,7 +79,7 @@ From the near-term execution plan in `FRAMEWORK_EVOLUTION_PLAN.md`:
 - Done: add host-scoped registry startup
 - Done: apply root-scoped keyboard handling to the main interactive pilot features
 - Done: dogfood the `FeatureMountContext.services` surface across representative built-in features without changing the single screensaver-owned pause model
-- Started: move screensaver and editorial features behind clearer module boundaries
+- Done: move screensaver and editorial features behind clearer module boundaries
 - Done: add a minimal example that uses only the core runtime
 - Done: add package-level compatibility coverage for the core/editorial/screensaver package entry shape
 
@@ -105,9 +105,9 @@ The runtime registration API now uses `featureId` only:
 - app contract feature entries now use `featureId`
 - route and partial manifests now use `featureIds`
 
-### 3. Move Screensaver And Editorial Features Behind Clearer Module Boundaries
+### 3. Screensaver And Editorial Features Now Sit Behind Clearer Module Boundaries
 
-This is the largest remaining framework step.
+This planned framework step is now done.
 
 Likely shape:
 
@@ -120,11 +120,12 @@ Important constraint:
 
 - the screensaver stays singleton-only even if module boundaries become cleaner
 
-Current first slice:
+Current shipped shape:
 
 - root exports are now core-focused
 - optional package entries exist for editorial and screensaver features
 - the current site already consumes those new boundaries internally
+- regression coverage now explicitly proves two host-scoped registries can coexist on the same page
 
 ### 4. Add A Minimal Core-Only Example
 
@@ -189,4 +190,4 @@ Current verdict:
 
 ## Resume Reminder
 
-The current work is still sitting as local branch changes on `codex/framework-phase1`, not as a committed checkpoint yet.
+The framework evolution itself no longer needs a resume checkpoint. If future local changes exist on `codex/framework-phase1`, treat them as follow-up app or cleanup work unless they explicitly reopen the plan.

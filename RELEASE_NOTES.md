@@ -26,10 +26,8 @@
 
 ### Public Pages
 
-- Added a progressive startup intro to `public/index.html` with authored `data-startup-*` markup plus a self-contained startup partial under `public/resources/features/startup-sequence/`.
-- Simplified the startup intro to one app-owned boot path and restyled it around a full-screen SVG transparency-layer background.
-- Added `public/demo3.html` and `public/resources/demo3.css` as a surreal anti-UX landing-page experiment with a third demo route.
-- Added `public/demo2.html` and `public/resources/demo2.css` as an even stranger sibling landing-page experiment with its own nav route.
+- Removed the app-owned startup intro layer from `public/index.html` and deleted the now-unused startup partial markup.
+- Removed `public/demo2.html`, `public/demo3.html`, and their dedicated demo-only stylesheets.
 - Removed the original `public/demo.html` landing-page experiment and its dedicated `public/resources/demo.css` stylesheet.
 - Removed `public/skeleton.html` and its dedicated `public/resources/spacesuit/skeleton.css` starter stylesheet.
 - Added a manual screensaver shortcut: `Ctrl+Shift+.` on all platforms.
@@ -37,11 +35,11 @@
 - Moved the portfolio-stage demo presentation styles out of inline page markup and into `public/resources/spacesuit/features/portfolio-stage.css`.
 - Switched the shared site typography over to ArrivalApercuMonoPro.
 - Refactored the screensaver into a scene-based idle shell with authored `floating-images` and `attractor` scene partials.
-- Added `AttractorSceneFeature` as the editorial scene runtime and switched `demo3.html` back to the shared screensaver shell with `data-screensaver-scene="attractor"` and `data-screensaver-idle-ms="120000"`.
+- Added `AttractorSceneFeature` as the editorial scene runtime for authored screensaver scenes.
 
 ### Runtime Fixes
 
-- Added app-owned `initStartupSequence()` startup wiring with layout-target fallback, click-to-dismiss support, and one app-specific playback path.
+- Removed `initStartupSequence()` and simplified app boot down to nav state, activity tracking, and feature registry startup.
 - Restored `PortfolioStageFeature` authored DOM state during destroy so `data-feature` deactivation and replacement clean up safely.
 - Formalized `portfolio-stage` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
 - Formalized `screensaver` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.

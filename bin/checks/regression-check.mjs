@@ -10,7 +10,6 @@ async function run() {
       sourcefile: "regression-check-harness.ts",
       contents: `
         export { FeatureRegistry } from "./src/core/feature.ts";
-        export { initStartupSequence } from "./app/startup/initStartupSequence.ts";
         export { SlideshowFeature, SlidePlayerFeature, FloatingImagesFeature, PortfolioStageFeature } from "./src/editorial.ts";
         export { ScreensaverFeature, AttractorSceneFeature, screensaverActiveSignal } from "./src/screensaver.ts";
         export { PauseAwareStatusFeature } from "./examples/public-api/PauseAwareStatusFeature.ts";
@@ -67,11 +66,9 @@ async function run() {
       testFeatureRegistryFeatureIdValidation(runtime);
       testPublicApiCustomFeatureExample(runtime);
       testFeatureRegistryHostScopedStart(runtime);
+      testFeatureRegistrySupportsMultipleRoots(runtime);
       await testFeatureRegistryAsyncMountFailure(runtime);
       await testFeatureRegistryAsyncMountAbort(runtime);
-      testStartupSequenceNoopWhenMarkupIsIncomplete(runtime);
-      testStartupSequenceCompletesOnce(runtime);
-      testStartupSequenceFallsBackToAppLayout(runtime);
       testSlideshowScreensaverPause(runtime);
       testSlideshowAutoplayResumeUsesRemainingTime(runtime);
       testSlideshowManualNavigationResetsAutoplay(runtime);
@@ -284,6 +281,56 @@ function testFeatureRegistryHostScopedStart(runtime) {
   restoreDomGlobals();
 }
 
+function testFeatureRegistrySupportsMultipleRoots(runtime) {
+  const observerState = installMutationObserverStub();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  class ScopedProbeFeature {
+    static leftMounts = 0;
+    static rightMounts = 0;
+
+    constructor(label) {
+      this.label = label;
+    }
+
+    mount() {
+      if (this.label === "left") {
+        ScopedProbeFeature.leftMounts += 1;
+        return;
+      }
+      ScopedProbeFeature.rightMounts += 1;
+    }
+  }
+
+  const leftRoot = new FakeElement("section", { id: "left-root", "data-feature": "probe" });
+  leftRoot.append(new FakeElement("div", { "data-feature": "probe" }));
+  const rightRoot = new FakeElement("section", { id: "right-root", "data-feature": "probe" });
+  rightRoot.append(new FakeElement("div", { "data-feature": "probe" }));
+
+  body.append(leftRoot);
+  body.append(rightRoot);
+  body.append(new FakeElement("div", { "data-feature": "probe" }));
+
+  const leftRegistry = new runtime.FeatureRegistry();
+  leftRegistry.register(createDefinition("probe", () => new ScopedProbeFeature("left")));
+  leftRegistry.start(leftRoot);
+
+  const rightRegistry = new runtime.FeatureRegistry();
+  rightRegistry.register(createDefinition("probe", () => new ScopedProbeFeature("right")));
+  rightRegistry.start(rightRoot);
+
+  assert.equal(observerState.observers.length, 2, "each registry should install its own observer");
+  assert.equal(observerState.observers[0].target, leftRoot, "left registry should observe only the left root");
+  assert.equal(observerState.observers[1].target, rightRoot, "right registry should observe only the right root");
+  assert.equal(ScopedProbeFeature.leftMounts, 2, "left registry should mount only features inside the left root");
+  assert.equal(ScopedProbeFeature.rightMounts, 2, "right registry should mount only features inside the right root");
+
+  leftRegistry.stop();
+  rightRegistry.stop();
+  restoreDomGlobals();
+}
+
 async function testFeatureRegistryAsyncMountFailure(runtime) {
   const observerState = installMutationObserverStub();
   const body = new FakeElement("body");
@@ -392,93 +439,6 @@ async function testFeatureRegistryAsyncMountAbort(runtime) {
     globalThis.queueMicrotask = originalQueueMicrotask;
     restoreDomGlobals();
   }
-}
-
-function testStartupSequenceNoopWhenMarkupIsIncomplete(runtime) {
-  const body = new FakeElement("body");
-  installDomGlobals(body);
-
-  const root = new FakeElement(
-    "div",
-    {
-      "data-startup-sequence": "",
-      "data-layout-target": "#app",
-    },
-    { hidden: true }
-  );
-  root.append(new FakeElement("div", { "data-startup-splash": "" }));
-  body.append(root);
-  body.append(new FakeElement("main", { id: "app", "data-startup-layout": "" }));
-
-  runtime.initStartupSequence();
-  assert.equal(body.classList.contains("has-startup-lock"), false, "startup no-ops should not lock scrolling");
-  assert.equal(root.hidden, true, "startup no-ops should preserve authored hidden state");
-
-  restoreDomGlobals();
-}
-
-function testStartupSequenceCompletesOnce(runtime) {
-  const clock = installFakeClock();
-  const body = new FakeElement("body");
-  installDomGlobals(body);
-
-  const root = createStartupSequenceRoot({ hidden: true, layoutTarget: "#app" });
-  const layout = new FakeElement("main", { id: "app", "data-startup-layout": "" });
-  body.append(root);
-  body.append(layout);
-
-  runtime.initStartupSequence();
-  assert.equal(root.hidden, false, "external startup roots should unhide while active");
-  assert.equal(root.classList.contains("is-startup-active"), true, "startup root should receive the active class");
-  assert.equal(layout.classList.contains("is-startup-layout-hidden"), true, "target layout should stay hidden during the intro");
-  assert.equal(body.classList.contains("has-startup-lock"), true, "startup sequence should lock page scrolling during playback");
-
-  clock.advance(40);
-  assert.equal(root.classList.contains("is-startup-intro-visible"), true, "startup intro should become visible after its delay");
-  assert.equal(
-    root.querySelector("[data-startup-intro]").classList.contains("is-hidden"),
-    false,
-    "startup intro should remove the hidden helper class once revealed"
-  );
-
-  clock.advance(60);
-  assert.equal(root.getAttribute("data-startup-complete"), "true", "startup sequence should mark completed roots");
-  assert.equal(layout.classList.contains("is-startup-layout-hidden"), false, "layout should be revealed when startup completes");
-  assert.equal(body.classList.contains("has-startup-lock"), false, "scrolling should unlock once startup completes");
-
-  clock.advance(24);
-  assert.equal(root.hidden, false, "startup cleanup should wait for the authored exit duration");
-
-  clock.advance(336);
-  assert.equal(root.hidden, true, "external startup roots should hide again after exit cleanup");
-  assert.equal(root.classList.contains("is-startup-active"), false, "startup cleanup should remove runtime classes");
-
-  runtime.initStartupSequence();
-  assert.equal(root.classList.contains("is-startup-active"), false, "completed startup roots should not replay by default");
-
-  clock.restore();
-  restoreDomGlobals();
-}
-
-function testStartupSequenceFallsBackToAppLayout(runtime) {
-  const clock = installFakeClock();
-  const body = new FakeElement("body");
-  installDomGlobals(body);
-
-  const root = createStartupSequenceRoot({ hidden: true });
-  root.removeAttribute("data-layout-target");
-  const layout = new FakeElement("main", { id: "app", "data-startup-layout": "" });
-  body.append(root);
-  body.append(layout);
-
-  runtime.initStartupSequence();
-  assert.equal(layout.classList.contains("is-startup-layout-hidden"), true, "startup should fall back to the default app layout");
-
-  clock.advance(100);
-  assert.equal(layout.classList.contains("is-startup-layout-hidden"), false, "default app layout should be revealed when the intro finishes");
-
-  clock.restore();
-  restoreDomGlobals();
 }
 
 function testSlideshowScreensaverPause(runtime) {
@@ -1819,14 +1779,27 @@ async function testFloatingImagesRestoreInlineStyles(runtime) {
 }
 
 function installMutationObserverStub() {
-  const state = { callback: () => {}, target: null, options: null };
+  const observers = [];
+  const state = {
+    observers,
+    get callback() {
+      return observers.at(-1)?.callback ?? (() => {});
+    },
+    get target() {
+      return observers.at(-1)?.target ?? null;
+    },
+    get options() {
+      return observers.at(-1)?.options ?? null;
+    },
+  };
   globalThis.MutationObserver = class {
     constructor(callback) {
-      state.callback = callback;
+      this.record = { callback, target: null, options: null };
+      observers.push(this.record);
     }
     observe(target, options) {
-      state.target = target;
-      state.options = options;
+      this.record.target = target;
+      this.record.options = options;
     }
     disconnect() {}
   };
@@ -2019,28 +1992,6 @@ function createSlideshowRoot() {
   root.append(new FakeElement("article", { "data-slide": "" }));
   root.append(new FakeElement("article", { "data-slide": "" }, { hidden: true }));
   root.append(new FakeElement("article", { "data-slide": "" }, { hidden: true }));
-  return root;
-}
-
-function createStartupSequenceRoot({ hidden = false, layoutTarget = null } = {}) {
-  const attributes = {
-    "data-startup-sequence": "",
-    "data-delay": "100",
-    "data-intro-delay": "40",
-  };
-
-  if (layoutTarget) {
-    attributes["data-layout-target"] = layoutTarget;
-  }
-
-  const root = new FakeElement("div", attributes, { hidden });
-  const splash = new FakeElement("div", { "data-startup-splash": "" });
-  const intro = new FakeElement("p", { "data-startup-intro": "" });
-  intro.classList.add("is-hidden");
-
-  root.append(splash);
-  root.append(intro);
-
   return root;
 }
 
