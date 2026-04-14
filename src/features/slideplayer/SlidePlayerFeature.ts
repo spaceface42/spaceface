@@ -16,6 +16,9 @@ export interface SlidePlayerFeatureOptions {
 export class SlidePlayerFeature implements Feature {
   private static readonly SWIPE_THRESHOLD_PX = 36;
   private static readonly SWIPE_OFF_AXIS_THRESHOLD_PX = 24;
+  private static readonly PROGRESS_PROPERTY = "--slideplayer-progress";
+  private static readonly PROGRESS_WIDTH_PROPERTY = "--slideplayer-progress-width";
+  private static readonly PROGRESS_DURATION_PROPERTY = "--slideplayer-progress-duration";
   private static activeMountCount = 0;
 
   private options: Required<SlidePlayerFeatureOptions>;
@@ -132,6 +135,7 @@ export class SlidePlayerFeature implements Feature {
     this.swipeStartX = 0;
     this.swipeStartY = 0;
     this.addedRootTabIndex = false;
+    this.resetBulletProgress();
     if (this.countedAsMounted) {
       SlidePlayerFeature.activeMountCount = Math.max(0, SlidePlayerFeature.activeMountCount - 1);
       this.countedAsMounted = false;
@@ -295,6 +299,8 @@ export class SlidePlayerFeature implements Feature {
       bullet.classList.toggle(this.options.activeClass, isActive);
       bullet.setAttribute("aria-current", isActive ? "true" : "false");
     }
+
+    this.syncBulletProgressVisual();
   }
 
   private scheduleNextAutoplay(waitMs: number): void {
@@ -303,6 +309,7 @@ export class SlidePlayerFeature implements Feature {
     }
     this.autoplayStartTime = Date.now();
     this.autoplayRemainingMs = waitMs;
+    this.startBulletProgress(waitMs);
     this.autoplayTimer = window.setTimeout(() => {
       this.next(false);
       this.scheduleNextAutoplay(this.options.autoplayMs);
@@ -319,15 +326,23 @@ export class SlidePlayerFeature implements Feature {
   private updateAutoplayState(): void {
     if (this.options.autoplayMs <= 0) {
       this.clearAutoplay();
+      this.syncBulletProgressVisual();
       return;
     }
 
-    if (!this.root || this.slides.length <= 1 || this.pausedByScreensaver) {
+    if (!this.root || this.slides.length <= 1) {
+      this.clearAutoplay();
+      this.syncBulletProgressVisual();
+      return;
+    }
+
+    if (this.pausedByScreensaver) {
       if (this.autoplayTimer !== null) {
         const elapsed = Date.now() - this.autoplayStartTime;
         this.autoplayRemainingMs = Math.max(0, this.autoplayRemainingMs - elapsed);
         this.clearAutoplay();
       }
+      this.freezeBulletProgress();
       return;
     }
 
@@ -339,6 +354,63 @@ export class SlidePlayerFeature implements Feature {
     if (this.autoplayTimer === null) return;
     clearTimeout(this.autoplayTimer);
     this.autoplayTimer = null;
+  }
+
+  private syncBulletProgressVisual(): void {
+    this.resetBulletProgress();
+
+    if (!this.root || this.bullets.length === 0) return;
+    if (this.options.autoplayMs <= 0 || this.slides.length <= 1) return;
+    if (this.pausedByScreensaver) {
+      this.freezeBulletProgress();
+    }
+  }
+
+  private startBulletProgress(waitMs: number): void {
+    if (!this.root || this.bullets.length === 0) return;
+    if (this.options.autoplayMs <= 0 || this.slides.length <= 1) return;
+
+    const activeBullet = this.bullets[this.index];
+    if (!activeBullet) return;
+
+    const safeWaitMs = Math.max(0, waitMs);
+    const startProgress = clamp(
+      1 - safeWaitMs / this.options.autoplayMs,
+      0,
+      1,
+    );
+
+    this.setBulletProgress(activeBullet, startProgress, 0);
+    activeBullet.getBoundingClientRect();
+    this.setBulletProgress(activeBullet, 1, safeWaitMs);
+  }
+
+  private freezeBulletProgress(): void {
+    if (!this.root || this.bullets.length === 0) return;
+    if (this.options.autoplayMs <= 0 || this.slides.length <= 1) return;
+
+    const activeBullet = this.bullets[this.index];
+    if (!activeBullet) return;
+
+    const progress = clamp(
+      (this.options.autoplayMs - this.autoplayRemainingMs) / this.options.autoplayMs,
+      0,
+      1,
+    );
+    this.setBulletProgress(activeBullet, progress, 0);
+  }
+
+  private resetBulletProgress(): void {
+    for (const bullet of this.bullets) {
+      this.setBulletProgress(bullet, 0, 0);
+    }
+  }
+
+  private setBulletProgress(button: HTMLButtonElement, progress: number, durationMs: number): void {
+    const safeProgress = clamp(progress, 0, 1);
+    setStyleProperty(button, SlidePlayerFeature.PROGRESS_PROPERTY, String(safeProgress));
+    setStyleProperty(button, SlidePlayerFeature.PROGRESS_WIDTH_PROPERTY, `${safeProgress * 100}%`);
+    setStyleProperty(button, SlidePlayerFeature.PROGRESS_DURATION_PROPERTY, `${Math.max(0, durationMs)}ms`);
   }
 
   private focusRoot(): void {
@@ -395,4 +467,21 @@ function releasePointerCapture(target: HTMLElement | null, pointerId: number): v
   } catch {
     // Pointer capture release should never break the interaction path.
   }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function setStyleProperty(node: HTMLElement, name: string, value: string): void {
+  const style = node.style as CSSStyleDeclaration & Record<string, string> & {
+    setProperty?: (propertyName: string, propertyValue: string) => void;
+  };
+
+  if (typeof style.setProperty === "function") {
+    style.setProperty(name, value);
+    return;
+  }
+
+  style[name] = value;
 }
