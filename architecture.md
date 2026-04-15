@@ -49,6 +49,16 @@ Current package direction:
 - the site app still boots from `app/main.ts`
 - Phase 1 packaging work keeps the current site intact while making the runtime buildable as a reusable package with clearer optional-module boundaries
 
+## Framework Evolution Completed
+
+The framework-evolution pass is now part of the current architecture rather than an active roadmap item.
+
+- the reusable runtime ships from `dist/`
+- the supported public package shape is `spaceface`, `spaceface/editorial`, and `spaceface/screensaver`
+- host-scoped registry startup is supported, and regression coverage now proves multiple host roots can coexist on one page
+- the screensaver remains the only pause source and a deliberate singleton authored contract
+- the older evolution plan and handoff notes now live under `_history/`
+
 ## Core Runtime Pieces
 
 ### Feature Registry

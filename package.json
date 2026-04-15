@@ -27,8 +27,7 @@
         "dist",
         "README.md",
         "RELEASE_NOTES.md",
-        "architecture.md",
-        "FRAMEWORK_EVOLUTION_PLAN.md"
+        "architecture.md"
     ],
     "devDependencies": {
         "@eslint/js": "^9.39.3",

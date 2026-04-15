@@ -144,8 +144,8 @@ It demonstrates:
 ## Related Docs
 
 - [`architecture.md`](./architecture.md)
-- [`FRAMEWORK_EVOLUTION_PLAN.md`](./FRAMEWORK_EVOLUTION_PLAN.md)
-- [`FRAMEWORK_EVOLUTION_STATUS.md`](./FRAMEWORK_EVOLUTION_STATUS.md)
 - [`V4_ARCHITECTURE_NOTE.md`](./V4_ARCHITECTURE_NOTE.md)
 - [`RELEASE_NOTES.md`](./RELEASE_NOTES.md)
 - [`ROADMAP.md`](./ROADMAP.md)
+- Historical notes: [`_history/FRAMEWORK_EVOLUTION_PLAN.md`](./_history/FRAMEWORK_EVOLUTION_PLAN.md)
+- Historical notes: [`_history/FRAMEWORK_EVOLUTION_STATUS.md`](./_history/FRAMEWORK_EVOLUTION_STATUS.md)
