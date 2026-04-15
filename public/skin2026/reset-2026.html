@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+</head>
+<body>
+    
+<style id="reset">
+* {
+    box-sizing: border-box;
+}
+
+::before, ::after {
+    box-sizing: inherit;
+}
+
+html {
+    scrollbar-gutter: stable; /* reserve space */
+}
+
+body {
+    min-block-size: 100svh;
+}
+
+
+:root {
+    --neutron: .5rem;
+}
+
+
+
+
+/*.named resets */
+ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+body, header, main, footer, section p {
+    margin: 0;
+    padding: 0;
+}
+</style>
+
+<style id="layput">
+/* Example usage */
+body {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+header, main, footer {
+    padding: 3rem;
+}
+
+section {
+    min-height: 50vh;
+}
+</style>
+
+<!-- HEADER -->
+<header>
+    <style>
+        header {
+            background-color: #dbdbdc46;
+        }
+        body {
+            background: url('./spaceface.svg') no-repeat fixed;
+        }
+    </style>
+    <h1>
+        <imgX src="./spaceface.svg" alt="" />
+    </h1>
+    <ul aria-label="main-navigation">
+        <li>home</li>
+        <li>about</li>
+        <li>work</li>
+    </ul>
+</header>
+<!-- HEADER -->
+
+
+
+<!-- MAIN -->
+<main>
+    <section>
+        main / section
+        <p>lorem999</p>
+    </section>
+</main>
+<!-- MAIN -->
+
+
+
+<!-- FOOTER -->
+<style>
+footer {
+    margin: 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3rem;
+    background: rgb(225, 225, 225);
+    border-radius: var(--neutron);
+}
+
+footer *:hover {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+footer > :first-child {
+  max-width: 600px;
+}
+
+footer > :last-child {
+  min-width: 100%;
+}
+
+ul:before{
+    content:attr(aria-label);
+    text-transform: uppercase;
+}
+#about {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start; /* or center */
+}
+#about img {
+    width: 100px;
+    display: inline;
+}
+#about p {
+ 
+}
+footer a {
+    color: white;
+}
+footer {
+    /* https://grabient.com/HQNgTAHANMAsEFYZjLKBaYBmAjNTYAnCDLIfnDmBsGCITDgOwk7Z00KHXpsAMfLDAHV+AqGL5Q+QA?angle=210&steps=15 */
+color: white;
+/* https://grabient.com/HQJgnArANKk+1gGYIBYZKQdg0kMA2ARiJggA5yywCpVgwskojhyQqlgtioBaAAzASpVgLwxyWUoIYQCQA */
+
+background: linear-gradient(90deg, #8c6c4d 0.000%, #8a7254 3.030%, #88785c 6.061%, #847c63 9.091%, #80806a 12.121%, #7b8370 15.152%, #758575 18.182%, #6f877a 21.212%, #68887e 24.242%, #608781 27.273%, #588684 30.303%, #4f8485 33.333%, #468286 36.364%, #3d7e86 39.394%, #337a85 42.424%, #2a7583 45.455%, #206f81 48.485%, #17697d 51.515%, #0e6279 54.545%, #055b74 57.576%, #00536f 60.606%, #004b69 63.636%, #004362 66.667%, #003b5b 69.697%, #003253 72.727%, #00294b 75.758%, #002143 78.788%, #00183a 81.818%, #001031 84.848%, #000829 87.879%, #000120 90.909%, #000018 93.939%, #000010 96.970%, #000008 100.000%);
+}
+</style>
+<footer>
+    <ul id="about">
+        <li>
+            <img src="./me-loop.webp" alt="" />
+        </li>
+        <li>
+            <p>SpaceFace.org is where I experiment with new graphical ideas—sometimes unconventional, sometimes strange, but always intentional. I push creative boundaries while striving for clarity.</p>
+        </li>
+    </ul>
+    <ul aria-label="spaceface">
+        <li>home</li>
+        <li>about</li>
+        <li>work</li>
+    </ul>
+    <ul aria-label="Contact"> 
+        <li>Say Hello: <a href="#">email</a></li>
+        <li>Call: <a href="#">phone</a></li>
+    </ul>
+    <ul aria-label="Social"> 
+        <li>Follow me</li>
+        <li><a href="#">face</a></li>
+        <li><a href="#">insta</a></li>
+    </ul>
+    <ul aria-label="POLICY"> 
+        <li><a href="#">impressum</a></li>
+        <li><a href="#">gdpr</a></li>
+        <li><a href="#">Privacy</a></li>
+    </ul>
+    <ul>
+        <li>© 2026 – spaceface – all rights reserved</li>
+    </ul>
+</footer>
+<!-- / FOOTER -->
+
+
+
+
+
+
+
+</body>
+</html>
