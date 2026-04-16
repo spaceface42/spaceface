@@ -6,7 +6,36 @@
     <title>Document</title>
 </head>
 <body>
-    
+
+<div id="splashscreen">
+    <style>
+        #splashscreen {
+            min-height: 100vh;
+            background: rgba(204, 236, 241, .9);
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: center;
+            align-items: center;
+            align-content: stretch;
+            text-align: center;
+        }
+        #logo {
+            display: block;
+
+            position: sticky;
+            width: 256px;
+            align-self: flex-start;
+
+            top: 50%;
+            transform: translateY(-50%);
+            margin: 0 auto;
+
+        }
+    </style>
+    <img id="logo" src="../content/placeholders/face-animated.svg" alt="" />
+</div>
+
 <style id="reset">
 * {
     box-sizing: border-box;
@@ -133,7 +162,7 @@ ul:before{
     display: inline;
 }
 #about p {
- 
+
 }
 footer a {
     color: white;
@@ -160,16 +189,16 @@ background: linear-gradient(90deg, #8c6c4d 0.000%, #8a7254 3.030%, #88785c 6.061
         <li>about</li>
         <li>work</li>
     </ul>
-    <ul aria-label="Contact"> 
+    <ul aria-label="Contact">
         <li>Say Hello: <a href="#">email</a></li>
         <li>Call: <a href="#">phone</a></li>
     </ul>
-    <ul aria-label="Social"> 
+    <ul aria-label="Social">
         <li>Follow me</li>
         <li><a href="#">face</a></li>
         <li><a href="#">insta</a></li>
     </ul>
-    <ul aria-label="POLICY"> 
+    <ul aria-label="POLICY">
         <li><a href="#">impressum</a></li>
         <li><a href="#">gdpr</a></li>
         <li><a href="#">Privacy</a></li>
