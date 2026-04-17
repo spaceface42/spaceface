@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
+    <link rel="stylesheet" href="./reset.css" />
 </head>
 <body>
 
@@ -11,7 +12,7 @@
     <style>
         #splashscreen {
             min-height: 100vh;
-            background: rgba(204, 236, 241, .9);
+            background: rgba(128, 128, 128, 0.426) url('./a.svg');
             display: flex;
             flex-direction: row;
             flex-wrap: nowrap;
@@ -36,54 +37,21 @@
     <img id="logo" src="../content/placeholders/face-animated.svg" alt="" />
 </div>
 
-<style id="reset">
-* {
-    box-sizing: border-box;
-}
-
-::before, ::after {
-    box-sizing: inherit;
-}
-
-html {
-    scrollbar-gutter: stable; /* reserve space */
-}
-
-body {
-    min-block-size: 100svh;
-}
-
-
+<style id="layput">
 :root {
     --neutron: .5rem;
+    --atom: 1rem;
+    --molecule: 3rem;
 }
 
-
-
-
-/*.named resets */
-ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-body, header, main, footer, section p {
-    margin: 0;
-    padding: 0;
-}
-</style>
-
-<style id="layput">
 /* Example usage */
 body {
     display: flex;
     flex-direction: column;
-    gap: 3rem;
 }
 
-header, main, footer {
-    padding: 3rem;
+body, header, main, footer {
+    gap: var(--molecule);
 }
 
 section {
@@ -96,6 +64,7 @@ section {
     <style>
         header {
             background-color: #dbdbdc46;
+            background: url('./a.svg');
         }
         body {
             background: url('./spaceface.svg') no-repeat fixed;
