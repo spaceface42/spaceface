@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>skin</title>
+    <link rel="stylesheet" href="./reset.css" />
+    <link rel="stylesheet" href="./tipo.css" />
+    <link rel="stylesheet" href="./skin.css" />
+</head>
+<body>
+<style>
+    body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--molecule);
+        background: url('./spa_ce_f_ace-15.svg') no-repeat -10px -10px / 70% fixed;
+    }
+    header,
+    main,
+    footer {
+
+    }
+    main {
+        padding: 30px 30px 30px 500px;
+    }
+    ._logo {
+        width: 100px;
+        height: auto;
+    }
+</style>
+
+
+<header>
+<img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" />
+<nav>
+    <ul>
+        <li>spaceface</li>
+        <li>work</li>
+        <li>play</li>
+        <li>contact</li>
+    </ul>
+</nav>
+</header>
+
+
+
+<main>
+
+    <section>
+        <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quaerat eius, cum maxime ipsum ex sed quis amet fugiat, explicabo, iure facere? Impedit temporibus facilis natus vitae esse harum. Quae, error.</p>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Corrupti esse soluta, dolorum tempora numquam consectetur molestias, non, ipsum saepe suscipit ducimus accusantium eveniet aperiam eaque. Consectetur culpa, sapiente, illum eligendi neque, cumque architecto quis voluptatem laudantium ab ipsa excepturi asperiores porro expedita nisi beatae vitae illo. Ducimus laudantium dicta optio ea amet dolores tenetur eligendi at veniam dolor aspernatur voluptas ut minima itaque perferendis, sapiente odio cumque eveniet possimus similique maxime iste fugiat eaque. Corrupti cumque odit aspernatur culpa repellat blanditiis voluptate porro, aliquid tempora. Velit impedit asperiores nostrum voluptas architecto commodi eius reiciendis, aperiam aliquam eligendi porro sit et temporibus reprehenderit in enim labore doloremque expedita debitis aut vel corporis consectetur veritatis? Sapiente eveniet itaque, dignissimos aperiam repellat culpa voluptatibus accusamus, ipsa quos nemo fugit delectus voluptas quibusdam dolor dolore id illum a! Debitis dignissimos dicta aliquam. Voluptas deserunt, amet perferendis quam debitis nemo facere cupiditate architecto sint commodi in fugiat, ipsa saepe temporibus? Sed neque dolorem non magni nulla. Veniam suscipit nesciunt blanditiis omnis, consectetur natus voluptates libero, aliquid veritatis ullam laborum architecto illum ad minus excepturi doloribus odit laudantium, vitae eos placeat numquam fugiat! Dolorum vitae quia explicabo illo eius sequi aut ea architecto, ex quas, expedita accusantium reiciendis eligendi praesentium ipsam iste incidunt minus ipsa ab. Fugit perspiciatis dolor unde? Sit, minus dolores. Neque delectus tempora ut. Nobis!</p>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Neque doloribus sunt recusandae rerum officiis! Voluptate veniam perferendis modi dolor, officia ipsam tempora nobis earum laboriosam illum doloremque, aliquid ex praesentium nemo qui vero voluptatum autem numquam nulla temporibus placeat iste, deleniti excepturi? Accusantium cum officiis repellendus earum asperiores eum nostrum deleniti! Beatae harum animi nobis sit repellendus, voluptatem illo debitis unde ea eos odit architecto doloremque voluptate nam iste est? Voluptatem porro modi eum quae totam ipsam cupiditate saepe harum aut libero voluptates vel itaque ipsum minima consectetur distinctio voluptate dolore, quisquam rem similique eveniet eligendi accusantium. Reiciendis aliquid, ab pariatur velit optio facilis et. Nihil qui sint iure ipsum sequi?</p>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Optio animi quisquam ducimus, aspernatur error ad accusantium consectetur asperiores, quod in magni, doloremque maiores ab non repellat dolore nostrum libero eveniet cumque totam! Animi atque perferendis illo ullam quae! Odit, animi non repellat pariatur repudiandae earum ad molestiae obcaecati magnam! Deserunt veniam ratione numquam repudiandae dolorem.</p>
+    </section>
+<section>
+    <h2>Intrinsic layout</h2>
+    <p>
+        This page uses intrinsic, constraint-based CSS. Instead of defining fixed
+        layouts for specific screen sizes, the elements describe how they want to
+        flow, wrap, and share space. The browser decides the final layout based on
+        the available room, keeping the design fluid, simple, and less prescriptive.
+    </p>
+    I’d call it constraint-based CSS or intrinsic layout.
+
+More natural phrases for the style you mean:
+
+intrinsic web design: let content, available space, and browser layout rules decide more of the behavior
+fluid layout: adapts continuously instead of jumping at fixed breakpoints
+constraint-based styling: define gentle rules like min size, wrapping, and flow instead of exact layouts
+less prescriptive CSS: describe intent without locking every viewport state
+content-first layout: the content’s natural size drives the layout
+progressive CSS: start with simple natural behavior, add rules only when needed
+For your footer example, the principle is basically:
+
+“Set relationships and constraints, not exact device-specific layouts.”
+
+So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-heavy, prescriptive CSS.”
+</section>
+
+</main>
+
+
+
+<footer>
+<style>
+footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--atom);
+
+    padding: var(--atom);
+
+    background-color: cornflowerblue;
+}
+
+footer ul {
+    flex: 1 1 14rem;
+}
+
+footer ul:last-of-type {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+footer ul:last-of-type li {
+    flex: 1 1 8rem;
+    background-color: aqua;
+}
+</style>
+<img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" />
+<ul>
+    <li>spaceface</li>
+    <li>home</li>
+    <li>about</li>
+    <li>work</li>
+</ul>
+<ul>
+    <li>social</li>
+    <li>insta</li>
+    <li>linkedin</li>
+    <li>face</li>
+</ul>
+<ul>
+    <li>legal</li>
+    <li>impressium</li>
+    <li>gdpr</li>
+    <li>cookies</li>
+</ul>
+<ul>
+    <li>All artwork, unless otherwise stated, is copyrighted by spaceface | 2026 ®</li>
+</ul>
+</footer>
+
+
+
+</body>
+</html>

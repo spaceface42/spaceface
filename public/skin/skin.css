@@ -2,9 +2,21 @@
 
 /* variables */
 :root {
+    --neutrino: .3rem;
+    --atom: 1rem;
+    --molecule: 3rem;
+
     --fs:3.3vw;
-    --gutter: 10px;
+    --gutter: var(--molecule);
     --bgcolor: rgba(157, 204, 233, 0.2);
+}
+
+
+
+/* layout */
+body {
+    padding: var(--molecule);
+    background-color: var(--bgcolor);
 }
 
 @media (max-width: 720px) {
@@ -14,32 +26,4 @@
     }
 }
 
-/* layout */
-body {
-    padding: var(--gutter);
-    background-color: var(--bgcolor);
-}
-
-header {
-
-}
-
-main {
-
-}
-
-footer {
-
-}
-
-
-/* atomic */
-
-h1 {
-
-}
-
-nav {
-
-}
 
