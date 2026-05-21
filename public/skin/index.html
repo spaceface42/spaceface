@@ -10,6 +10,16 @@
 </head>
 <body>
 <style>
+    /*.atomic */
+
+    body {
+        color: rgba(66, 66, 66, 1);
+    }
+
+    a {
+        color: inherit;
+    }
+
     body {
         display: flex;
         flex-direction: column;
@@ -39,10 +49,9 @@
 <img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" />
 <nav>
     <ul>
-        <li>spaceface</li>
-        <li>work</li>
-        <li>play</li>
-        <li>contact</li>
+        <li><a href="work">work</a></li>
+        <li><a href="play">play</a></li>
+        <li><a href="contact">contact</a></li>
     </ul>
 </nav>
 </header>
@@ -50,7 +59,8 @@
 
 
 <main>
-
+    <h1>Spaceface — Graphic Design by Zsolt Sandor</h1>
+    <p>Graphic design, branding and visual identity work.</p>
     <section>
         <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quaerat eius, cum maxime ipsum ex sed quis amet fugiat, explicabo, iure facere? Impedit temporibus facilis natus vitae esse harum. Quae, error.</p>
         <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Corrupti esse soluta, dolorum tempora numquam consectetur molestias, non, ipsum saepe suscipit ducimus accusantium eveniet aperiam eaque. Consectetur culpa, sapiente, illum eligendi neque, cumque architecto quis voluptatem laudantium ab ipsa excepturi asperiores porro expedita nisi beatae vitae illo. Ducimus laudantium dicta optio ea amet dolores tenetur eligendi at veniam dolor aspernatur voluptas ut minima itaque perferendis, sapiente odio cumque eveniet possimus similique maxime iste fugiat eaque. Corrupti cumque odit aspernatur culpa repellat blanditiis voluptate porro, aliquid tempora. Velit impedit asperiores nostrum voluptas architecto commodi eius reiciendis, aperiam aliquam eligendi porro sit et temporibus reprehenderit in enim labore doloremque expedita debitis aut vel corporis consectetur veritatis? Sapiente eveniet itaque, dignissimos aperiam repellat culpa voluptatibus accusamus, ipsa quos nemo fugit delectus voluptas quibusdam dolor dolore id illum a! Debitis dignissimos dicta aliquam. Voluptas deserunt, amet perferendis quam debitis nemo facere cupiditate architecto sint commodi in fugiat, ipsa saepe temporibus? Sed neque dolorem non magni nulla. Veniam suscipit nesciunt blanditiis omnis, consectetur natus voluptates libero, aliquid veritatis ullam laborum architecto illum ad minus excepturi doloribus odit laudantium, vitae eos placeat numquam fugiat! Dolorum vitae quia explicabo illo eius sequi aut ea architecto, ex quas, expedita accusantium reiciendis eligendi praesentium ipsam iste incidunt minus ipsa ab. Fugit perspiciatis dolor unde? Sit, minus dolores. Neque delectus tempora ut. Nobis!</p>
@@ -92,10 +102,20 @@ footer {
     display: flex;
     flex-wrap: wrap;
     gap: var(--atom);
-
     padding: var(--atom);
+    padding-top: 12vh;
+    /* min-height: 100vh; */
 
-    background-color: cornflowerblue;
+    font-size: 10pt;
+    text-transform: uppercase;
+    background-color: rgba(35, 3, 111, 0.196);
+      backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* Safari */
+
+    border-radius: var(--atom);
+
+    position: relative;
+    inset: 60px 60px 60px 60px;
 }
 
 footer ul {
@@ -106,19 +126,20 @@ footer ul:last-of-type {
     flex-basis: 100%;
     display: flex;
     flex-wrap: wrap;
-    gap: 24px;
+    gap: var(--atom);
 }
 footer ul:last-of-type li {
     flex: 1 1 8rem;
-    background-color: aqua;
 }
 </style>
-<img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" />
+<ul>
+    <li><img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" /></li>
+</ul>
 <ul>
     <li>spaceface</li>
-    <li>home</li>
-    <li>about</li>
-    <li>work</li>
+    <li><a href="#home">home</a></li>
+    <li><a href="#about">about</a></li>
+    <li><a href="#work">work</a></li>
 </ul>
 <ul>
     <li>social</li>
@@ -128,12 +149,11 @@ footer ul:last-of-type li {
 </ul>
 <ul>
     <li>legal</li>
-    <li>impressium</li>
-    <li>gdpr</li>
-    <li>cookies</li>
+    <li><a href="./legal/impressium.html">impressium</a></li>
+    <li><a href="./legal/gdpr.html">gdpr</a></li>
 </ul>
 <ul>
-    <li>All artwork, unless otherwise stated, is copyrighted by spaceface | 2026 ®</li>
+    <li>2026 All rights reserved</li>
 </ul>
 </footer>
 

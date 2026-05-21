@@ -6,7 +6,8 @@
     --atom: 1rem;
     --molecule: 3rem;
 
-    --fs:3.3vw;
+    --fs:1rem;
+    --lh:1.5rem;
     --gutter: var(--molecule);
     --bgcolor: rgba(157, 204, 233, 0.2);
 }
