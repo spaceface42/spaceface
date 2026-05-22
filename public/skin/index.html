@@ -110,12 +110,13 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     display: flex;
     flex-wrap: wrap;
     gap: var(--molecule);
+    align-items: baseline;
     padding: var(--atom);
     padding-block-start: var(--macromolecule);
 
 
     background-color: rgba(125, 125, 125, 0.1);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(var(--atom));
     -webkit-backdrop-filter: blur(10px); /* Safari */
     border-radius: var(--atom);
 
@@ -127,17 +128,15 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     margin: var(--macromolecule);
     margin-left: 25vw;
     margin-right: 0;
-    /*
+
     min-height: calc(
-        100vh - var(--footer-block-start) - var(--footer-block-end);
-        100dvh - var(--footer-block-start) - var(--footer-block-end);
+        100dvh - var(--footer-block-start) - var(--footer-block-end)
     );
-    */
 }
 
 .site-footer__bio {
-    flex: 1 1 50%;
-    padding-right: var(--macromolecule);
+    flex: 1 1 100%;
+    padding-right: var(--molecule);
 }
 
 .site-footer__bio img {
@@ -147,6 +146,12 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     float: left;
     margin-inline-end: var(--atom);
     margin-block-end: var(--atom);
+}
+
+.site-footer__bio p {
+    all: inherit;
+    max-width: 82ch;
+    min-width: 42ch;
 }
 
 .site-footer__brand, .site-footer__nav {
@@ -162,11 +167,6 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     flex-basis: 100%;
     padding-block-start: var(--macromolecule);
 }
-
-.site-footer p {
-  max-width: 82ch;
-  min-width: 42ch;
-}
 </style>
 
 <section class="site-footer__bio" aria-labelledby="footer-bio">
@@ -174,7 +174,29 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     <p><img src="./me.webp" alt="Portrait of Zsolt Sandor" /> SpaceFace.org is where I experiment with new graphical ideas—sometimes unconventional, sometimes strange, but always intentional. I push creative boundaries while striving for clarity.</p>
     <p>This space is a blend of thoughtful design and ongoing exploration, where I try to balance uniqueness with understandability.</p>
     <p>Interested in collaborating or learning more? Feel free to reach out to me!</p>
-    <a href="./cv.html">View CV</a>
+    <style>
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-inline-size: min(100%, 36rem);
+  min-block-size: 2.6rem;
+  padding-inline: 1rem;
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(
+    90deg,
+    #ff4f3f 0%,
+    #ff6a58 55%,
+    #f87566 100%
+  );
+  letter-spacing: 0.18em;
+  text-decoration: none;
+  line-height: 1;
+  display: inline;
+}
+    </style>
+    <a class="cta" href="./cv.html">View CV</a>
 </section>
 
 <!--
