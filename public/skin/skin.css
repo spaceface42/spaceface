@@ -6,6 +6,9 @@
     --atom: 1rem;
     --molecule: 3rem;
 
+    --molecule: clamp(24px, 4vw, 60px);
+    --organism: clamp(48px, 8vw, 120px);
+
     --fs:1rem;
     --lh:1.5rem;
     --gutter: var(--molecule);

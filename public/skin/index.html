@@ -36,7 +36,7 @@
         top: 0;
     }
     main {
-        padding: 30px 30px 30px 500px;
+        padding-inline: var(--page-inline);
     }
     ._logo {
         width: 80px;
@@ -104,19 +104,21 @@ footer {
     gap: var(--atom);
     padding: var(--atom);
     padding-top: 12vh;
-    /* min-height: 100vh; */
+    min-height: 100vh;
 
     font-size: 10pt;
     text-transform: uppercase;
-    background-color: rgba(35, 3, 111, 0.196);
+    background-color: rgba(35, 3, 111, 0.05);
       backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px); /* Safari */
 
     border-radius: var(--atom);
 
-    position: relative;
-    inset: 60px 60px 60px 60px;
-}
+
+    margin-inline: var(--page-inline);
+    margin-block-start: var(--section-block);
+    margin-block-end: var(--page-inline);
+    }
 
 footer ul {
     flex: 1 1 14rem;
