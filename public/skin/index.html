@@ -28,11 +28,7 @@
         gap: var(--molecule);
         background: url('./spa_ce_f_ace-15.svg') no-repeat -10px -10px / 70% fixed;
     }
-    header,
-    main,
-    footer {
 
-    }
     header {
         position: sticky;
         top: 0;
@@ -40,6 +36,13 @@
     main {
         padding-inline: var(--page-inline);
     }
+
+
+    header, main {
+        margin: var(--macromolecule);
+    }
+
+
     ._logo {
         width: 80px;
         height: auto;
@@ -98,86 +101,121 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
 
 
 
-<footer>
+<footer class="site-footer">
 <style data-css="component">
-footer {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--atom);
-
-    padding: var(--atom);
-    padding-top: 12vh;
-    min-height: 100vh;
-
+.site-footer {
     font-size: 10pt;
     text-transform: uppercase;
 
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--molecule);
+    padding: var(--atom);
+    padding-block-start: var(--macromolecule);
+
+
     background-color: rgba(125, 125, 125, 0.1);
-    /* background-blend-mode: multiply;
-    mix-blend-mode: multiply; */
-
-    border-radius: var(--atom);
-
-    margin-inline: var(--page-inline);
-    margin-block-start: var(--section-block);
-    margin-block-end: var(--page-inline);
-
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px); /* Safari */
+    border-radius: var(--atom);
 
-
-
-    /* left + right */
-    margin-inline: var(--page-inline);
-
-    /* top + bottom */
-    margin-block: var(--section-block);
-
-    margin-inline: var(--page-inline);
+    margin-inline: var(--page-inline); /* left + right */
+    margin-block: var(--section-block); /* top + bottom */
     margin-block-start: var(--footer-block-start);
     margin-block-end: var(--footer-block-end);
 
+    margin: var(--macromolecule);
+    margin-left: 25vw;
+    margin-right: 0;
+    /*
     min-height: calc(
-        100dvh - var(--footer-block-start) - var(--footer-block-end)
+        100vh - var(--footer-block-start) - var(--footer-block-end);
+        100dvh - var(--footer-block-start) - var(--footer-block-end);
     );
+    */
+}
 
+.site-footer__bio {
+    flex: 1 1 50%;
+    padding-right: var(--macromolecule);
 }
-footer ul {
-    flex: 1 1 14rem;
+
+.site-footer__bio img {
+    width: 100px;
+    border-radius: var(--neutrino);
+    display: inline-block;
+    float: left;
+    margin-inline-end: var(--atom);
+    margin-block-end: var(--atom);
 }
-footer ul:last-of-type {
+
+.site-footer__brand, .site-footer__nav {
+    flex: 1 1 10rem;
+}
+
+.site-footer h2 {
+    font: inherit;
+    margin: 0 0 var(--neutrino);
+}
+
+.site-footer__copyright {
     flex-basis: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--atom);
+    padding-block-start: var(--macromolecule);
 }
-footer ul:last-of-type li {
-    flex: 1 1 8rem;
+
+.site-footer p {
+  max-width: 82ch;
+  min-width: 42ch;
 }
 </style>
-<ul>
-    <li><img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" /></li>
-</ul>
-<ul>
-    <li>spaceface</li>
-    <li><a href="#home">home</a></li>
-    <li><a href="#about">about</a></li>
-    <li><a href="#work">work</a></li>
-</ul>
-<ul>
-    <li>social</li>
-    <li>insta</li>
-    <li>linkedin</li>
-    <li>face</li>
-</ul>
-<ul>
-    <li>legal</li>
-    <li><a href="./legal/impressium.html">impressium</a></li>
-    <li><a href="./legal/gdpr.html">gdpr</a></li>
-</ul>
-<ul>
-    <li>2026 All rights reserved</li>
-</ul>
+
+<section class="site-footer__bio" aria-labelledby="footer-bio">
+    <h2 id="footer-bio">Zsolt Sandor</h2>
+    <p><img src="./me.webp" alt="Portrait of Zsolt Sandor" /> SpaceFace.org is where I experiment with new graphical ideas—sometimes unconventional, sometimes strange, but always intentional. I push creative boundaries while striving for clarity.</p>
+    <p>This space is a blend of thoughtful design and ongoing exploration, where I try to balance uniqueness with understandability.</p>
+    <p>Interested in collaborating or learning more? Feel free to reach out to me!</p>
+    <a href="./cv.html">View CV</a>
+</section>
+
+<!--
+<div class="site-footer__brand">
+    <img class="_logo" src="./spa_ce_f_ace.svg" alt="Spaceface logo" />
+</div>
+-->
+
+<nav class="site-footer__nav" aria-labelledby="footer-spaceface">
+    <h2 id="footer-spaceface">spaceface.org</h2>
+    <ul>
+        <li><a href="#home">home</a></li>
+        <li><a href="#about">about</a></li>
+        <li><a href="#work">work</a></li>
+    </ul>
+    <h2 id="footer-spaceface">legal</h2>
+    <ul>
+        <li><a href="./legal/impressium.html">impressium</a></li>
+        <li><a href="./legal/gdpr.html">gdpr</a></li>
+    </ul>
+</nav>
+
+<nav class="site-footer__nav" aria-labelledby="footer-contact">
+    <h2 id="footer-spaceface">contact</h2>
+    <ul>
+        <li>Say Hello: <a href="#home">spaceface.org@gmail.com</a></li>
+        <li>Call: <a href="#about">+36 70 257 5720</a></li>
+    </ul>
+</nav>
+
+<nav class="site-footer__nav" aria-labelledby="footer-social">
+    <h2 id="footer-social">follow me</h2>
+    <ul>
+        <li><a href="#">insta</a></li>
+        <li><a href="#">linkedin</a></li>
+        <li><a href="#">face</a></li>
+    </ul>
+</nav>
+
+<p class="site-footer__copyright">2026 All rights reserved</p>
+
 </footer>
 
 
