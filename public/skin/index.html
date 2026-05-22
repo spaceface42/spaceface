@@ -9,8 +9,10 @@
     <link rel="stylesheet" href="./skin.css" />
 </head>
 <body>
-<style>
+<style data-css="dev">
     /*.atomic */
+
+
 
     body {
         color: rgba(66, 66, 66, 1);
@@ -97,33 +99,52 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
 
 
 <footer>
-<style>
+<style data-css="component">
 footer {
     display: flex;
     flex-wrap: wrap;
     gap: var(--atom);
+
     padding: var(--atom);
     padding-top: 12vh;
     min-height: 100vh;
 
     font-size: 10pt;
     text-transform: uppercase;
-    background-color: rgba(35, 3, 111, 0.05);
-      backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* Safari */
+
+    background-color: rgba(125, 125, 125, 0.1);
+    /* background-blend-mode: multiply;
+    mix-blend-mode: multiply; */
 
     border-radius: var(--atom);
-
 
     margin-inline: var(--page-inline);
     margin-block-start: var(--section-block);
     margin-block-end: var(--page-inline);
-    }
 
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* Safari */
+
+
+
+    /* left + right */
+    margin-inline: var(--page-inline);
+
+    /* top + bottom */
+    margin-block: var(--section-block);
+
+    margin-inline: var(--page-inline);
+    margin-block-start: var(--footer-block-start);
+    margin-block-end: var(--footer-block-end);
+
+    min-height: calc(
+        100dvh - var(--footer-block-start) - var(--footer-block-end)
+    );
+
+}
 footer ul {
     flex: 1 1 14rem;
 }
-
 footer ul:last-of-type {
     flex-basis: 100%;
     display: flex;
