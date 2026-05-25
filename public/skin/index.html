@@ -16,6 +16,7 @@
 
     body {
         color: rgba(66, 66, 66, 1);
+        background-color: var(--color-surface-primary);
     }
 
     a {
@@ -49,6 +50,61 @@
     }
 </style>
 
+<style>
+:root {
+  /* Surfaces */
+  --color-surface-primary: #f8fafc;
+  --color-surface-secondary: #ffffff;
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #334155;
+  --color-text-muted: #475569;
+  --color-text-inverse: #ffffff;
+
+  /* Borders */
+  --color-border: #cbd5e1;
+
+  /* Accents */
+  --color-accent-primary: #1d4ed8;
+  --color-accent-success: #047857;
+  --color-accent-warning: #b45309;
+  --color-accent-error: #be123c;
+  --color-accent-purple: #7c3aed;
+  --color-accent-teal: #0f766e;
+
+  /* Buttons */
+  --color-button-primary-bg: #1d4ed8;
+  --color-button-primary-text: #ffffff;
+}
+
+[data-theme="dark"] {
+  /* Surfaces */
+  --color-surface-primary: #1f2937;
+  --color-surface-secondary: #273449;
+
+  /* Text */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e5e7eb;
+  --color-text-muted: #cbd5e1;
+  --color-text-inverse: #1f2937;
+
+  /* Borders */
+  --color-border: #475569;
+
+  /* Accents */
+  --color-accent-primary: #93c5fd;
+  --color-accent-success: #6ee7b7;
+  --color-accent-warning: #fbbf24;
+  --color-accent-error: #fda4af;
+  --color-accent-purple: #c4b5fd;
+  --color-accent-teal: #5eead4;
+
+  /* Buttons */
+  --color-button-primary-bg: #93c5fd;
+  --color-button-primary-text: #1f2937;
+}
+</style>
 
 <header>
 <img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" />
@@ -105,7 +161,7 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
 <style data-css="component">
 .site-footer {
     font-size: 10pt;
-    text-transform: uppercase;
+    text-transform: none;
 
     display: flex;
     flex-wrap: wrap;
@@ -115,9 +171,8 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     padding-block-start: var(--macromolecule);
 
 
-    background-color: rgba(125, 125, 125, 0.1);
+    background-color: rgba(125, 125, 125, 0);
     backdrop-filter: blur(var(--atom));
-    -webkit-backdrop-filter: blur(10px); /* Safari */
     border-radius: var(--atom);
 
     margin-inline: var(--page-inline); /* left + right */
@@ -129,16 +184,16 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     margin-left: 25vw;
     margin-right: 0;
 
+    /*
     min-height: calc(
         100dvh - var(--footer-block-start) - var(--footer-block-end)
     );
+    */
 }
-
+/* nav sections */
 .site-footer__bio {
     flex: 1 1 100%;
-    padding-right: var(--molecule);
 }
-
 .site-footer__bio img {
     width: 100px;
     border-radius: var(--neutrino);
@@ -147,48 +202,53 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     margin-inline-end: var(--atom);
     margin-block-end: var(--atom);
 }
-
 .site-footer__bio p {
-    all: inherit;
+    all: lowercase;
+    text-transform: none;
     max-width: 82ch;
     min-width: 42ch;
 }
-
-.site-footer__brand, .site-footer__nav {
-    flex: 1 1 10rem;
+.site-footer nav {
+    flex: 1 1 auto;
 }
-
 .site-footer h2 {
     font: inherit;
     margin: 0 0 var(--neutrino);
 }
-
 .site-footer__copyright {
     flex-basis: 100%;
     padding-block-start: var(--macromolecule);
+    text-transform: none;
+}
+.legal {
+    margin-top: var(--atom);
+}
+footer > * {
+    background-color: rgba(125, 125, 125, 0.1);
+    border-radius: var(--atom);
+    padding: var(--atom);
 }
 </style>
 
 <section class="site-footer__bio" aria-labelledby="footer-bio">
-    <h2 id="footer-bio">Zsolt Sandor</h2>
-    <p><img src="./me.webp" alt="Portrait of Zsolt Sandor" /> SpaceFace.org is where I experiment with new graphical ideas—sometimes unconventional, sometimes strange, but always intentional. I push creative boundaries while striving for clarity.</p>
-    <p>This space is a blend of thoughtful design and ongoing exploration, where I try to balance uniqueness with understandability.</p>
-    <p>Interested in collaborating or learning more? Feel free to reach out to me!</p>
-    <style>
+    <h2>Zsolt Sandor</h2>
+    <p><img src="./me.webp" alt="Portrait of Zsolt Sandor" />Spaceface shows selected work in logo design, visual identity, concept art, and design experiments — focused on clear ideas, simple forms, and distinctive visual character.</p>
+<style>
 .cta {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
   min-inline-size: min(100%, 36rem);
   min-block-size: 2.6rem;
+  min-block-size: fit-content;
   padding-inline: 1rem;
   border-radius: 999px;
   color: white;
   background: linear-gradient(
     90deg,
     #ff4f3f 0%,
-    #ff6a58 55%,
-    #f87566 100%
+    #87ff58 55%,
+    #66a0f8 100%
   );
   letter-spacing: 0.18em;
   text-decoration: none;
@@ -196,7 +256,7 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
   display: inline;
 }
     </style>
-    <a class="cta" href="./cv.html">View CV</a>
+    <a class="cta" href="./cv.html">email me</a>
 </section>
 
 <!--
@@ -205,30 +265,28 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
 </div>
 -->
 
-<nav class="site-footer__nav" aria-labelledby="footer-spaceface">
-    <h2 id="footer-spaceface">spaceface.org</h2>
+<nav aria-labelledby="footer-spaceface">
+    <h2>spaceface.org</h2>
     <ul>
         <li><a href="#home">home</a></li>
         <li><a href="#about">about</a></li>
         <li><a href="#work">work</a></li>
-    </ul>
-    <h2 id="footer-spaceface">legal</h2>
-    <ul>
-        <li><a href="./legal/impressium.html">impressium</a></li>
+        <li class="legal"><a href="./legal/impressium.html">impressium</a></li>
         <li><a href="./legal/gdpr.html">gdpr</a></li>
+        <li><a href="./legal/usage.html">usage</a></li>
     </ul>
 </nav>
 
-<nav class="site-footer__nav" aria-labelledby="footer-contact">
-    <h2 id="footer-spaceface">contact</h2>
+<nav aria-labelledby="footer-contact">
+    <h2>contact</h2>
     <ul>
-        <li>Say Hello: <a href="#home">spaceface.org@gmail.com</a></li>
-        <li>Call: <a href="#about">+36 70 257 5720</a></li>
+        <li>mail: <a href="#home">spaceface.org@gmail.com</a></li>
+        <li>call: <a href="#about">+36 70 257 5720</a></li>
     </ul>
 </nav>
 
-<nav class="site-footer__nav" aria-labelledby="footer-social">
-    <h2 id="footer-social">follow me</h2>
+<nav aria-labelledby="footer-social">
+    <h2>follow me</h2>
     <ul>
         <li><a href="#">insta</a></li>
         <li><a href="#">linkedin</a></li>
@@ -236,7 +294,7 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     </ul>
 </nav>
 
-<p class="site-footer__copyright">2026 All rights reserved</p>
+<p class="site-footer__copyright">© 2026 Zsolt Sandor / spaceface.org. All rights reserved.</p>
 
 </footer>
 
