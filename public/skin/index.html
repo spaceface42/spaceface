@@ -107,7 +107,10 @@
 </style>
 
 <header>
-<img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" />
+<a href="/">
+    <img class="_logo" src="./spa_ce_f_ace.svg" alt="spaceface logo" />
+</a>
+
 <nav>
     <ul>
         <li><a href="work">work</a></li>
@@ -220,43 +223,48 @@ So you might say: “I prefer intrinsic, constraint-based CSS over breakpoint-he
     padding-block-start: var(--macromolecule);
     text-transform: none;
 }
-.legal {
-    margin-top: var(--atom);
-}
 footer > * {
     background-color: rgba(125, 125, 125, 0.1);
     border-radius: var(--atom);
     padding: var(--atom);
 }
+.legal {
+    margin-top: var(--atom);
+}
 </style>
 
 <section class="site-footer__bio" aria-labelledby="footer-bio">
-    <h2>Zsolt Sandor</h2>
-    <p><img src="./me.webp" alt="Portrait of Zsolt Sandor" />Spaceface shows selected work in logo design, visual identity, concept art, and design experiments — focused on clear ideas, simple forms, and distinctive visual character.</p>
-<style>
-.cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  min-inline-size: min(100%, 36rem);
-  min-block-size: 2.6rem;
-  min-block-size: fit-content;
-  padding-inline: 1rem;
-  border-radius: 999px;
-  color: white;
-  background: linear-gradient(
-    90deg,
-    #ff4f3f 0%,
-    #87ff58 55%,
-    #66a0f8 100%
-  );
-  letter-spacing: 0.18em;
-  text-decoration: none;
-  line-height: 1;
-  display: inline;
-}
-    </style>
-    <a class="cta" href="./cv.html">email me</a>
+    <div>
+        <img src="./me.webp" alt="Portrait of Zsolt Sandor" />
+    </div>
+    <div>
+        <h2>Zsolt Sandor</h2>
+        <p>Spaceface shows selected work in logo design, visual identity, concept art, and design experiments — focused on clear ideas, simple forms, and distinctive visual character.</p>
+        <style>
+            .cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            min-inline-size: min(100%, 36rem);
+            min-block-size: 2.6rem;
+            min-block-size: fit-content;
+            padding-inline: 1rem;
+            border-radius: 999px;
+            color: white;
+            background: linear-gradient(
+                90deg,
+                #ff4f3f 0%,
+                #87ff58 55%,
+                #66a0f8 100%
+            );
+            letter-spacing: 0.18em;
+            text-decoration: none;
+            line-height: 1;
+            display: inline;
+            }
+        </style>
+        <a class="cta" href="./cv.html">email me</a>
+    </div>
 </section>
 
 <!--
@@ -268,7 +276,7 @@ footer > * {
 <nav aria-labelledby="footer-spaceface">
     <h2>spaceface.org</h2>
     <ul>
-        <li><a href="#home">home</a></li>
+        <li><a href="/">home</a></li>
         <li><a href="#about">about</a></li>
         <li><a href="#work">work</a></li>
         <li class="legal"><a href="./legal/impressium.html">impressium</a></li>
