@@ -2,9 +2,29 @@
 
 /* variables */
 :root {
-    --fs:3.3vw;
-    --gutter: 10px;
+    --neutrino: .3rem;
+    --atom: 1rem;
+    --molecule: 3rem; /*.clamp(24px, 4vw, 60px) */
+    --macromolecule: 6rem;
+
+    --fs:1rem;
+    --lh:1.5rem;
+    --gutter: var(--molecule);
     --bgcolor: rgba(157, 204, 233, 0.2);
+
+
+    /* clamp(minimum, preferred, maximum) */
+    --page-inline: clamp(8px, var(--molecule), 60px);
+    --footer-block-start: clamp(32px, var(--molecule), 120px);
+    --footer-block-end: clamp(16px, var(--molecule), 60px);
+
+}
+
+
+
+/* layout */
+body {
+    background-color: var(--bgcolor);
 }
 
 @media (max-width: 720px) {
@@ -14,32 +34,4 @@
     }
 }
 
-/* layout */
-body {
-    padding: var(--gutter);
-    background-color: var(--bgcolor);
-}
-
-header {
-
-}
-
-main {
-
-}
-
-footer {
-
-}
-
-
-/* atomic */
-
-h1 {
-
-}
-
-nav {
-
-}
 

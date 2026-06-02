@@ -9,5 +9,4 @@ html {
     font-weight: 300;
     line-height: var(--lh);
     font-size: var(--fs);
-    letter-spacing: -.05em;
 }

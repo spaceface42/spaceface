@@ -1,0 +1,25 @@
+* {
+    box-sizing: border-box;
+}
+
+::before, ::after {
+    box-sizing: inherit;
+}
+
+html {
+    scrollbar-gutter: stable; /* reserve space */
+}
+
+body {
+    min-block-size: 100svh;
+}
+
+/*.named resets */
+ul {
+    list-style: none;
+}
+
+body, header, main, footer, section p, ul, li {
+    margin: 0;
+    padding: 0;
+}

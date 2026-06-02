@@ -6,7 +6,7 @@
 
 - Added a generated `dist/` package build from `src/spaceface.ts`, including package exports and declaration output for the public runtime API.
 - Split the build commands into explicit site-oriented `build:docs*` and package-oriented `build:lib*` flows, while keeping `build` as the combined entrypoint.
-- Documented the reusable-framework path in `FRAMEWORK_EVOLUTION_PLAN.md` and aligned the main docs around the new `dist/` output.
+- Documented the reusable-framework path in the archived `_history/FRAMEWORK_EVOLUTION_PLAN.md` note and aligned the main docs around the new `dist/` output.
 - Added host-root startup for `FeatureRegistry` so the runtime can mount into a provided subtree while the shipped app still starts on `document.body`.
 - Recorded that the screensaver remains a deliberate singleton contract for later framework work.
 - Refactored `SlidePlayerFeature` keyboard handling to live on the feature root instead of `document`, while preserving duplicate-mount warnings for the current singleton authored contract.

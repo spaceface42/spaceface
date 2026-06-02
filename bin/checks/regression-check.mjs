@@ -76,6 +76,7 @@ async function run() {
       testSlidePlayerScreensaverPause(runtime);
       testSlidePlayerAutoplayResumeUsesRemainingTime(runtime);
       testSlidePlayerManualNavigationResetsAutoplay(runtime);
+      testSlidePlayerBulletProgressFeedback(runtime);
       testSlidePlayerKeyboardNavigation(runtime);
       testSlidePlayerScopedKeyboardHandling(runtime);
       testSlidePlayerSwipeNavigation(runtime);
@@ -659,6 +660,44 @@ function testSlidePlayerManualNavigationResetsAutoplay(runtime) {
 
   clock.advance(1);
   assert.equal(activeIndex(root, "[data-slideplayer-slide]"), 0, "slideplayer should autoplay after the reset interval elapses");
+
+  feature.destroy();
+  runtime.screensaverActiveSignal.value = false;
+  clock.restore();
+  restoreDomGlobals();
+}
+
+function testSlidePlayerBulletProgressFeedback(runtime) {
+  const clock = installFakeClock();
+  const body = new FakeElement("body");
+  installDomGlobals(body);
+
+  const root = createSlidePlayerRoot();
+  body.append(root);
+
+  runtime.screensaverActiveSignal.value = false;
+  const feature = new runtime.SlidePlayerFeature({ autoplayMs: 100 });
+  feature.mount(root);
+
+  const bullets = root.querySelectorAll("[data-slideplayer-bullet]");
+  assert.equal(
+    bullets[0].style["--slideplayer-progress-duration"],
+    "100ms",
+    "active bullet should expose the autoplay duration for the visual progress state"
+  );
+
+  clock.advance(40);
+  runtime.screensaverActiveSignal.value = true;
+  assert.equal(
+    bullets[0].style["--slideplayer-progress"],
+    "0.4",
+    "active bullet should freeze its progress when screensaver pause stops autoplay"
+  );
+  assert.equal(
+    bullets[0].style["--slideplayer-progress-duration"],
+    "0ms",
+    "paused autoplay should stop the active bullet transition"
+  );
 
   feature.destroy();
   runtime.screensaverActiveSignal.value = false;
