@@ -124,6 +124,7 @@ export class SlidePlayerFeature implements Feature {
       this.root.removeAttribute("tabindex");
     }
 
+    this.resetBulletProgress();
     this.root = null;
     this.stage = null;
     this.slides = [];
@@ -135,7 +136,6 @@ export class SlidePlayerFeature implements Feature {
     this.swipeStartX = 0;
     this.swipeStartY = 0;
     this.addedRootTabIndex = false;
-    this.resetBulletProgress();
     if (this.countedAsMounted) {
       SlidePlayerFeature.activeMountCount = Math.max(0, SlidePlayerFeature.activeMountCount - 1);
       this.countedAsMounted = false;

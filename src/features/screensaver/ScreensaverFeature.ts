@@ -57,19 +57,19 @@ export class ScreensaverFeature implements Feature {
 
   mount(el: HTMLElement, context?: FeatureMountContext): void {
     this.logger = context?.logger ?? this.logger;
-    this.activitySignal = context?.services?.activity?.signal ?? userActivitySignal;
-    this.loadPartialHtml = context?.services?.partials?.loadHtml ?? loadPartialHtml;
-    this.target = el;
-    this.target.hidden = true;
-    this.target.classList.remove("is-active");
-    this.target.setAttribute("aria-hidden", "true");
-
     if (ScreensaverFeature.activeInstance && ScreensaverFeature.activeInstance !== this) {
       this.logger.warn("ignored duplicate screensaver mount", {
         reason: "singleton-enforced",
       });
       return;
     }
+
+    this.activitySignal = context?.services?.activity?.signal ?? userActivitySignal;
+    this.loadPartialHtml = context?.services?.partials?.loadHtml ?? loadPartialHtml;
+    this.target = el;
+    this.target.hidden = true;
+    this.target.classList.remove("is-active");
+    this.target.setAttribute("aria-hidden", "true");
 
     ScreensaverFeature.activeInstance = this;
     this.ownsSingleton = true;
@@ -205,8 +205,8 @@ export class ScreensaverFeature implements Feature {
       this.loadedSceneId = null;
     }
 
+    const controller = new AbortController();
     try {
-      const controller = new AbortController();
       this.partialLoadController = controller;
       const html = await this.loadPartialHtml(partialUrl, {
         cache: true,
@@ -234,7 +234,9 @@ export class ScreensaverFeature implements Feature {
       });
       return false;
     } finally {
-      this.partialLoadController = null;
+      if (this.partialLoadController === controller) {
+        this.partialLoadController = null;
+      }
     }
   }
 
