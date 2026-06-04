@@ -20,12 +20,11 @@ This roadmap tracks only the current static-page runtime.
 1. Add direct coverage for partial asset rebasing at build time and runtime.
 2. Extend partial asset rebasing to cover `srcset` when responsive images are introduced.
 3. Add targeted tests for `math-utils.ts` and autoplay timing behavior.
-4. Decide whether `PortfolioStageFeature` should eventually broaden beyond the current singleton authored contract. Keyboard handling is already root-scoped; the remaining question is authored semantics and warning strategy.
-5. Decide whether the contract manifest should eventually generate more than docs and smoke checks.
-6. Explore a screensaver-safe `terminal-scene`: terminal-style message playback with a typewriter effect, authored as a scene inside the screensaver partial instead of coupled into the shell runtime.
-7. Keep `FeatureDefinition.featureId` as the only runtime registration field and avoid reintroducing `selector`.
-8. Keep package-level compatibility coverage green for the new core/editorial/screensaver package entry shape.
-9. Keep the screensaver authored contract singleton-only while other runtime pieces become more reusable.
+4. Decide whether the contract manifest should eventually generate more than docs and smoke checks.
+5. Explore a screensaver-safe `terminal-scene`: terminal-style message playback with a typewriter effect, authored as a scene inside the screensaver partial instead of coupled into the shell runtime.
+6. Keep `FeatureDefinition.featureId` as the only runtime registration field and avoid reintroducing `selector`.
+7. Keep package-level compatibility coverage green for the new core/editorial/screensaver package entry shape.
+8. Keep the screensaver authored contract singleton-only while other runtime pieces become more reusable.
 
 ## Not Planned
 

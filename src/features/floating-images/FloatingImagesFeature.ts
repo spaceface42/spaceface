@@ -30,6 +30,7 @@ interface InlineStyleSnapshot {
 }
 
 export interface FloatingImagesFeatureOptions {
+  activation?: "auto" | "page" | "screensaver-scene";
   containerSelector?: string;
   itemSelector?: string;
   baseSpeed?: number;
@@ -55,8 +56,8 @@ export class FloatingImagesFeature implements Feature {
   private destroyed = false;
   private preparedNodes: HTMLElement[] = [];
   private originalItemStyles = new Map<HTMLElement, InlineStyleSnapshot>();
-  private pausedByScreensaver = false;
-  private insideScreensaver = false;
+  private pausedByActivation = false;
+  private activationMode: "page" | "screensaver-scene" = "page";
   private restoreContainerPosition = false;
   private originalContainerInlinePosition = "";
   private pauseSignal = screensaverActiveSignal;
@@ -64,6 +65,7 @@ export class FloatingImagesFeature implements Feature {
 
   constructor(options: FloatingImagesFeatureOptions = {}) {
     this.options = {
+      activation: options.activation ?? "auto",
       containerSelector: options.containerSelector ?? ":scope",
       itemSelector: options.itemSelector ?? "[data-floating-item]",
       baseSpeed: options.baseSpeed ?? 46,
@@ -85,9 +87,9 @@ export class FloatingImagesFeature implements Feature {
     if (!this.container) return;
     if (context?.signal.aborted) return;
 
-    this.insideScreensaver = this.container.closest("[data-screensaver]") !== null;
+    this.activationMode = this.resolveActivationMode();
     this.cleanupEffect = createEffect(() => {
-      this.pausedByScreensaver = this.insideScreensaver
+      this.pausedByActivation = this.activationMode === "screensaver-scene"
         ? !this.pauseSignal.value
         : this.pauseSignal.value;
       this.updateAnimationState();
@@ -163,8 +165,8 @@ export class FloatingImagesFeature implements Feature {
     this.container = null;
     this.inViewport = true;
     this.hoveredItem = null;
-    this.pausedByScreensaver = false;
-    this.insideScreensaver = false;
+    this.pausedByActivation = false;
+    this.activationMode = "page";
     this.restoreContainerPosition = false;
     this.originalContainerInlinePosition = "";
     this.pauseSignal = screensaverActiveSignal;
@@ -173,7 +175,7 @@ export class FloatingImagesFeature implements Feature {
 
   private updateAnimationState(): void {
     if (this.destroyed) return;
-    const shouldRun = this.inViewport && !this.pausedByScreensaver;
+    const shouldRun = this.inViewport && !this.pausedByActivation;
 
     if (!shouldRun) {
       if (this.unsubScheduler) {
@@ -189,6 +191,14 @@ export class FloatingImagesFeature implements Feature {
         render: this.renderDOM,
       });
     }
+  }
+
+  private resolveActivationMode(): "page" | "screensaver-scene" {
+    if (this.options.activation !== "auto") {
+      return this.options.activation;
+    }
+
+    return this.container?.closest("[data-screensaver]") ? "screensaver-scene" : "page";
   }
 
   // Update phase: math and reads only.

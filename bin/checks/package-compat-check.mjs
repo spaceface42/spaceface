@@ -29,7 +29,7 @@ await runBundledCheck(
     sourcefile: "package-compat-harness.ts",
     contents: `
       export { FeatureRegistry, createSignal, featurePauseSignal } from "spaceface";
-      export { SlideshowFeature, SlidePlayerFeature, FloatingImagesFeature, PortfolioStageFeature } from "spaceface/editorial";
+      export { SlideshowFeature, SlidePlayerFeature, FloatingImagesFeature } from "spaceface/editorial";
       export { ScreensaverFeature, AttractorSceneFeature, screensaverActiveSignal } from "spaceface/screensaver";
     `,
   },
@@ -41,7 +41,6 @@ await runBundledCheck(
     assert.equal(typeof runtime.SlideshowFeature, "function", "editorial package entry should export SlideshowFeature");
     assert.equal(typeof runtime.SlidePlayerFeature, "function", "editorial package entry should export SlidePlayerFeature");
     assert.equal(typeof runtime.FloatingImagesFeature, "function", "editorial package entry should export FloatingImagesFeature");
-    assert.equal(typeof runtime.PortfolioStageFeature, "function", "editorial package entry should export PortfolioStageFeature");
 
     assert.equal(typeof runtime.ScreensaverFeature, "function", "screensaver package entry should export ScreensaverFeature");
     assert.equal(typeof runtime.AttractorSceneFeature, "function", "screensaver package entry should export AttractorSceneFeature");
@@ -87,7 +86,6 @@ function runTypeScriptConsumerCheck() {
         } from "spaceface";
         import {
           FloatingImagesFeature,
-          PortfolioStageFeature,
           SlidePlayerFeature,
           SlideshowFeature,
         } from "spaceface/editorial";
@@ -110,7 +108,7 @@ function runTypeScriptConsumerCheck() {
 
         const editorialFeatures = [
           new FloatingImagesFeature(),
-          new PortfolioStageFeature(),
+          new FloatingImagesFeature({ activation: "screensaver-scene" }),
           new SlidePlayerFeature(),
           new SlideshowFeature(),
         ];

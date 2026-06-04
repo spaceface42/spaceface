@@ -44,6 +44,7 @@ Feature-authored assets can stay colocated under `public/resources/features/<fea
 - `screensaverActiveSignal` tracks whether the screensaver shell is active and is exported from `src/screensaver.ts`
 - `Ctrl+Shift+.` starts the screensaver shell on all platforms, regardless of which scene the page selects
 - `AttractorSceneFeature` is the screensaver-scene runtime: it updates viewport metadata and rotates authored layouts while the shell is active
+- `FloatingImagesFeature` supports `activation: "auto" | "page" | "screensaver-scene"` so the same visual feature can run as page content or as a screensaver scene
 - `FrameScheduler` runs animated features in update-then-render order
 
 ## Contract Snapshot
@@ -53,14 +54,12 @@ Feature-authored assets can stay colocated under `public/resources/features/<fea
 - `index.html`: `body[data-page="index"]`; features `slideshow`, `floating-images`, `screensaver`
 - `slideplayer.html`: `body[data-page="slideplayer"]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: `body[data-page="floatingimages"]`; features `floating-images`, `screensaver`
-- `portfoliostage.html`: `body[data-page="portfoliostage"]`; features `portfolio-stage`, `screensaver`
 
 ### Feature Hooks
 - `slideshow`: root `data-feature="slideshow"`; hooks `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
 - `slideplayer`: root `data-feature="slideplayer"`; hooks `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; hooks `[data-floating-item]`
 - `attractor-scene`: root `data-feature="attractor-scene"`; hooks `[data-attractor-scene]`, `[data-attractor-scene-layout]`, `[data-attractor-scene-width]`, `[data-attractor-scene-height]`, `[data-attractor-scene-year]`
-- `portfolio-stage`: root `data-feature="portfolio-stage"`; hooks `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-title]`, `[data-portfolio-stage-category]`, `[data-portfolio-stage-summary]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`, `[data-portfolio-stage-filter]`, `[data-portfolio-stage-filter-value]`, `[data-portfolio-stage-slot]`, `[data-portfolio-stage-wrap-enter]`, `[data-portfolio-stage-current-title]`, `[data-portfolio-stage-current-category]`, `[data-portfolio-stage-current-index]`, `[data-portfolio-stage-current-summary]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; note: Exactly one portfolio-stage per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `screensaver`: root `data-feature="screensaver"`; hooks `[data-screensaver]`, `[data-screensaver-scene]`, `[data-screensaver-idle-ms]`, `[data-screensaver-partial]`; note: Exactly one screensaver per page; smoke validation fails duplicates and runtime warns on extra mounts.
 
 ### Shared Contracts

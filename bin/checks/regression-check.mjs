@@ -10,7 +10,7 @@ async function run() {
       sourcefile: "regression-check-harness.ts",
       contents: `
         export { FeatureRegistry } from "./src/core/feature.ts";
-        export { SlideshowFeature, SlidePlayerFeature, FloatingImagesFeature, PortfolioStageFeature } from "./src/editorial.ts";
+        export { SlideshowFeature, SlidePlayerFeature, FloatingImagesFeature } from "./src/editorial.ts";
         export { ScreensaverFeature, AttractorSceneFeature, screensaverActiveSignal } from "./src/screensaver.ts";
         export { PauseAwareStatusFeature } from "./examples/public-api/PauseAwareStatusFeature.ts";
         export { createSignal, featurePauseSignal } from "./src/spaceface.ts";
@@ -81,11 +81,6 @@ async function run() {
       testSlidePlayerScopedKeyboardHandling(runtime);
       testSlidePlayerSwipeNavigation(runtime);
       testSlidePlayerTouchSwipeNavigation(runtime);
-      testPortfolioStageScopedKeyboardHandling(runtime);
-      testPortfolioStageDestroyRestoresAuthoredDom(runtime);
-      await testPortfolioStageWrapEntersFromDestinationSide(runtime);
-      await testPortfolioStageNavigationAndFiltering(runtime);
-      testPortfolioStageBlankClickUsesLiveRects(runtime);
       await testActivityTracking(runtime);
       await testScreensaverRespectsContextServices(runtime);
       await testScreensaverManualShortcut(runtime);
@@ -1322,276 +1317,6 @@ function testSlidePlayerTouchSwipeNavigation(runtime) {
   restoreDomGlobals();
 }
 
-function testPortfolioStageScopedKeyboardHandling(runtime) {
-  const body = new FakeElement("body");
-  installDomGlobals(body);
-
-  const firstRoot = createPortfolioStageRoot();
-  const secondRoot = createPortfolioStageRoot();
-  body.append(firstRoot);
-  body.append(secondRoot);
-
-  runtime.screensaverActiveSignal.value = false;
-  const firstFeature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
-  const secondFeature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
-  firstFeature.mount(firstRoot);
-  secondFeature.mount(secondRoot);
-
-  assert.equal((documentListeners.get("keydown") ?? []).length, 0, "portfolio stage should not bind a document-wide keyboard handler");
-
-  dispatchElementEvent(firstRoot, "keydown", {
-    key: "ArrowRight",
-    defaultPrevented: false,
-    altKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    preventDefault() {},
-    target: firstRoot,
-  });
-
-  dispatchElementEvent(secondRoot, "keydown", {
-    key: "ArrowRight",
-    defaultPrevented: false,
-    altKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    preventDefault() {},
-    target: secondRoot,
-  });
-
-  assert.equal(firstRoot.querySelector("[data-portfolio-stage-current-title]").textContent, "Velvet Broadcast", "the first portfolio stage should respond to key events on its own root");
-  assert.equal(secondRoot.querySelector("[data-portfolio-stage-current-title]").textContent, "Velvet Broadcast", "the second portfolio stage should also respond to key events on its own root");
-
-  secondFeature.destroy();
-  firstFeature.destroy();
-  runtime.screensaverActiveSignal.value = false;
-  restoreDomGlobals();
-}
-
-function testPortfolioStageDestroyRestoresAuthoredDom(runtime) {
-  const body = new FakeElement("body");
-  installDomGlobals(body);
-
-  const root = createPortfolioStageRoot();
-  body.append(root);
-
-  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
-  feature.mount(root);
-
-  dispatchElementEvent(root, "keydown", {
-    key: "ArrowRight",
-    defaultPrevented: false,
-    altKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    preventDefault() {},
-    target: root,
-  });
-  dispatchElementEvent(root.querySelectorAll("[data-portfolio-stage-filter]")[2], "click", {});
-  dispatchElementEvent(root.querySelector("[data-portfolio-stage-details-toggle]"), "click", {});
-
-  feature.destroy();
-
-  const items = root.querySelectorAll("[data-portfolio-stage-item]");
-  assert.equal(items[0].hidden, false, "destroy should restore the authored visibility of the leading card");
-  assert.equal(items[1].hidden, true, "destroy should restore hidden authored cards");
-  assert.equal(items[0].getAttribute("data-portfolio-stage-slot"), null, "destroy should remove runtime slot attributes");
-  assert.equal(items[0].getAttribute("aria-hidden"), null, "destroy should restore authored aria-hidden state");
-  assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "", "destroy should restore authored text outputs");
-  assert.equal(root.querySelector("[data-portfolio-stage-details]").hidden, true, "destroy should restore the authored details visibility");
-  assert.equal(root.querySelector("[data-portfolio-stage-details-toggle]").getAttribute("aria-expanded"), null, "destroy should restore details toggle attributes");
-  assert.equal(root.querySelectorAll("[data-portfolio-stage-filter]")[2].classList.contains("is-selected"), false, "destroy should restore authored filter button classes");
-  assert.equal(root.getAttribute("data-portfolio-stage-filter-value"), null, "destroy should remove runtime root filter state");
-
-  runtime.screensaverActiveSignal.value = false;
-  restoreDomGlobals();
-}
-
-async function testPortfolioStageWrapEntersFromDestinationSide(runtime) {
-  const body = new FakeElement("body");
-  installDomGlobals(body);
-
-  const root = createPortfolioStageRoot();
-  body.append(root);
-
-  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
-  feature.mount(root);
-
-  dispatchElementEvent(root, "keydown", {
-    key: "ArrowRight",
-    defaultPrevented: false,
-    altKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    preventDefault() {},
-    target: root,
-  });
-
-  const wrappedItem = root.querySelector('[data-portfolio-stage-title="Chrome Runner"]');
-  assert.equal(
-    wrappedItem.getAttribute("data-portfolio-stage-wrap-enter"),
-    "right",
-    "advancing should re-enter the far-left item from the right edge"
-  );
-
-  await waitForTimers(1);
-  assert.equal(
-    wrappedItem.getAttribute("data-portfolio-stage-wrap-enter"),
-    null,
-    "wrap-enter state should clear after the entry transition is armed"
-  );
-
-  feature.destroy();
-  runtime.screensaverActiveSignal.value = false;
-  restoreDomGlobals();
-}
-
-async function testPortfolioStageNavigationAndFiltering(runtime) {
-  const body = new FakeElement("body");
-  installDomGlobals(body);
-
-  const root = createPortfolioStageRoot();
-  body.append(root);
-
-  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
-  feature.mount(root);
-
-  assert.equal(root.querySelectorAll("[data-portfolio-stage-item]").filter((node) => !node.hidden).length, 5, "portfolio stage should show a stack of visible cards");
-  assert.equal(root.querySelector('[data-portfolio-stage-slot="0"]').getAttribute("data-portfolio-stage-title"), "Afterglow Frames");
-  assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "Afterglow Frames");
-  assert.equal(root.querySelector("[data-portfolio-stage-current-index]").textContent, "01 / 05");
-
-  dispatchElementEvent(root, "keydown", {
-    key: "ArrowRight",
-    defaultPrevented: false,
-    altKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    preventDefault() {
-      this.defaultPrevented = true;
-    },
-    target: root,
-  });
-  assert.equal(root.querySelector('[data-portfolio-stage-slot="0"]').getAttribute("data-portfolio-stage-title"), "Velvet Broadcast", "ArrowRight should advance the portfolio stage");
-  assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "Velvet Broadcast");
-
-  dispatchElementEvent(root.querySelectorAll("[data-portfolio-stage-filter]")[2], "click", {});
-  assert.equal(root.querySelector("[data-portfolio-stage-current-title]").textContent, "Signal Form", "filtering should jump to the first matching item");
-  assert.equal(root.querySelector("[data-portfolio-stage-current-index]").textContent, "01 / 02", "filtering should update the visible item count");
-
-  dispatchElementEvent(root.querySelector("[data-portfolio-stage-details-toggle]"), "click", {});
-  assert.equal(root.querySelector("[data-portfolio-stage-details]").hidden, false, "details toggle should reveal the details panel");
-
-  dispatchElementEvent(root, "keydown", {
-    key: "Escape",
-    defaultPrevented: false,
-    altKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    preventDefault() {
-      this.defaultPrevented = true;
-    },
-    target: root,
-  });
-  assert.equal(root.querySelector("[data-portfolio-stage-details]").hidden, true, "Escape should close the details panel");
-
-  runtime.screensaverActiveSignal.value = true;
-  dispatchElementEvent(root, "keydown", {
-    key: "ArrowRight",
-    defaultPrevented: false,
-    altKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    preventDefault() {
-      this.defaultPrevented = true;
-    },
-    target: root,
-  });
-  assert.equal(
-    root.querySelector("[data-portfolio-stage-current-title]").textContent,
-    "Signal Form",
-    "portfolio stage keyboard navigation should pause while screensaver is active"
-  );
-  runtime.screensaverActiveSignal.value = false;
-
-  dispatchElementEvent(root.querySelectorAll("[data-portfolio-stage-filter]")[0], "click", {});
-  dispatchElementEvent(root.querySelector('[data-portfolio-stage-title="Chrome Runner"]'), "click", {});
-  assert.equal(
-    root.querySelector("[data-portfolio-stage-current-title]").textContent,
-    "Signal Form Two",
-    "clicking a farther card should start stepping through the carousel"
-  );
-  await waitForTimers(2);
-  assert.equal(
-    root.querySelector("[data-portfolio-stage-current-title]").textContent,
-    "Chrome Runner",
-    "clicking a visible card should play the carousel to that item"
-  );
-
-  feature.destroy();
-  restoreDomGlobals();
-}
-
-function testPortfolioStageBlankClickUsesLiveRects(runtime) {
-  const body = new FakeElement("body");
-  installDomGlobals(body);
-
-  const root = createPortfolioStageRoot();
-  body.append(root);
-
-  const feature = new runtime.PortfolioStageFeature({ stepAnimationMs: 0 });
-  feature.mount(root);
-
-  const stage = root.querySelector("[data-portfolio-stage-stage]");
-  setFakeRect(stage, { left: 0, top: 0, width: 600, height: 400 });
-  setFakeRect(root.querySelector('[data-portfolio-stage-title="Afterglow Frames"]'), {
-    left: 240,
-    top: 110,
-    width: 120,
-    height: 160,
-  });
-  setFakeRect(root.querySelector('[data-portfolio-stage-title="Velvet Broadcast"]'), {
-    left: 80,
-    top: 120,
-    width: 60,
-    height: 100,
-  });
-  setFakeRect(root.querySelector('[data-portfolio-stage-title="Signal Form"]'), {
-    left: 470,
-    top: 100,
-    width: 70,
-    height: 100,
-  });
-  setFakeRect(root.querySelector('[data-portfolio-stage-title="Chrome Runner"]'), {
-    left: 360,
-    top: 150,
-    width: 70,
-    height: 90,
-  });
-  setFakeRect(root.querySelector('[data-portfolio-stage-title="Signal Form Two"]'), {
-    left: 160,
-    top: 135,
-    width: 60,
-    height: 90,
-  });
-
-  dispatchElementEvent(stage, "click", {
-    target: stage,
-    clientX: 70,
-    clientY: 170,
-  });
-
-  assert.equal(
-    root.querySelector("[data-portfolio-stage-current-title]").textContent,
-    "Velvet Broadcast",
-    "blank-stage click targeting should follow the rendered card boxes"
-  );
-
-  feature.destroy();
-  runtime.screensaverActiveSignal.value = false;
-  restoreDomGlobals();
-}
-
 async function testFloatingImagesScreensaverPause(runtime) {
   installWindowForFloatingImages();
   runtime.__setWaitForImagesReady(async () => []);
@@ -1639,6 +1364,38 @@ async function testFloatingImagesScreensaverPause(runtime) {
     runtime.screensaverActiveSignal.value = false;
     assert.equal(unsubscribers[0].calls, 1, "screensaver-owned floating images should unsubscribe when the screensaver hides");
     screensaverFeature.destroy();
+
+    runtime.screensaverActiveSignal.value = false;
+    addCalls = 0;
+    unsubscribers.length = 0;
+
+    const forcedSceneRoot = createFloatingRoot();
+    const forcedSceneFeature = new runtime.FloatingImagesFeature({ activation: "screensaver-scene" });
+    await forcedSceneFeature.mount(forcedSceneRoot);
+
+    assert.equal(addCalls, 0, "forced screensaver-scene floating images should stay paused outside the shell until active");
+    runtime.screensaverActiveSignal.value = true;
+    assert.equal(addCalls, 1, "forced screensaver-scene floating images should subscribe when the screensaver activates");
+
+    runtime.screensaverActiveSignal.value = false;
+    assert.equal(unsubscribers[0].calls, 1, "forced screensaver-scene floating images should unsubscribe when the screensaver hides");
+    forcedSceneFeature.destroy();
+
+    runtime.screensaverActiveSignal.value = false;
+    addCalls = 0;
+    unsubscribers.length = 0;
+
+    const forcedPageHost = new FakeElement("div", { "data-screensaver": "true" });
+    const forcedPageRoot = createFloatingRoot();
+    forcedPageHost.append(forcedPageRoot);
+
+    const forcedPageFeature = new runtime.FloatingImagesFeature({ activation: "page" });
+    await forcedPageFeature.mount(forcedPageRoot);
+
+    assert.equal(addCalls, 1, "forced page floating images should subscribe even when mounted inside the shell");
+    runtime.screensaverActiveSignal.value = true;
+    assert.equal(unsubscribers[0].calls, 1, "forced page floating images should unsubscribe when the screensaver activates");
+    forcedPageFeature.destroy();
   } finally {
     runtime.globalScheduler.add = originalAdd;
     runtime.screensaverActiveSignal.value = false;
@@ -1999,22 +1756,6 @@ function activeIndex(root, selector) {
   return root.querySelectorAll(selector).findIndex((node) => !node.hidden);
 }
 
-function setFakeRect(node, { left, top, width, height }) {
-  node.clientWidth = width;
-  node.clientHeight = height;
-  node.getBoundingClientRect = () => ({
-    width,
-    height,
-    top,
-    left,
-    right: left + width,
-    bottom: top + height,
-    x: left,
-    y: top,
-    toJSON: () => ({}),
-  });
-}
-
 function createFloatingRoot() {
   const root = new FakeElement("div");
   root.clientWidth = 320;
@@ -2050,86 +1791,6 @@ function createSlidePlayerRoot() {
   bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
   bullets.append(new FakeElement("button", { "data-slideplayer-bullet": "" }));
   root.append(bullets);
-
-  return root;
-}
-
-function createPortfolioStageRoot() {
-  const root = new FakeElement("section", { "data-feature": "portfolio-stage" });
-  root.append(new FakeElement("button", { "data-portfolio-stage-prev": "" }));
-  root.append(new FakeElement("button", { "data-portfolio-stage-next": "" }));
-  root.append(new FakeElement("button", { "data-portfolio-stage-details-toggle": "" }));
-  root.append(new FakeElement("button", { "data-portfolio-stage-filter": "all" }));
-  root.append(new FakeElement("button", { "data-portfolio-stage-filter": "film" }));
-  root.append(new FakeElement("button", { "data-portfolio-stage-filter": "branding" }));
-  root.append(new FakeElement("p", { "data-portfolio-stage-current-index": "" }));
-  root.append(new FakeElement("h2", { "data-portfolio-stage-current-title": "" }));
-  root.append(new FakeElement("p", { "data-portfolio-stage-current-category": "" }));
-  root.append(new FakeElement("p", { "data-portfolio-stage-current-summary": "" }));
-  root.append(new FakeElement("div", { "data-portfolio-stage-details": "" }, { hidden: true }));
-
-  const stage = new FakeElement("div", { "data-portfolio-stage-stage": "" });
-  stage.append(
-    new FakeElement(
-      "figure",
-      {
-        "data-portfolio-stage-item": "",
-        "data-portfolio-stage-title": "Afterglow Frames",
-        "data-portfolio-stage-category": "Film",
-        "data-portfolio-stage-summary": "A film-led opener.",
-      },
-      { hidden: false }
-    )
-  );
-  stage.append(
-    new FakeElement(
-      "figure",
-      {
-        "data-portfolio-stage-item": "",
-        "data-portfolio-stage-title": "Velvet Broadcast",
-        "data-portfolio-stage-category": "Fashion, Commercial",
-        "data-portfolio-stage-summary": "A fashion-commercial crossover.",
-      },
-      { hidden: true }
-    )
-  );
-  stage.append(
-    new FakeElement(
-      "figure",
-      {
-        "data-portfolio-stage-item": "",
-        "data-portfolio-stage-title": "Signal Form",
-        "data-portfolio-stage-category": "Branding",
-        "data-portfolio-stage-summary": "A branding-led composition.",
-      },
-      { hidden: true }
-    )
-  );
-  stage.append(
-    new FakeElement(
-      "figure",
-      {
-        "data-portfolio-stage-item": "",
-        "data-portfolio-stage-title": "Chrome Runner",
-        "data-portfolio-stage-category": "Commercial",
-        "data-portfolio-stage-summary": "A warm commercial frame.",
-      },
-      { hidden: true }
-    )
-  );
-  stage.append(
-    new FakeElement(
-      "figure",
-      {
-        "data-portfolio-stage-item": "",
-        "data-portfolio-stage-title": "Signal Form Two",
-        "data-portfolio-stage-category": "Branding",
-        "data-portfolio-stage-summary": "A second branding frame.",
-      },
-      { hidden: true }
-    )
-  );
-  root.append(stage);
 
   return root;
 }
