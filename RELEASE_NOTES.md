@@ -10,7 +10,6 @@
 - Added host-root startup for `FeatureRegistry` so the runtime can mount into a provided subtree while the shipped app still starts on `document.body`.
 - Recorded that the screensaver remains a deliberate singleton contract for later framework work.
 - Refactored `SlidePlayerFeature` keyboard handling to live on the feature root instead of `document`, while preserving duplicate-mount warnings for the current singleton authored contract.
-- Refactored `PortfolioStageFeature` keyboard handling to live on the feature root instead of `document`, while preserving duplicate-mount warnings for the current singleton authored contract.
 - Added a generic `featurePauseSignal` service, currently backed by the screensaver shell state, and migrated `SlideshowFeature` to depend on it instead of a direct screensaver-state import.
 - Migrated runtime registration onto `FeatureDefinition.featureId` and aligned the app runtime definitions around the clearer field name.
 - Expanded `FeatureMountContext` with a stable `services` surface for activity, pause, partial loading, and scheduler access.
@@ -19,6 +18,7 @@
 - Updated `SlideshowFeature` to dogfood `context.services.pause.signal` when registry mount context is available, while keeping the shared pause alias as the fallback for direct/manual mounts.
 - Updated `ScreensaverFeature` to dogfood `context.services.activity.signal` and `context.services.partials.loadHtml(...)` when registry mount context is available, while keeping the screensaver as the sole owner of `screensaverActiveSignal`.
 - Updated `FloatingImagesFeature` to dogfood `context.services.pause.signal` and `context.services.scheduler.frame` when registry mount context is available, while preserving its existing screensaver-owned pause inversion.
+- Added an explicit `FloatingImagesFeature` `activation` option (`auto`, `page`, or `screensaver-scene`) so page and screensaver-scene roles can be selected without relying only on DOM ancestry.
 - Split the public package surface into a core entry (`src/spaceface.ts`) plus optional `editorial` and `screensaver` module entries, and switched the site app to import built-ins through those boundaries.
 - Removed the legacy `FeatureDefinition.selector` runtime alias and aligned the app contract naming around `featureId`.
 - Added a true minimal core-only starter under `examples/minimal-core/`, plus a small `serve:root` helper so the example can run against the generated `dist/spaceface.js` bundle without the site app.
@@ -30,9 +30,9 @@
 - Removed `public/demo2.html`, `public/demo3.html`, and their dedicated demo-only stylesheets.
 - Removed the original `public/demo.html` landing-page experiment and its dedicated `public/resources/demo.css` stylesheet.
 - Removed `public/skeleton.html` and its dedicated `public/resources/spacesuit/skeleton.css` starter stylesheet.
+- Removed the `portfolio-stage` route, authored page, feature runtime, package export, styles, contract entries, and regression coverage.
 - Added a manual screensaver shortcut: `Ctrl+Shift+.` on all platforms.
 - Set the current development screensaver delay to 1 minute.
-- Moved the portfolio-stage demo presentation styles out of inline page markup and into `public/resources/spacesuit/features/portfolio-stage.css`.
 - Switched the shared site typography over to ArrivalApercuMonoPro.
 - Refactored the screensaver into a scene-based idle shell with authored `floating-images` and `attractor` scene partials.
 - Added `AttractorSceneFeature` as the editorial scene runtime for authored screensaver scenes.
@@ -40,11 +40,7 @@
 ### Runtime Fixes
 
 - Removed `initStartupSequence()` and simplified app boot down to nav state, activity tracking, and feature registry startup.
-- Restored `PortfolioStageFeature` authored DOM state during destroy so `data-feature` deactivation and replacement clean up safely.
-- Formalized `portfolio-stage` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
 - Formalized `screensaver` as a singleton authored contract, with smoke validation for duplicate mounts and a runtime warning on extra instances.
-- Changed portfolio-stage blank-stage click targeting to use live rendered card boxes instead of duplicated slot-position constants.
-- Synced the portfolio-stage contract docs to include authored metadata attrs plus runtime-owned filter/slot/wrap attrs.
 - Updated `FloatingImagesFeature` so screensaver-owned instances stay paused while the shell is hidden and only animate during active screensaver scenes.
 - Delayed screensaver resume so underlying features restart only after the overlay has fully finished fading out.
 

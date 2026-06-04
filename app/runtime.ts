@@ -3,7 +3,6 @@ import {
 } from "../src/spaceface.js";
 import {
   FloatingImagesFeature,
-  PortfolioStageFeature,
   SlidePlayerFeature,
   SlideshowFeature,
 } from "../src/editorial.js";
@@ -35,10 +34,6 @@ export function createRuntimeFeatureDefinitions(): FeatureDefinition[] {
           scenePartialUrls: APP_CONTRACT.defaults.screensaverScenePartialUrls,
           partialAssetAttributes: APP_CONTRACT.partialAssetAttributes,
         }),
-    },
-    {
-      featureId: getFeatureContract("portfolio-stage").featureId,
-      create: () => new PortfolioStageFeature(),
     },
     {
       featureId: getFeatureContract("slideshow").featureId,

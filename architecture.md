@@ -116,7 +116,7 @@ The public core package entry in [`src/spaceface.ts`](./src/spaceface.ts) now re
 
 The optional package entries are now:
 
-- [`src/editorial.ts`](./src/editorial.ts) for `SlideshowFeature`, `SlidePlayerFeature`, `FloatingImagesFeature`, and `PortfolioStageFeature`
+- [`src/editorial.ts`](./src/editorial.ts) for `SlideshowFeature`, `SlidePlayerFeature`, and `FloatingImagesFeature`
 - [`src/screensaver.ts`](./src/screensaver.ts) for `ScreensaverFeature`, `AttractorSceneFeature`, and `screensaverActiveSignal`
 
 Package-level compatibility coverage now checks all three entrypoints through self-imported package names and TypeScript consumer compilation, so the public runtime surface is exercised as a real package boundary rather than only by repo-local deep paths.
@@ -129,7 +129,7 @@ The repo also now includes a true core-only starter in [`examples/minimal-core/`
 
 `ScreensaverFeature` now also dogfoods mount-context services by reading activity from `context.services.activity.signal` and fetching scene partials through `context.services.partials.loadHtml(...)` when available, while still remaining the sole owner of `screensaverActiveSignal`.
 
-`FloatingImagesFeature` now also prefers `context.services.pause.signal` and `context.services.scheduler.frame` when mount context is available, while preserving its existing screensaver-owned inversion so floating scenes only animate when the singleton screensaver shell is active.
+`FloatingImagesFeature` now also prefers `context.services.pause.signal` and `context.services.scheduler.frame` when mount context is available. Its `activation` option supports `auto`, `page`, and `screensaver-scene`, preserving the existing screensaver-owned inversion by default while allowing callers to choose the role explicitly.
 
 ### Scheduler
 
@@ -180,14 +180,12 @@ Asset path rule:
 - `index.html`: page id `index`; nav id `index`; hooks `none`; features `slideshow`, `floating-images`, `screensaver`
 - `slideplayer.html`: page id `slideplayer`; nav id `slideplayer`; hooks required `[data-slideplayer-stage]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-slide]`; optional `[data-slideplayer-bullets]`; features `slideplayer`, `screensaver`
 - `floatingimages.html`: page id `floatingimages`; nav id `floatingimages`; hooks `none`; features `floating-images`, `screensaver`
-- `portfoliostage.html`: page id `portfoliostage`; nav id `portfoliostage`; hooks required `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`; optional `[data-portfolio-stage-filter]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; features `portfolio-stage`, `screensaver`
 
 ### Features
 - `slideshow`: root `data-feature="slideshow"`; internals `[data-slide]`, `[data-slide-prev]`, `[data-slide-next]`
 - `slideplayer`: root `data-feature="slideplayer"`; internals `[data-slideplayer-stage]`, `[data-slideplayer-slide]`, `[data-slideplayer-prev]`, `[data-slideplayer-next]`, `[data-slideplayer-bullets]`, `[data-slideplayer-bullet]`; singleton note: Exactly one slideplayer per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `floating-images`: root `data-feature="floating-images"`; internals `[data-floating-item]`
 - `attractor-scene`: root `data-feature="attractor-scene"`; internals `[data-attractor-scene]`, `[data-attractor-scene-layout]`, `[data-attractor-scene-width]`, `[data-attractor-scene-height]`, `[data-attractor-scene-year]`
-- `portfolio-stage`: root `data-feature="portfolio-stage"`; internals `[data-portfolio-stage-stage]`, `[data-portfolio-stage-item]`, `[data-portfolio-stage-title]`, `[data-portfolio-stage-category]`, `[data-portfolio-stage-summary]`, `[data-portfolio-stage-prev]`, `[data-portfolio-stage-next]`, `[data-portfolio-stage-filter]`, `[data-portfolio-stage-filter-value]`, `[data-portfolio-stage-slot]`, `[data-portfolio-stage-wrap-enter]`, `[data-portfolio-stage-current-title]`, `[data-portfolio-stage-current-category]`, `[data-portfolio-stage-current-index]`, `[data-portfolio-stage-current-summary]`, `[data-portfolio-stage-details-toggle]`, `[data-portfolio-stage-details]`; singleton note: Exactly one portfolio-stage per page; smoke validation fails duplicates and runtime warns on extra mounts.
 - `screensaver`: root `data-feature="screensaver"`; internals `[data-screensaver]`, `[data-screensaver-scene]`, `[data-screensaver-idle-ms]`, `[data-screensaver-partial]`; singleton note: Exactly one screensaver per page; smoke validation fails duplicates and runtime warns on extra mounts.
 
 ### Partials
@@ -257,26 +255,6 @@ Residual risk to remember later:
 
 - if the authored contract broadens later, the remaining work is about authored semantics and runtime warnings, not document-level keyboard ownership
 
-### Portfolio Stage
-
-`PortfolioStageFeature` is the page-level, editorial work navigator.
-
-Deliberate current constraint:
-
-- one portfolio stage per page is the enforced authored pattern
-- smoke validation fails duplicate mounts and runtime warns if an extra instance is mounted anyway
-- keyboard handling is scoped to the portfolio-stage root rather than `document`
-
-It:
-
-- keeps one active project in a large stage
-- supports direct prev/next navigation plus filters
-- stores authored item metadata on `data-portfolio-stage-title`, `data-portfolio-stage-category`, and `data-portfolio-stage-summary`
-- updates text outputs from the active item metadata
-- keeps details as an optional secondary layer instead of an always-open text block
-- resolves blank-stage click fallbacks from the live rendered card boxes so CSS positioning remains authoritative
-- owns transient runtime attrs `data-portfolio-stage-filter-value`, `data-portfolio-stage-slot`, and `data-portfolio-stage-wrap-enter`
-
 ### Floating Images
 
 `FloatingImagesFeature` owns animation state and scheduler subscription only.
@@ -284,7 +262,8 @@ It:
 It:
 
 - waits for images before full initialization
-- pauses on screensaver activity when mounted on the page and only runs while the screensaver is active when mounted inside the screensaver shell
+- supports `activation: "auto" | "page" | "screensaver-scene"` for page content and screensaver-scene usage
+- pauses on screensaver activity in page mode and only runs while the screensaver is active in screensaver-scene mode
 - restores temporary inline styles during teardown
 
 ## Non-Goals
