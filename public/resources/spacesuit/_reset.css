@@ -1,80 +1,40 @@
-@font-face {
-    font-family: "Apercu";
-    src: url("./fonts/ArrivalApercuPro-Light.woff2") format("woff2");
-    font-style: normal;
-    font-weight: 300;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Apercu";
-    src: url("./fonts/ArrivalApercuPro-Regular.woff2") format("woff2");
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Apercu";
-    src: url("./fonts/ArrivalApercuPro-Medium.woff2") format("woff2");
-    font-style: normal;
-    font-weight: 500;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Apercu Mono";
-    src: url("./fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-}
-
-@layer reset, base, components, utilities;
-
-@layer reset {
-
-    html {
-        box-sizing: border-box;
-    }
-
-    *,
-    *::before,
-    *::after {
-        box-sizing: inherit;
-    }
-
-    * {
-        padding: 0;
-        margin: 0;
-    }
-
-}
-
-
-
-
+/* Small, opinionated reset. Keep design decisions in styles.css. */
 
 html {
-	text-size-adjust: none;
-	line-height: 1.5;
-	-webkit-font-smoothing: antialiased;
-    -webkit-text-size-adjust: none;
-	block-size: 100%;
-
-    font-size: 62.5% /*.now your rems will be same as px */
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+}
 
-/*.https://vale.rocks/posts/css-reset */
+body {
+    margin: 0;
+}
 
+img,
+svg,
+video,
+canvas {
+    display: block;
+    max-width: 100%;
+}
 
-@layer base {
-    body {
-        font-family: "Apercu Mono", "SFMono-Regular", Consolas, monospace;
-    }
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
 
-    a {
-        color: inherit;
-    }
+button {
+    cursor: pointer;
+}
+
+[hidden] {
+    display: none !important;
 }

@@ -17,7 +17,6 @@ registry.register({
 
 registry.start(document.body);
 
-// The demo has no authored HTML, so the little terminal is created here.
 const terminal = createTerminal();
 let lastActivityMessage = 0;
 
@@ -37,28 +36,6 @@ userActivitySignal.subscribe((timestamp) => {
 });
 
 function createTerminal() {
-  const style = document.createElement("style");
-  style.textContent = `
-    .minimal-demo-terminal {
-      position: fixed;
-      right: 1rem;
-      bottom: 1rem;
-      z-index: 20;
-      max-width: calc(100vw - 2rem);
-      padding: 0.65rem 0.8rem;
-      overflow: hidden;
-      color: #b7ffcf;
-      background: #101712e6;
-      border: 1px solid #b7ffcf66;
-      border-radius: 0.35rem;
-      box-shadow: 0 0.5rem 2rem #0008;
-      font: 0.78rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-  `;
-  document.head.append(style);
-
   const output = document.createElement("div");
   output.className = "minimal-demo-terminal";
   output.setAttribute("role", "status");

@@ -4,7 +4,7 @@
     position: relative;
     height: 260px;
     overflow: hidden;
-    border: 1px dashed var(--line);
+    border: 1px dashed var(--color-border);
     border-radius: 10px;
     background:
         radial-gradient(circle at 10% 10%, #e8fffb, transparent 45%),

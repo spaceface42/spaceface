@@ -1,124 +1,134 @@
-:root {
-    color-scheme: light;
-    --bg: #f4f5f7;
-    --surface: #ffffff;
-    --ink: #111827;
-    --muted: #4b5563;
-    --line: #d1d5db;
-    --brand: #0f766e;
-    --accent: #0369a1;
+@font-face {
+    font-family: "Apercu Mono";
+    src: url("./fonts/ArrivalApercuMonoPro-Regular.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
 }
 
-* {
-    box-sizing: border-box;
+:root {
+    --color-bg: #f4f5f7;
+    --color-surface: #fff;
+    --color-text: #111827;
+    --color-muted: #4b5563;
+    --color-border: #d1d5db;
+    --color-accent: #0f766e;
+    --color-link: #0369a1;
+    --radius: 0.75rem;
+    --content-width: 56rem;
+    --space: 1rem;
 }
 
 body {
-    margin: 0;
+    color: var(--color-text);
+    background: linear-gradient(180deg, #f8fafc 0%, var(--color-bg) 100%);
     font-family: "Apercu Mono", "SFMono-Regular", Consolas, monospace;
-    color: var(--ink);
-    background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+    line-height: 1.5;
 }
 
 body[data-page="slideplayer"] {
-    --bg: #f3f6fb;
-    --ink: #0f172a;
-    --line: #d5d9e1;
+    --color-bg: #f3f6fb;
+    --color-text: #0f172a;
+    --color-border: #d5d9e1;
 }
 
 body[data-page="floatingimages"] {
-    --bg: #eef4ff;
-    --line: #cdd5e3;
+    --color-bg: #eef4ff;
+    --color-border: #cdd5e3;
 }
 
 main {
-    max-width: 900px;
-    margin: 24px auto;
-    padding: 16px;
+    max-width: var(--content-width);
+    margin: calc(var(--space) * 1.5) auto;
+    padding: var(--space);
 }
 
 .card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
+    margin-bottom: var(--space);
+    padding: var(--space);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
 }
 
 .row {
     display: flex;
-    gap: 8px;
     flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .controls {
-    margin-bottom: 12px;
+    margin-bottom: 0.75rem;
 }
 
 button {
-    border: 1px solid var(--line);
-    background: #fff;
-    color: var(--ink);
-    border-radius: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
 }
 
-button:hover {
-    border-color: var(--brand);
+button:hover,
+button:focus-visible {
+    border-color: var(--color-accent);
 }
 
 a {
-    color: var(--accent);
+    color: var(--color-link);
 }
 
 header {
-    max-width: 900px;
-    margin: 24px auto 0;
-    padding: 0 16px;
+    max-width: var(--content-width);
+    margin: calc(var(--space) * 1.5) auto 0;
+    padding: 0 var(--space);
+}
+
+body[data-page="floatingimages"] header,
+body[data-page="floatingimages"] main {
+    max-width: none;
+    margin-inline: var(--space);
+    padding-inline: 0;
 }
 
 body[data-page="floatingimages"] header {
-    max-width: none;
-    margin: 12px 16px 0;
-    padding: 0;
+    margin-top: 0.75rem;
 }
 
 body[data-page="floatingimages"] main {
-    max-width: none;
-    margin: 12px 16px 16px;
-    padding: 0;
+    margin-top: 0.75rem;
 }
 
 nav ul {
     display: flex;
-    gap: 12px;
-    list-style: none;
+    gap: 0.75rem;
     margin: 0;
     padding: 0;
+    list-style: none;
 }
 
 nav a {
     display: inline-block;
-    padding: 8px 12px;
-    border: 1px solid var(--line);
-    border-radius: 9999px;
+    padding: 0.5rem 0.75rem;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
     text-decoration: none;
-    color: var(--ink);
-    background: #fff;
 }
 
-nav a:hover {
-    border-color: var(--brand);
+nav a:hover,
+nav a:focus-visible {
+    border-color: var(--color-accent);
 }
 
 nav a[aria-current="page"] {
-    background: var(--ink);
-    color: #fff;
-    border-color: var(--ink);
+    color: var(--color-surface);
+    background: var(--color-text);
+    border-color: var(--color-text);
 }
 
 .muted {
-    color: var(--muted);
-    font-size: 14px;
+    color: var(--color-muted);
+    font-size: 0.875rem;
 }

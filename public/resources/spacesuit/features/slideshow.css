@@ -1,7 +1,7 @@
 /* SlideshowFeature */
 
 [data-slide] {
-    border: 1px dashed var(--line);
+    border: 1px dashed var(--color-border);
     border-radius: 8px;
     padding: 14px;
     min-height: 80px;
