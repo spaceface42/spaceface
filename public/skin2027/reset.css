@@ -1,0 +1,74 @@
+/* 1. box behaviour */
+* {
+    box-sizing: border-box;
+}
+::before, ::after {
+    box-sizing: inherit;
+}
+
+html {
+    scrollbar-gutter: stable; /* reserve space */
+}
+
+body {
+    min-block-size: 100svh;
+}
+
+/*.named resets */
+ul {
+    list-style: none;
+}
+
+/* 2. Remove default margins / padding */
+body, header, main, footer, section p, ul, li {
+    margin: 0;
+    padding: 0;
+}
+
+/* 3. Improve text rendering */
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 4. Improve media defaults */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* 5. Inherit fonts for form elements */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+/* 6. Avoid text overflows */
+p,
+h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+/* 7. Improve line-wrapping (progressive enhancement) */
+p {
+  text-wrap: pretty;
+}
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+/* 8. Enable smooth height animations (in reduced-motion-safe context) */
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+}
+
+
+
