@@ -42,7 +42,12 @@
     --neutron: .5rem;
     --atom: 1rem;
     --molecule: 3rem;
+
+
 }
+
+
+
 
 /* Example usage */
 body {
@@ -97,79 +102,105 @@ section {
 <!-- FOOTER -->
 <style>
 footer {
-    margin: 3rem;
+    padding: 3rem;
+    margin-inline: 3rem;
+    margin-bottom: 9rem;
+
     display: flex;
     flex-wrap: wrap;
-    gap: 3rem;
-    background: rgb(225, 225, 225);
-    border-radius: var(--neutron);
+    gap: 6rem;
+
+    border-radius: .5rem;
+    background: rgba(225, 225, 225, .5);
 }
 
-footer *:hover {
-    border: 1px solid rgba(255, 255, 255, 0.5);
+footer ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
-footer > :first-child {
-  max-width: 600px;
-}
-
-footer > :last-child {
-  min-width: 100%;
-}
-
-ul:before{
-    content:attr(aria-label);
+footer ul[aria-label]::before {
+    content: attr(aria-label);
     text-transform: uppercase;
+    font-size: .8rem;
+    color: orange;
 }
-#about {
+
+.about {
+    max-width: 600px;
+}
+
+.about li {
     display: flex;
+    align-items: stretch;
     gap: 1rem;
-    align-items: flex-start; /* or center */
 }
-#about img {
-    width: 100px;
-    display: inline;
-}
-#about p {
 
+.about img {
+    float: left;
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    margin-right: 1rem;
+    border-radius: .5rem;
 }
+
+.
+
+
+.about p {
+    align-self: center;
+    margin: 0;
+    margin-right: 1rem;
+    color: #444;
+}
+
+.copyright {
+    flex-basis: 100%;
+}
+
 footer a {
-    color: white;
-}
-footer {
-
+    color: rgb(244, 112, 3);
 }
 </style>
 <footer>
-    <ul id="about">
+    <ul class="about">
         <li>
-            <img src="./me-loop.webp" alt="" />
-        </li>
-        <li>
-            <p>SpaceFace.org is where I experiment with new graphical ideas—sometimes unconventional, sometimes strange, but always intentional. I push creative boundaries while striving for clarity.</p>
+            <p>
+                <img src="./me-loop.webp" alt="">
+                SpaceFace.org is where I experiment with new graphical ideas—
+                sometimes unconventional, sometimes strange, but always intentional.
+                I push creative boundaries while striving for clarity.
+            </p>
         </li>
     </ul>
-    <ul aria-label="spaceface">
+
+    <ul aria-label="SpaceFace">
         <li>home</li>
         <li>about</li>
         <li>work</li>
     </ul>
+
     <ul aria-label="Contact">
         <li>Say Hello: <a href="#">email</a></li>
         <li>Call: <a href="#">phone</a></li>
     </ul>
+
     <ul aria-label="Social">
         <li>Follow me</li>
         <li><a href="#">face</a></li>
         <li><a href="#">insta</a></li>
     </ul>
-    <ul aria-label="POLICY">
+
+    <ul aria-label="Policy">
         <li><a href="#">impressum</a></li>
         <li><a href="#">gdpr</a></li>
         <li><a href="#">Privacy</a></li>
     </ul>
-    <ul>
-        <li>© 2026 – spaceface – all rights reserved</li>
+
+    <ul class="copyright">
+        <li>© 2026 – SpaceFace – all rights reserved</li>
     </ul>
 </footer>
 <!-- / FOOTER -->

@@ -1,1 +1,29 @@
 /* Components */
+
+/* Tipo */
+@font-face {
+    font-family: "Aber Mono";
+    src: url("./fonts/AberMono-Regular.woff2") format("woff2");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "Aber Mono";
+    src: url("./fonts/AberMono-Light.woff2") format("woff2");
+    font-weight: 300;
+}
+
+html {
+    font-family: "Aber Mono", monospace;
+}
+
+body {
+    font-weight: 400;
+    color: gray;
+}
+
+
+/* Layout */
+body {
+
+}
