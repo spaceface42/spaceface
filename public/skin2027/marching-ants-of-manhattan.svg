@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns='http://www.w3.org/2000/svg' version='1.1' preserveAspectRatio='none' viewBox='0 0 10 10'>
+	<style>
+		rect, path, polyline {
+			fill: none;
+			stroke: #776B5D;
+			stroke-width: 1px;
+			vector-effect: non-scaling-stroke;
+			stroke-dasharray: 4px;
+			animation: marching-ants 0.2s linear infinite;
+			shape-rendering: geometricPrecision;
+			stroke-dashoffset: 8px;
+		}
+		#rectangle {
+			stroke-width: 2px;
+		}
+		@keyframes marching-ants {
+			to {
+				stroke-dashoffset: 0;
+			}
+		}
+	</style>
+<g>
+	<polyline points="0 0 10 10" fill="none" />
+	<polyline points="10 0 0 10" fill="none" />
+	<polyline id="rectangle" points="0 10 0 0 10 0 10 10 0 10" />
+</g>
+
+</svg>
