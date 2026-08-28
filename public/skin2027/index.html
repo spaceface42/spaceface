@@ -101,6 +101,21 @@ section {
 
 <!-- FOOTER -->
 <style>
+:root {
+    --type-meta: .65rem;
+    --text-xs: .7rem;
+    --text-sm: .8rem;
+    --text-md: 1rem;
+    --text-lg: 1.25rem;
+    --text-xl: 2rem;
+    --text-hero: clamp(2.5rem, 6vw, 6rem);
+}
+body {
+    font-size: var(--text-md);
+    line-height: 1.4;
+    color: #444;
+    line-height: 1.6rem;
+}
 footer {
     padding: 3rem;
     margin-inline: 3rem;
@@ -123,8 +138,9 @@ footer ul {
 footer ul[aria-label]::before {
     content: attr(aria-label);
     text-transform: uppercase;
-    font-size: .8rem;
-    color: orange;
+    font-size: var(--text-xs);
+    letter-spacing: .05em;
+    color: rgb(125, 125, 125);
 }
 
 .about {
@@ -151,17 +167,21 @@ footer ul[aria-label]::before {
 
 .about p {
     align-self: center;
-    margin: 0;
     margin-right: 1rem;
-    color: #444;
 }
 
 .copyright {
     flex-basis: 100%;
+    font-size: var(--text-xs);
+    line-height: 1.4rem;
 }
 
+.certifications {
+    font-size: var(--type-meta);
+}
 footer a {
     color: rgb(244, 112, 3);
+    color: rebeccapurple;
 }
 </style>
 <footer>
@@ -201,12 +221,53 @@ footer a {
 
     <ul class="copyright">
         <li>© 2026 – SpaceFace – all rights reserved</li>
+        <li>SpaceFace is the work of Zsolt Sándor, a graphic designer working professionally since 2001.</li>
+        <li>This site was designed and built from scratch using HTML5, CSS, and vanilla JavaScript written in TypeScript.</li>
+        <li>Unless otherwise stated, all artwork and graphics are by Zsolt Sándor.</li>
+        <li>
+            <a href="...">Source code on GitHub</a>
+        </li>
     </ul>
+
+    <ul class="certifications">
+        <li>
+            <a href="/certifications/#handmade">
+                <!-- HANDMADE PIXELS & VECTORS logo -->
+                HANDMADE PIXELS & VECTORS
+            </a>
+        </li>
+        <li>
+            <a href="/certifications/#no-ai">
+                <!-- NO ARTIFICIAL INTELLIGENCE WAS HARMED logo -->
+                NO ARTIFICIAL INTELLIGENCE WAS HARMED
+            </a>
+        </li>
+        <li>
+            <a href="/certifications/#vanilla">
+                <!-- VANILLA CERTIFIED logo -->
+                VANILLA CERTIFIED
+            </a>
+        </li>
+    </ul>
+
 </footer>
 <!-- / FOOTER -->
 
 
+<p>
+    about
+    <div>
+        About this website
 
+Designed and built by me from scratch using HTML5, CSS, and vanilla JavaScript written in TypeScript.
+
+No frameworks or UI libraries. The code follows current web standards and best practices, with a deliberate focus on keeping things small and purposeful — defining only what is actually needed.
+
+Artwork
+
+Unless otherwise stated, all artwork and graphics on this website were created by me. The visual design, artwork, interaction, and implementation are all part of the same process.
+    </div>
+</p>
 
 
 
