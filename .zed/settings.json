@@ -1,0 +1,8 @@
+{
+  "emmet": {
+    "options": {
+      "output.selfClosingStyle": "xhtml"
+    }
+  },
+  "soft_wrap": "editor_width"
+}
