@@ -12,7 +12,7 @@ ul {
 }
 
 /* Remove default margins / padding */
-body, header, main, footer, section p, ul, li {
+body, header, main, footer, section, p, ul, li {
     margin: 0;
     padding: 0;
 }
@@ -52,7 +52,7 @@ body {
 
 /* 3. Improve text rendering */
 body {
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 

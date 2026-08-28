@@ -100,6 +100,34 @@ section {
 
 
 <!-- FOOTER -->
+<script>
+function getPath(element) {
+    const path = [];
+
+    while (element instanceof HTMLElement) {
+        let selector = element.tagName.toLowerCase();
+
+        if (element.id) {
+            selector += `#${element.id}`;
+        } else if (element.classList.length) {
+            selector += `.${[...element.classList].join('.')}`;
+        }
+
+        path.unshift(selector);
+        element = element.parentElement;
+    }
+
+    return path.join(' > ');
+}
+
+document.addEventListener('mouseover', event => {
+    const element = event.target;
+
+    if (element instanceof HTMLElement) {
+        element.dataset.path = getPath(element);
+    }
+});
+ </script>
 <style>
 /*
  * DEBUG
@@ -112,7 +140,7 @@ section {
     position: relative;
 }
 
-*:hover:not(:has(*:hover))::after {
+* * :hover:not(:has(*:hover))::after {
     content: "";
     position: absolute;
     inset: -.5rem;
@@ -121,6 +149,49 @@ section {
     background-repeat: no-repeat;
     pointer-events: none;
 }
+
+
+*:hover:not(:has(*:hover))::before {
+    content: "<" attr(data-tag) ">";
+    position: absolute;
+    top: -.5rem;
+    left: 0;
+
+    transform: translateY(-100%);
+
+    font: 1rem/1 monospace;
+    color: #f204a3;
+    pointer-events: none;
+}
+
+*:hover:not(:has(*:hover))::after {
+    content: "";
+    position: absolute;
+    inset: -.1rem;
+
+    background: url('./marching-ants-of-manhattan-N.svg');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+
+    pointer-events: none;
+}
+
+*:hover:not(:has(*:hover))::before {
+    content: attr(data-path);
+    position: absolute;
+    top: -.5rem;
+    left: 0;
+    transform: translateY(-100%);
+    background: rgba(255 255 255 / 1);
+    font: .65rem/1 monospace;
+    color: #a20242;
+    white-space: nowrap;
+    pointer-events: none;
+    text-transform: lowercase;
+    font-size: 1rem;
+}
+
+
 
 
 :root {
@@ -134,7 +205,7 @@ section {
 }
 body {
     font-size: var(--text-md);
-    line-height: 1.4;
+    line-height: 1.6;
     color: #444;
     line-height: 1.6rem;
 }
@@ -152,17 +223,24 @@ footer {
 }
 
 footer ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+
 }
 
 footer ul[aria-label]::before {
     content: attr(aria-label);
+    display: block;
+    height: 1lh;
+
     text-transform: uppercase;
     font-size: var(--text-xs);
     letter-spacing: .05em;
     color: rgb(125, 125, 125);
+}
+
+.about::before {
+    content: "";
+    display: block;
+    height: 1lh;
 }
 
 .about {
@@ -170,10 +248,7 @@ footer ul[aria-label]::before {
 }
 
 .about li {
-    display: flex;
-    align-items: stretch;
-    gap: 1rem;
-    display: block;
+
 }
 
 .about img {
@@ -183,13 +258,10 @@ footer ul[aria-label]::before {
     object-fit: cover;
     margin: 0 1rem 1rem 0;
     border-radius: .5rem;
+    z-index: 999;
 }
 
-.
-
-
 .about p {
-    align-self: center;
     margin-right: 1rem;
 }
 
@@ -214,7 +286,7 @@ footer a {
                 <img src="./me-loop.webp" alt="">
                 SpaceFace.org is my creative space. I’m Zsolt Sándor, a graphic designer working professionally since 2001.
             </p>
-            <p>Here I experiment with new graphical ideas — sometimes unconventional, sometimes strange, but always intentional. I push creative boundaries while striving for clarity.</p>
+            <p>Here I explore new graphical ideas alongside my other work — sometimes unconventional, sometimes strange, but always intentional. I push creative boundaries while striving for clarity.</p>
         </li>
     </ul>
 
@@ -246,7 +318,7 @@ footer a {
         <li>This site was designed and built from scratch using HTML5, CSS, and vanilla JavaScript written in TypeScript.</li>
         <li>Unless otherwise stated, all artwork and graphics are by Zsolt Sándor.</li>
         <li>
-            <a href="...">Source code on GitHub</a>
+            <a href="https://github.com/">Source code on GitHub</a>
         </li>
     </ul>
 
