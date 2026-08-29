@@ -1,5 +1,5 @@
 /* spaceface */
-@layer base, components, utilities;
+@layer base, defaults, components, utilities;
 
 @import "reset.css" layer(base);
 @import "defaults.css" layer(defaults);

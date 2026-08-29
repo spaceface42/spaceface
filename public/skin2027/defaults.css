@@ -40,30 +40,11 @@ h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-/* 5. Inherit fonts for form elements 
-input,
-button,
-textarea,
-select {
-  font: inherit;
+/* For images to not be able to exceed their container */
+img {
+    max-inline-size: 100%;
+    max-block-size: 100%;
 }
-*/
-
-
-
-
 
 
 
