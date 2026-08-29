@@ -1,0 +1,41 @@
+/*
+ * DEBUG
+ */
+
+:is(
+    body,
+    header,
+    main,
+    section,
+    footer,
+    nav,
+    ul,
+    li,
+    p,
+    a,
+    img,
+    svg
+) {
+    position: relative;
+}
+
+*:hover:not(:has(*:hover))::after {
+    content: "";
+    position: absolute;
+    inset: -.5rem;
+    background: url("./images/marching-ants-of-manhattan-N.svg")
+        0 0 / 100% 100% no-repeat;
+    pointer-events: none;
+}
+
+#debug-label {
+    position: fixed;
+    z-index: 999999;
+    transform: translateY(-100%);
+    background: white;
+    padding: .15rem .3rem;
+    font: .7rem/1 monospace;
+    color: #a20242;
+    white-space: nowrap;
+    pointer-events: none;
+}

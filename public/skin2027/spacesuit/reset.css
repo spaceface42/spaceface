@@ -7,14 +7,26 @@
 * {
     box-sizing: border-box;
 }
-::before, ::after {
+
+::before,
+::after {
     box-sizing: inherit;
 }
 
 body,
-header, nav, main, section, article, footer,
-p, ul, li,
-h1, h2, h3, h4 {
+header,
+nav,
+main,
+section,
+article,
+footer,
+p,
+ul,
+li,
+h1,
+h2,
+h3,
+h4 {
     margin: 0;
     padding: 0;
 }
@@ -24,15 +36,15 @@ picture,
 video,
 canvas,
 svg {
-  display: block;
-  max-width: 100%;
+    display: block;
+    max-width: 100%;
 }
 
 ul {
     list-style: none;
 }
 
-/* 5. Inherit fonts for form elements 
+/* 5. Inherit fonts for form elements
 input,
 button,
 textarea,

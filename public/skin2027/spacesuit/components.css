@@ -1,0 +1,57 @@
+.hero p {
+    margin: 0;
+    transition: opacity .35s ease;
+}
+
+.hero p.is-changing {
+    opacity: 0;
+}
+
+.image-placeholder {
+    display: block;
+    inline-size: min(100%, 320px);
+    aspect-ratio: 4 / 3;
+    background: url("./images/placeholder.svg") 0 0 / 100% 100% no-repeat;
+}
+
+footer ul[aria-label]::before {
+    content: attr(aria-label);
+    display: block;
+    height: 1lh;
+    text-transform: uppercase;
+    font-size: var(--text-xs);
+    letter-spacing: .05em;
+    color: rgb(125, 125, 125);
+}
+
+.about {
+    max-width: 600px;
+    padding-top: 1lh;
+}
+
+.about img {
+    float: left;
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    margin: 0 1lh 1lh 0;
+    border-radius: .5rem;
+}
+
+.about p {
+    margin: 0 1lh 1lh 0;
+}
+
+.copyright {
+    flex-basis: 100%;
+    font-size: var(--text-xs);
+    line-height: 1.4rem;
+}
+
+.certifications {
+    font-size: var(--type-meta);
+}
+
+footer a {
+    color: var(--accent);
+}

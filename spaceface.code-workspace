@@ -13,6 +13,10 @@
             "path": "public",
         },
         {
+            "name": "SKIN2027",
+            "path": "public/skin2027",
+        },
+        {
             "name": "app",
             "path": "app",
         },

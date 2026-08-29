@@ -1,0 +1,53 @@
+body {
+    display: flex;
+    flex-direction: column;
+    background: url("./images/spaceface.svg") no-repeat fixed;
+}
+
+body,
+header,
+main,
+footer {
+    gap: var(--molecule);
+}
+
+section {
+    min-block-size: 50vh;
+}
+
+#splashscreen {
+    min-block-size: 100vh;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+    align-items: center;
+    align-content: stretch;
+    text-align: center;
+    background: rgba(128, 128, 128, .426) url("./images/pattern-line.svg");
+}
+
+#logo {
+    position: sticky;
+    top: 50%;
+    display: block;
+    align-self: flex-start;
+    width: 256px;
+    margin: 0 auto;
+    transform: translateY(-50%);
+}
+
+header {
+    background-color: #dbdbdc46;
+    background: url("./images/pattern-line.svg");
+}
+
+footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6rem;
+    margin-inline: 3rem;
+    margin-bottom: 9rem;
+    padding: 3rem;
+    border-radius: .5rem;
+    background: rgba(225, 225, 225, .5);
+}

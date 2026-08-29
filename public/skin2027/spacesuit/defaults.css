@@ -1,0 +1,77 @@
+@font-face {
+    font-family: "Aber Mono";
+    src: url("./fonts/AberMono-Regular.woff2") format("woff2");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "Aber Mono";
+    src: url("./fonts/AberMono-Light.woff2") format("woff2");
+    font-weight: 300;
+}
+
+:root {
+    --neutron: .5rem;
+    --atom: 1rem;
+    --molecule: 3rem;
+    --line: 1lh;
+    --accent: rebeccapurple;
+
+    --type-meta: .65rem;
+    --text-xs: .7rem;
+    --text-sm: .8rem;
+    --text-md: 1rem;
+    --text-lg: 1.25rem;
+    --text-xl: 2rem;
+    --text-hero: clamp(2.5rem, 6vw, 6rem);
+
+    interpolate-size: allow-keywords;
+    transition-behavior: allow-discrete;
+}
+
+html {
+    font-family: "Aber Mono", monospace;
+    scrollbar-gutter: stable;
+}
+
+body {
+    min-block-size: 100svh;
+    font-size: var(--text-md);
+    font-weight: 400;
+    line-height: 1.6rem;
+    color: #444;
+    -webkit-font-smoothing: antialiased;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    overflow-wrap: break-word;
+}
+
+p {
+    text-wrap: pretty;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    text-wrap: balance;
+}
+
+img {
+    max-inline-size: 100%;
+    max-block-size: 100%;
+    background: url("./images/placeholder.svg") 0 0 / 100% 100% no-repeat;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* interpolate-size: allow-keywords; */
+}
