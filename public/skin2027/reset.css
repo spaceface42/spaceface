@@ -1,4 +1,9 @@
-/* 1. box behaviour */
+/**
+ *
+ * reset
+ *
+ */
+
 * {
     box-sizing: border-box;
 }
@@ -6,18 +11,11 @@
     box-sizing: inherit;
 }
 
-/* 2. Mamed resets */
-ul {
-    list-style: none;
-}
-
-/* Remove default margins / padding */
-body, header, main, footer, section, p, ul, li {
+body, header, main, footer, section, p, ul, li, h1, h2 {
     margin: 0;
     padding: 0;
 }
 
-/* Media defaults */
 img,
 picture,
 video,
@@ -27,89 +25,6 @@ svg {
   max-width: 100%;
 }
 
-
-
-
-/* 3. Layout */
-
-/**
-  Prevent unneeded layout changes as the content growing or shrinking causes the scrollbar to appear/disappear, a space is reserved for it.
- */
-html {
-    scrollbar-gutter: stable;
-}
-
-/**
-  svh for mobile for hero, for scroling dvh
- */
-body {
-    min-block-size: 100svh;
-}
-
-
-
-/* Typography */
-
-/* 3. Improve text rendering */
-body {
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* 6. Avoid text overflows */
-p,
-h1, h2, h3, h4, h5, h6 {
-  overflow-wrap: break-word;
-}
-
-/* 7. Improve line-wrapping (progressive enhancement) */
-p {
-  text-wrap: pretty;
-}
-h1, h2, h3, h4, h5, h6 {
-  text-wrap: balance;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* 5. Inherit fonts for form elements 
-input,
-button,
-textarea,
-select {
-  font: inherit;
-}
-*/
-
-
-
-
-
-
-
-
-
-
-/* 8. Enable smooth height animations (in reduced-motion-safe context) */
-@media (prefers-reduced-motion: no-preference) {
-  /* interpolate-size: allow-keywords; */
-}
-
-:root {
-  /* allow transition between 0 to auto or min-content max content */
-  interpolate-size: allow-keywords; 
-
-
-
-  transition-behavior: allow-discrete;
+ul {
+    list-style: none;
 }

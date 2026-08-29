@@ -2,5 +2,6 @@
 @layer base, components, utilities;
 
 @import "reset.css" layer(base);
+@import "defaults.css" layer(defaults);
 @import "components.css" layer(components);
 @import "utilities.css" layer(utilities);

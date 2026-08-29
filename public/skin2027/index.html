@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<div id="splashscreen">
+<section id="splashscreen">
     <style>
         #splashscreen {
             min-height: 100vh;
@@ -35,17 +35,106 @@
         }
     </style>
     <img id="logo" src="../content/placeholders/face-animated.svg" alt="" />
-</div>
+<!--
+    <p>Ideas with intent.</p>
+    <p>Visuals with a point of view.</p>
+    <p>Meaningful work, on purpose.</p>
+    
+    <p>Shaped by context and meaning.</p>
+    <p>Made with care. Made to look good.</p>
+    <p>For brands with something to say.</p>
+-->
+</section>
+
+
+
+
+<!-- xxx -->
+<section class="hero">
+    <p>Ideas with intent.</p>
+    <p>Visuals with a point of view.</p>
+    <p>Meaningful work, on purpose.</p>
+</section>
+
+<style>
+.hero p {
+    margin: 0;
+    transition: opacity .35s ease;
+}
+
+.hero p.is-changing {
+    opacity: 0;
+}
+</style>
+
+<script>
+const hero = document.querySelector('.hero');
+
+if (hero) {
+    const lines = [...hero.querySelectorAll('p')];
+
+    const content = [
+        [
+            'Ideas with intent.',
+            'Shaped by context and meaning.'
+        ],
+        [
+            'Visuals with a point of view.',
+            'Made with care. Made to look good.'
+        ],
+        [
+            'Meaningful work, on purpose.',
+            'For brands with something to say.'
+        ]
+    ];
+
+    let line = 0;
+    let alternative = false;
+
+    function changeText() {
+        const element = lines[line];
+        const texts = content[line];
+
+        element.classList.add('is-changing');
+
+        setTimeout(() => {
+            alternative = !alternative;
+            element.textContent = texts[alternative ? 1 : 0];
+            element.classList.remove('is-changing');
+        }, 350);
+    }
+
+    setInterval(() => {
+        changeText();
+
+        if (alternative) {
+            line = (line + 1) % lines.length;
+        }
+    }, 3000);
+}
+</script>
+<!-- xxx -->
+
+
 
 <style id="layput">
 :root {
     --neutron: .5rem;
     --atom: 1rem;
     --molecule: 3rem;
-
-
+    --line: 1lh;
+    --accent:rebeccapurple;
 }
 
+:root {
+    --type-meta: .65rem;
+    --text-xs: .7rem;
+    --text-sm: .8rem;
+    --text-md: 1rem;
+    --text-lg: 1.25rem;
+    --text-xl: 2rem;
+    --text-hero: clamp(2.5rem, 6vw, 6rem);
+}
 
 
 
@@ -101,6 +190,16 @@ section {
 
 <!-- FOOTER -->
 <script>
+/*
+ * DEBUG
+ */
+
+const debugLabel = document.createElement('div');
+
+debugLabel.id = 'debug-label';
+document.body.append(debugLabel);
+
+
 function getPath(element) {
     const path = [];
 
@@ -120,95 +219,93 @@ function getPath(element) {
     return path.join(' > ');
 }
 
-document.addEventListener('mouseover', event => {
-    const element = event.target;
 
-    if (element instanceof HTMLElement) {
-        element.dataset.path = getPath(element);
-    }
+document.addEventListener('pointermove', event => {
+    const element = document.elementFromPoint(
+        event.clientX,
+        event.clientY
+    );
+
+    if (!(element instanceof HTMLElement)) return;
+
+    const rect = element.getBoundingClientRect();
+
+    debugLabel.textContent = getPath(element);
+
+    debugLabel.style.left = `${rect.left}px`;
+    debugLabel.style.top = `${rect.top}px`;
 });
  </script>
+
 <style>
-/*
+ /*
  * DEBUG
  */
-* * {
-    transition: all 0.25s 0.1s ease-in;
-}
 
-*:hover:not(:has(*:hover)) {
+:is(
+    body,
+    header,
+    main,
+    section,
+    footer,
+    nav,
+    ul,
+    li,
+    p,
+    a,
+    img,
+    svg
+) {
     position: relative;
 }
 
-* * :hover:not(:has(*:hover))::after {
-    content: "";
-    position: absolute;
-    inset: -.5rem;
-    background: url('./marching-ants-of-manhattan-N.svg');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    pointer-events: none;
-}
 
-
-*:hover:not(:has(*:hover))::before {
-    content: "<" attr(data-tag) ">";
-    position: absolute;
-    top: -.5rem;
-    left: 0;
-
-    transform: translateY(-100%);
-
-    font: 1rem/1 monospace;
-    color: #f204a3;
-    pointer-events: none;
-}
+/* Marching ants */
 
 *:hover:not(:has(*:hover))::after {
     content: "";
-    position: absolute;
-    inset: -.1rem;
 
-    background: url('./marching-ants-of-manhattan-N.svg');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
+    position: absolute;
+    inset: -.5rem;
+
+    background: url('./marching-ants-of-manhattan-N.svg')
+        0 0 / 100% 100% no-repeat;
 
     pointer-events: none;
 }
 
-*:hover:not(:has(*:hover))::before {
-    content: attr(data-path);
-    position: absolute;
-    top: -.5rem;
-    left: 0;
+
+/* Debug label */
+
+#debug-label {
+    position: fixed;
+    z-index: 999999;
+
     transform: translateY(-100%);
-    background: rgba(255 255 255 / 1);
-    font: .65rem/1 monospace;
+
+    background: white;
+    padding: .15rem .3rem;
+
+    font: .7rem/1 monospace;
     color: #a20242;
+
     white-space: nowrap;
     pointer-events: none;
-    text-transform: lowercase;
-    font-size: 1rem;
 }
+</style>
 
 
 
+<style>
 
-:root {
-    --type-meta: .65rem;
-    --text-xs: .7rem;
-    --text-sm: .8rem;
-    --text-md: 1rem;
-    --text-lg: 1.25rem;
-    --text-xl: 2rem;
-    --text-hero: clamp(2.5rem, 6vw, 6rem);
-}
+
+
 body {
     font-size: var(--text-md);
-    line-height: 1.6;
     color: #444;
     line-height: 1.6rem;
 }
+
 footer {
     padding: 3rem;
     margin-inline: 3rem;
@@ -223,7 +320,9 @@ footer {
 }
 
 footer ul {
-
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 footer ul[aria-label]::before {
@@ -237,18 +336,9 @@ footer ul[aria-label]::before {
     color: rgb(125, 125, 125);
 }
 
-.about::before {
-    content: "";
-    display: block;
-    height: 1lh;
-}
-
 .about {
     max-width: 600px;
-}
-
-.about li {
-
+    padding-top: 1lh;
 }
 
 .about img {
@@ -256,13 +346,12 @@ footer ul[aria-label]::before {
     width: 120px;
     height: 120px;
     object-fit: cover;
-    margin: 0 1rem 1rem 0;
+    margin: 0 1lh 1lh 0;
     border-radius: .5rem;
-    z-index: 999;
 }
 
 .about p {
-    margin-right: 1rem;
+    margin: 0 1lh 1lh 0;
 }
 
 .copyright {
@@ -274,9 +363,9 @@ footer ul[aria-label]::before {
 .certifications {
     font-size: var(--type-meta);
 }
+
 footer a {
-    color: rgb(244, 112, 3);
-    color: rebeccapurple;
+    color: var(--accent);
 }
 </style>
 <footer>
@@ -286,14 +375,14 @@ footer a {
                 <img src="./me-loop.webp" alt="">
                 SpaceFace.org is my creative space. I’m Zsolt Sándor, a graphic designer working professionally since 2001.
             </p>
-            <p>Here I explore new graphical ideas alongside my other work — sometimes unconventional, sometimes strange, but always intentional. I push creative boundaries while striving for clarity.</p>
+            <p>Here I explore new graphical ideas alongside my commercial work — sometimes unconventional, sometimes experimental, but always intentional. I push creative boundaries while striving for clarity.</p>
         </li>
     </ul>
 
     <ul aria-label="SpaceFace">
-        <li>home</li>
-        <li>about</li>
-        <li>work</li>
+        <li><a href="#">home</a></li>
+        <li><a href="#">about</a></li>
+        <li><a href="#">work</a></li>
     </ul>
 
     <ul aria-label="Contact">
