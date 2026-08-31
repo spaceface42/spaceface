@@ -9,7 +9,85 @@
 <body>
 
 <section id="splashscreen">
-    <img id="logo" src="./spacesuit/images/spaceface.svg" alt="" />
+    <!--<img id="logo" src="./spacesuit/images/spaceface.svg" alt="" />-->
+<object id="logo" data="./spacesuit/images/spaceface-tipo-anim.svg" type="image/svg+xml"></object>
+
+<script>
+const object = document.querySelector('#logo');
+
+object.addEventListener('load', () => {
+
+    const svg = object.contentDocument;
+
+    if (!svg) {
+        console.error('SVG document not available');
+        return;
+    }
+
+    const paths = [...svg.querySelectorAll('path')];
+
+    if (!paths.length) {
+        console.error('No paths found in SVG');
+        return;
+    }
+
+    const visibleRatio = 0.6;
+
+    // Shuffle paths
+    const shuffled = [...paths].sort(() => Math.random() - 0.5);
+
+    const visibleCount = Math.round(paths.length * visibleRatio);
+
+    // Store actual elements instead of indexes
+    const visible = new Set(shuffled.slice(0, visibleCount));
+    const hidden = new Set(shuffled.slice(visibleCount));
+
+    // Initial state
+    paths.forEach(path => {
+        path.style.opacity = visible.has(path) ? '1' : '.1';
+        path.style.transition = 'opacity 2550ms ease';
+    });
+
+    function changeCharacter() {
+
+        if (!visible.size || !hidden.size) {
+            return;
+        }
+
+        // Pick random visible element
+        const visibleArray = [...visible];
+        const hidePath =
+            visibleArray[
+                Math.floor(Math.random() * visibleArray.length)
+            ];
+
+        // Pick random hidden element
+        const hiddenArray = [...hidden];
+        const showPath =
+            hiddenArray[
+                Math.floor(Math.random() * hiddenArray.length)
+            ];
+
+        // Swap
+        hidePath.style.opacity = '0';
+        showPath.style.opacity = '1';
+
+        visible.delete(hidePath);
+        visible.add(showPath);
+
+        hidden.delete(showPath);
+        hidden.add(hidePath);
+
+        // Next change
+        setTimeout(
+            changeCharacter,
+            80 + Math.random() * 900
+        );
+    }
+
+    changeCharacter();
+});
+</script>
 <!--
     <p>Ideas with intent.</p>
     <p>Visuals with a point of view.</p>
@@ -181,20 +259,33 @@ if (hero) {
     </ul>
 
     <ul class="certifications">
+        <style>
+            .certifications {
+                display: flex;
+                gap: 3rem;
+            }
+            .certifications img {
+                width: 3rem;
+                background-image: none;
+            }
+        </style>
         <li>
             <a href="/certifications/#handmade">
-                HANDMADE PIXELS & VECTORS
+                <img src="./spacesuit/images/vanilla.svg" alt="" />
             </a>
+            <p>HANDMADE PIXELS & VECTORS</p>
         </li>
         <li>
             <a href="/certifications/#no-ai">
-                NO ARTIFICIAL INTELLIGENCE WAS HARMED
+                <img src="./spacesuit/images/vanilla.svg" alt="" />
             </a>
+            <p>NO ARTIFICIAL INTELLIGENCE WAS HARMED</p>
         </li>
         <li>
             <a href="/certifications/#vanilla">
-                VANILLA CERTIFIED
+                <img src="./spacesuit/images/vanilla.svg" alt="" />
             </a>
+            <p>VANILLA CERTIFIED</p>
         </li>
     </ul>
 

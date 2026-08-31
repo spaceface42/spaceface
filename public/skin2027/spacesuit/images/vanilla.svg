@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 620 620">
+  <!-- Generator: Adobe Illustrator 29.8.10, SVG Export Plug-In . SVG Version: 2.1.1 Build 2)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+      }
+
+      .st1, .st2 {
+        stroke-miterlimit: 10;
+      }
+
+      .st1, .st2, .st3 {
+        stroke: #231f20;
+        stroke-width: 14px;
+      }
+
+      .st1, .st3 {
+        fill: #fff;
+        stroke-linecap: square;
+      }
+
+      .st2 {
+        fill: #231f20;
+      }
+
+      .st3 {
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+  <g id="logo">
+    <line id="diagonal" class="st0" y1="0" x2="620" y2="620"/>
+    <rect class="st0" x="1" y="1" width="618" height="618"/>
+  </g>
+  <rect class="st1" x="80.6" y="335.7" width="86" height="206" rx="43" ry="43" transform="translate(346.4 41.1) rotate(45)"/>
+  <path class="st1" d="M527.5,116.7v90.7l45.1-53c11.6-13.7,10.8-34-1.9-46.7l-17.3-17.3c-14.3.3-25.9,11.9-25.9,26.3Z"/>
+  <path class="st2" d="M413.1,90.3c-14.6,0-26.4,11.8-26.4,26.4v157.1c0,19.4-15.8,35.2-35.2,35.2s-35.2-15.8-35.2-35.2V116.7c0-14.6-11.8-26.4-26.4-26.4h-.2l-202.8,172.5c-15.3,13-16.3,36.4-2,50.6l164,164c14.2,14.2,37.6,13.3,50.6-2l140-164.5V116.7c0-14.6-11.8-26.4-26.4-26.4Z"/>
+  <path class="st3" d="M439.5,290.6v56.6c0,24.3,19.7,44,44,44s44-19.7,44-44v-139.9"/>
+</svg>

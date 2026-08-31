@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accessible Scatter Stage — v0.2.1</title>
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #e9e7df;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .stage.is-dragging {
+    cursor: grabbing;
+  }
+
+  .stage[aria-hidden="true"] {
+    pointer-events: none;
+  }
+
+  .stage-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+    pointer-events: none;
+  }
+
+  .item {
+    position: absolute;
+    width: 180px;
+    height: 225px;
+    object-fit: cover;
+    pointer-events: auto;
+    -webkit-user-drag: none;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    outline: none;
+    opacity: 0;
+    background: linear-gradient(100deg, #d1cfc7 30%, #e4e2da 50%, #d1cfc7 70%);
+    background-size: 200% 100%;
+    animation: item-shimmer 1.6s ease-in-out infinite;
+    transition: opacity 0.5s ease, box-shadow 0.2s ease, outline 0.2s ease;
+  }
+
+  .item.is-loaded {
+    opacity: 1;
+    animation: none;
+    background: none;
+  }
+
+  @keyframes item-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .item:hover {
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+    z-index: 10;
+  }
+
+  .item:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 4px;
+    z-index: 20;
+  }
+
+  .item.is-hidden {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .lightbox-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(18, 18, 18, 0.85);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+    z-index: 100;
+  }
+
+  .lightbox-backdrop.is-active {
+    opacity: 1;
+    pointer-events: auto;
+    cursor: zoom-out;
+  }
+
+  .lightbox-clone {
+    position: fixed;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+    z-index: 101;
+    pointer-events: auto;
+    cursor: zoom-out;
+    transform-origin: top left;
+    will-change: transform;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.4s ease;
+  }
+
+  .lightbox-clone:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .item {
+      animation: none;
+      transition: none;
+    }
+    .lightbox-clone,
+    .lightbox-backdrop {
+      transition: none;
+    }
+  }
+</style>
+</head>
+<body>
+
+<main class="stage" tabindex="-1" aria-label="Interactive image scatter canvas">
+  <p class="sr-only" id="stage-instructions">
+    Use arrow keys to pan, plus and minus to zoom, and Tab to move between images. Press Enter or Space on an image to open it full size; press Escape to close it.
+  </p>
+  <div class="stage-canvas"></div>
+</main>
+
+<div class="lightbox-backdrop" aria-hidden="true"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const CONFIG = {
+    worldSizeMultiplier: 2.4,
+    minZoom: 0.6,
+    maxZoom: 1.8,
+    doubleTapZoom: 1.6,
+
+    parallaxStrength: 18,
+    itemDepthRange: [0.6, 1.4],
+
+    wheelZoomSensitivity: 0.005,
+    keyboardPanStep: 80,
+    keyboardZoomStep: 0.15,
+
+    scatterPadding: 80,
+    scatterMinDistanceFactor: 0.75,
+    scatterMaxRotationDeg: 16,
+    scatterMaxAttempts: 75,
+
+    overscrollResistance: 0.35,
+    overscrollSpringRate: 0.18,
+    overscrollSettleSpeed: 0.6,
+
+    frictionMouse: 0.88,
+    frictionTouch: 0.94,
+    lerpRateMouse: 0.1,
+    lerpRateTouch: 0.14,
+
+    doubleTapMaxDelay: 300,
+    doubleTapMaxDistance: 30,
+
+    lightboxMaxHeight: 620,
+    lightboxAspectRatio: 4 / 5,
+    lightboxFallbackTimeoutMs: 500,
+  };
+
+  const ARTWORK = [
+    { src: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500&auto=format&fit=crop&q=80', alt: 'Abstract floral artwork' },
+    { src: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=500&auto=format&fit=crop&q=80', alt: 'Vibrant color explosion' },
+    { src: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=500&auto=format&fit=crop&q=80', alt: 'Fluid neon paint texture' },
+    { src: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&auto=format&fit=crop&q=80', alt: 'Technological motherboard pattern' },
+    { src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=80', alt: 'Sunny tropical beach' },
+    { src: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=500&auto=format&fit=crop&q=80', alt: 'Glittering bokeh background' },
+    { src: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=500&auto=format&fit=crop&q=80', alt: 'Moody portrait' },
+    { src: 'https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?w=500&auto=format&fit=crop&q=80', alt: 'Surreal red glowing architecture' },
+    { src: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=500&auto=format&fit=crop&q=80', alt: 'Minimalist water surface' },
+    { src: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500&auto=format&fit=crop&q=80', alt: 'Foggy mountainous forest' },
+    { src: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=500&auto=format&fit=crop&q=80', alt: 'Serene woodland path' },
+    { src: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=500&auto=format&fit=crop&q=80', alt: 'Nature landscape with sunbeam' },
+  ];
+
+  class Lightbox {
+    constructor({ backdrop, items, prefersReducedMotion, onToggle }) {
+      this.backdrop = backdrop;
+      this.items = items;
+      this.prefersReducedMotion = prefersReducedMotion;
+      this.onToggle = onToggle;
+      this.state = null;
+
+      this.backdrop.addEventListener('click', () => this.close());
+    }
+
+    get isOpen() {
+      return !!this.state;
+    }
+
+    open(item) {
+      if (this.state) return;
+
+      this.items.forEach(i => i.setAttribute('tabindex', '-1'));
+
+      const firstRect = item.getBoundingClientRect();
+      const clone = item.cloneNode();
+      clone.className = 'lightbox-clone';
+      clone.setAttribute('tabindex', '0');
+      clone.setAttribute('role', 'dialog');
+      clone.setAttribute('aria-modal', 'true');
+      clone.setAttribute('aria-label', item.alt || 'Enlarged image');
+
+      const rot = item.dataset.rotation || '0';
+      clone.style.top = `${firstRect.top}px`;
+      clone.style.left = `${firstRect.left}px`;
+      clone.style.width = `${firstRect.width}px`;
+      clone.style.height = `${firstRect.height}px`;
+      clone.style.transform = `rotate(${rot}deg)`;
+
+      document.body.appendChild(clone);
+      item.classList.add('is-hidden');
+      this.backdrop.classList.add('is-active');
+      this.backdrop.setAttribute('aria-hidden', 'false');
+
+      this.state = { original: item, clone, rot };
+
+      clone.getBoundingClientRect(); // Reflow
+
+      // Reszponzív méretezés mobilra is
+      const maxAllowedWidth = window.innerWidth * 0.9;
+      let targetHeight = Math.min(window.innerHeight * 0.8, CONFIG.lightboxMaxHeight);
+      let targetWidth = targetHeight * CONFIG.lightboxAspectRatio;
+
+      if (targetWidth > maxAllowedWidth) {
+        targetWidth = maxAllowedWidth;
+        targetHeight = targetWidth / CONFIG.lightboxAspectRatio;
+      }
+
+      const centerX = (window.innerWidth - targetWidth) / 2;
+      const centerY = (window.innerHeight - targetHeight) / 2;
+      const deltaX = centerX - firstRect.left;
+      const deltaY = centerY - firstRect.top;
+      const scale = targetWidth / firstRect.width;
+
+      clone.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${scale}) rotate(0deg)`;
+      clone.addEventListener('click', () => this.close());
+      clone.focus();
+
+      this.onToggle(true);
+    }
+
+    close() {
+      if (!this.state) return;
+      const { original, clone, rot } = this.state;
+
+      this.backdrop.classList.remove('is-active');
+      this.backdrop.setAttribute('aria-hidden', 'true');
+      clone.style.transform = `translate3d(0, 0, 0) scale(1) rotate(${rot}deg)`;
+
+      let restored = false;
+      const restore = () => {
+        if (restored) return;
+        restored = true;
+        original.classList.remove('is-hidden');
+        clone.remove();
+        this.items.forEach(i => i.setAttribute('tabindex', '0'));
+        original.focus();
+        this.state = null;
+        this.onToggle(false);
+      };
+
+      clone.addEventListener('transitionend', restore, { once: true });
+      setTimeout(restore, this.prefersReducedMotion ? 0 : CONFIG.lightboxFallbackTimeoutMs);
+    }
+
+    handleKeydown(e) {
+      if (!this.state) return false;
+      if (e.key === 'Escape') this.close();
+      return true;
+    }
+  }
+
+  class ScatterStage {
+    constructor(stage, artwork, config) {
+      this.stage = stage;
+      this.canvas = stage.querySelector('.stage-canvas');
+      this.config = config;
+      this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      this.items = this.buildItems(artwork);
+
+      this.lightbox = new Lightbox({
+        backdrop: document.querySelector('.lightbox-backdrop'),
+        items: this.items,
+        prefersReducedMotion: this.prefersReducedMotion,
+        onToggle: (isOpen) => this.handleLightboxToggle(isOpen),
+      });
+
+      this.canvasSize = { width: 0, height: 0 };
+      this.bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+
+      this.position = { x: 0, y: 0 };
+      this.target = { x: 0, y: 0 };
+      this.velocity = { x: 0, y: 0 };
+
+      this.scale = 1;
+      this.targetScale = 1;
+
+      this.parallax = { x: 0, y: 0 };
+      this.parallaxTarget = { x: 0, y: 0 };
+
+      this.activePointers = new Map();
+      this.lastPointer = { x: 0, y: 0 };
+      this.pinchStartDist = 0;
+      this.pinchStartScale = 1;
+      this.isDragging = false;
+      this.hasMovedSignificantly = false;
+      this.pointerDownPos = { x: 0, y: 0 };
+      this.pointerType = 'mouse';
+
+      this.lastTapTime = 0;
+      this.lastTapPos = { x: 0, y: 0 };
+
+      this.visibleItems = new Set(this.items);
+      this.rafId = null;
+
+      this.init();
+      this.bindEvents();
+    }
+
+    clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    softClamp(v, min, max, resistance) {
+      if (v > max) return max + (v - max) * resistance;
+      if (v < min) return min + (v - min) * resistance;
+      return v;
+    }
+
+    buildItems(artwork) {
+      const [minDepth, maxDepth] = this.config.itemDepthRange;
+      return artwork.map(art => {
+        const img = document.createElement('img');
+        img.className = 'item';
+        img.src = art.src;
+        img.alt = art.alt;
+        img.tabIndex = 0;
+        img.dataset.depth = (minDepth + Math.random() * (maxDepth - minDepth)).toFixed(3);
+        this.canvas.appendChild(img);
+        return img;
+      });
+    }
+
+    preloadImages() {
+      const promises = this.items.map(img => new Promise((resolve) => {
+        const markLoaded = () => {
+          img.classList.add('is-loaded');
+          resolve();
+        };
+        if (img.complete && img.naturalWidth !== 0) {
+          markLoaded();
+        } else {
+          img.addEventListener('load', markLoaded, { once: true });
+          img.addEventListener('error', markLoaded, { once: true });
+        }
+      }));
+      return Promise.all(promises);
+    }
+
+    async init() {
+      await this.preloadImages();
+
+      this.updateCanvasDimensions();
+      this.target.x = this.position.x = this.bounds.minX / 2;
+      this.target.y = this.position.y = this.bounds.minY / 2;
+
+      this.scatterItemsWithCollisionAvoidance();
+      this.setupVisibilityObserver();
+      this.render();
+    }
+
+    updateCanvasDimensions() {
+      this.canvasSize.width = window.innerWidth * this.config.worldSizeMultiplier;
+      this.canvasSize.height = window.innerHeight * this.config.worldSizeMultiplier;
+      this.canvas.style.width = `${this.canvasSize.width}px`;
+      this.canvas.style.height = `${this.canvasSize.height}px`;
+      this.updateBounds();
+    }
+
+    scatterItemsWithCollisionAvoidance() {
+      const { scatterPadding, scatterMinDistanceFactor, scatterMaxRotationDeg, scatterMaxAttempts } = this.config;
+      const placedBoxes = [];
+
+      this.items.forEach(item => {
+        const width = item.offsetWidth || 180;
+        const height = item.offsetHeight || 225;
+
+        let x, y, overlaps, attempts = 0;
+
+        do {
+          overlaps = false;
+          x = scatterPadding + Math.random() * (this.canvasSize.width - width - scatterPadding * 2);
+          y = scatterPadding + Math.random() * (this.canvasSize.height - height - scatterPadding * 2);
+
+          for (const box of placedBoxes) {
+            const dx = (x + width / 2) - (box.x + box.width / 2);
+            const dy = (y + height / 2) - (box.y + box.height / 2);
+            const minDistance = Math.max(width, height) * scatterMinDistanceFactor;
+            if (Math.hypot(dx, dy) < minDistance) {
+              overlaps = true;
+              break;
+            }
+          }
+          attempts++;
+        } while (overlaps && attempts < scatterMaxAttempts);
+
+        const rot = (Math.random() - 0.5) * scatterMaxRotationDeg;
+        placedBoxes.push({ x, y, width, height });
+
+        item.dataset.baseX = x;
+        item.dataset.baseY = y;
+        item.dataset.rotation = rot;
+
+        item.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg)`;
+      });
+    }
+
+    setupVisibilityObserver() {
+      if (!('IntersectionObserver' in window)) return;
+
+      this.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            this.visibleItems.add(entry.target);
+            this.updateItemTransform(entry.target);
+          } else {
+            this.visibleItems.delete(entry.target);
+          }
+        });
+      }, { root: null, rootMargin: '600px', threshold: 0 });
+
+      this.items.forEach(item => this.observer.observe(item));
+    }
+
+    updateBounds() {
+      this.bounds.minX = window.innerWidth - this.canvasSize.width * this.targetScale;
+      this.bounds.minY = window.innerHeight - this.canvasSize.height * this.targetScale;
+      this.bounds.maxX = 0;
+      this.bounds.maxY = 0;
+    }
+
+    handleLightboxToggle(isOpen) {
+      if (isOpen) {
+        this.stage.setAttribute('aria-hidden', 'true');
+        this.parallaxTarget.x = 0;
+        this.parallaxTarget.y = 0;
+      } else {
+        this.stage.removeAttribute('aria-hidden');
+      }
+    }
+
+    bindEvents() {
+      this.stage.addEventListener('pointerdown', (e) => {
+        if (this.lightbox.isOpen) return;
+
+        this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        this.pointerType = e.pointerType;
+
+        if (this.activePointers.size === 1) {
+          this.isDragging = true;
+          this.hasMovedSignificantly = false;
+          this.pointerDownPos = { x: e.clientX, y: e.clientY };
+          this.lastPointer = { x: e.clientX, y: e.clientY };
+          this.velocity = { x: 0, y: 0 };
+          this.stage.classList.add('is-dragging');
+          this.stage.setPointerCapture(e.pointerId);
+        } else if (this.activePointers.size === 2) {
+          const [p1, p2] = [...this.activePointers.values()];
+          this.pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+          this.pinchStartScale = this.targetScale;
+        }
+        this.startLoop();
+      });
+
+      this.stage.addEventListener('pointermove', (e) => {
+        if (this.lightbox.isOpen || !this.activePointers.has(e.pointerId)) return;
+
+        this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (this.activePointers.size === 2) {
+          const [p1, p2] = [...this.activePointers.values()];
+          const currentDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+          const factor = currentDist / this.pinchStartDist;
+          this.applyZoom(this.pinchStartScale * factor, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+          return;
+        }
+
+        if (!this.isDragging) return;
+
+        const dx = e.clientX - this.lastPointer.x;
+        const dy = e.clientY - this.lastPointer.y;
+
+        if (!this.hasMovedSignificantly) {
+          const totalDist = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
+          if (totalDist > 8) this.hasMovedSignificantly = true;
+        }
+
+        this.lastPointer = { x: e.clientX, y: e.clientY };
+        const { overscrollResistance } = this.config;
+        this.target.x = this.softClamp(this.target.x + dx, this.bounds.minX, 0, overscrollResistance);
+        this.target.y = this.softClamp(this.target.y + dy, this.bounds.minY, 0, overscrollResistance);
+
+        this.velocity = { x: dx, y: dy };
+      });
+
+      const stopDrag = (e) => {
+        this.handlePotentialDoubleTap(e);
+
+        this.activePointers.delete(e.pointerId);
+        if (this.stage.hasPointerCapture(e.pointerId)) {
+          this.stage.releasePointerCapture(e.pointerId);
+        }
+
+        if (this.activePointers.size === 0) {
+          this.isDragging = false;
+          this.stage.classList.remove('is-dragging');
+        } else if (this.activePointers.size === 1) {
+          const [remaining] = [...this.activePointers.values()];
+          this.lastPointer = { x: remaining.x, y: remaining.y };
+        }
+      };
+
+      this.stage.addEventListener('pointerup', stopDrag);
+      this.stage.addEventListener('pointercancel', stopDrag);
+
+      this.stage.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (this.lightbox.isOpen) return;
+
+        if (e.ctrlKey || e.metaKey) {
+          const zoomDelta = -e.deltaY * this.config.wheelZoomSensitivity;
+          this.applyZoom(this.targetScale + zoomDelta, e.clientX, e.clientY);
+        } else {
+          const { overscrollResistance } = this.config;
+          this.target.x = this.softClamp(this.target.x - e.deltaX, this.bounds.minX, 0, overscrollResistance);
+          this.target.y = this.softClamp(this.target.y - e.deltaY, this.bounds.minY, 0, overscrollResistance);
+        }
+        this.startLoop();
+      }, { passive: false });
+
+      this.stage.addEventListener('mousemove', (e) => {
+        if (this.lightbox.isOpen || this.isDragging || this.prefersReducedMotion) return;
+        const nx = (e.clientX / window.innerWidth - 0.5) * 2;
+        const ny = (e.clientY / window.innerHeight - 0.5) * 2;
+        this.parallaxTarget.x = -nx * this.config.parallaxStrength;
+        this.parallaxTarget.y = -ny * this.config.parallaxStrength;
+        this.startLoop();
+      });
+
+      this.stage.addEventListener('mouseleave', () => {
+        this.parallaxTarget.x = 0;
+        this.parallaxTarget.y = 0;
+        this.startLoop();
+      });
+
+      this.stage.addEventListener('dblclick', (e) => {
+        if (this.lightbox.isOpen || e.target.closest('.item')) return;
+        this.toggleZoomAt(e.clientX, e.clientY);
+      });
+
+      this.items.forEach(item => {
+        item.addEventListener('click', () => {
+          if (this.hasMovedSignificantly) return;
+          this.lightbox.open(item);
+        });
+
+        item.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.lightbox.open(item);
+          }
+        });
+
+        item.addEventListener('focus', () => {
+          if (this.lightbox.isOpen) return;
+          this.panToItem(item);
+        });
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (this.lightbox.handleKeydown(e)) return;
+
+        const { keyboardPanStep, keyboardZoomStep } = this.config;
+        let handled = false;
+
+        switch (e.key) {
+          case 'ArrowUp':
+            this.velocity = { x: 0, y: 0 };
+            this.target.y = this.clamp(this.target.y + keyboardPanStep, this.bounds.minY, 0);
+            handled = true;
+            break;
+          case 'ArrowDown':
+            this.velocity = { x: 0, y: 0 };
+            this.target.y = this.clamp(this.target.y - keyboardPanStep, this.bounds.minY, 0);
+            handled = true;
+            break;
+          case 'ArrowLeft':
+            this.velocity = { x: 0, y: 0 };
+            this.target.x = this.clamp(this.target.x + keyboardPanStep, this.bounds.minX, 0);
+            handled = true;
+            break;
+          case 'ArrowRight':
+            this.velocity = { x: 0, y: 0 };
+            this.target.x = this.clamp(this.target.x - keyboardPanStep, this.bounds.minX, 0);
+            handled = true;
+            break;
+          case '+':
+          case '=':
+            this.applyZoom(this.targetScale + keyboardZoomStep, window.innerWidth / 2, window.innerHeight / 2);
+            handled = true;
+            break;
+          case '-':
+          case '_':
+            this.applyZoom(this.targetScale - keyboardZoomStep, window.innerWidth / 2, window.innerHeight / 2);
+            handled = true;
+            break;
+        }
+
+        if (handled) {
+          e.preventDefault();
+          this.startLoop();
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        this.updateCanvasDimensions();
+        this.target.x = this.clamp(this.target.x, this.bounds.minX, 0);
+        this.target.y = this.clamp(this.target.y, this.bounds.minY, 0);
+        this.startLoop();
+      });
+    }
+
+    handlePotentialDoubleTap(e) {
+      if (this.lightbox.isOpen || e.pointerType !== 'touch' || this.hasMovedSignificantly || e.target.closest('.item')) return;
+
+      const { doubleTapMaxDelay, doubleTapMaxDistance } = this.config;
+      const now = Date.now();
+      const dt = now - this.lastTapTime;
+      const dist = Math.hypot(e.clientX - this.lastTapPos.x, e.clientY - this.lastTapPos.y);
+
+      if (dt < doubleTapMaxDelay && dist < doubleTapMaxDistance) {
+        this.toggleZoomAt(e.clientX, e.clientY);
+        this.lastTapTime = 0;
+      } else {
+        this.lastTapTime = now;
+        this.lastTapPos = { x: e.clientX, y: e.clientY };
+      }
+    }
+
+    toggleZoomAt(x, y) {
+      const midpoint = (this.config.minZoom + this.config.maxZoom) / 2;
+      const nextScale = this.targetScale > midpoint
+        ? this.config.minZoom
+        : Math.min(this.config.maxZoom, this.config.doubleTapZoom);
+      this.applyZoom(nextScale, x, y);
+    }
+
+    panToItem(item) {
+      const baseX = parseFloat(item.dataset.baseX);
+      const baseY = parseFloat(item.dataset.baseY);
+      const width = item.offsetWidth || 180;
+      const height = item.offsetHeight || 225;
+
+      const itemCenterX = (baseX + width / 2) * this.targetScale;
+      const itemCenterY = (baseY + height / 2) * this.targetScale;
+
+      this.target.x = this.clamp(window.innerWidth / 2 - itemCenterX, this.bounds.minX, 0);
+      this.target.y = this.clamp(window.innerHeight / 2 - itemCenterY, this.bounds.minY, 0);
+
+      this.startLoop();
+    }
+
+    applyZoom(nextScale, originX, originY) {
+      const clampedScale = this.clamp(nextScale, this.config.minZoom, this.config.maxZoom);
+      const prevScale = this.targetScale;
+      if (clampedScale === prevScale) return;
+
+      this.targetScale = clampedScale;
+      this.updateBounds();
+
+      const scaleRatio = clampedScale / prevScale;
+      this.target.x = this.clamp(originX - (originX - this.target.x) * scaleRatio, this.bounds.minX, 0);
+      this.target.y = this.clamp(originY - (originY - this.target.y) * scaleRatio, this.bounds.minY, 0);
+
+      if (this.prefersReducedMotion) {
+        this.scale = clampedScale;
+      }
+
+      this.startLoop();
+    }
+
+    startLoop() {
+      if (!this.rafId) {
+        this.rafId = requestAnimationFrame(() => this.animate());
+      }
+    }
+
+    animate() {
+      const {
+        frictionTouch, frictionMouse, lerpRateTouch, lerpRateMouse,
+        overscrollResistance, overscrollSpringRate, overscrollSettleSpeed,
+      } = this.config;
+      const friction = this.pointerType === 'touch' ? frictionTouch : frictionMouse;
+      const lerpRate = this.pointerType === 'touch' ? lerpRateTouch : lerpRateMouse;
+
+      if (this.isDragging || this.lightbox.isOpen) {
+        this.parallaxTarget.x = 0;
+        this.parallaxTarget.y = 0;
+      }
+
+      if (!this.isDragging) {
+        this.target.x = this.softClamp(this.target.x + this.velocity.x, this.bounds.minX, 0, overscrollResistance);
+        this.target.y = this.softClamp(this.target.y + this.velocity.y, this.bounds.minY, 0, overscrollResistance);
+        this.velocity.x *= friction;
+        this.velocity.y *= friction;
+
+        const speed = Math.hypot(this.velocity.x, this.velocity.y);
+        if (speed < overscrollSettleSpeed) {
+          const clampedX = this.clamp(this.target.x, this.bounds.minX, 0);
+          const clampedY = this.clamp(this.target.y, this.bounds.minY, 0);
+          this.target.x += (clampedX - this.target.x) * overscrollSpringRate;
+          this.target.y += (clampedY - this.target.y) * overscrollSpringRate;
+        }
+      }
+
+      if (this.prefersReducedMotion) {
+        this.position.x = this.clamp(this.target.x, this.bounds.minX, 0);
+        this.position.y = this.clamp(this.target.y, this.bounds.minY, 0);
+        this.scale = this.targetScale;
+        this.parallax.x = 0;
+        this.parallax.y = 0;
+      } else {
+        this.position.x += (this.target.x - this.position.x) * lerpRate;
+        this.position.y += (this.target.y - this.position.y) * lerpRate;
+        this.scale += (this.targetScale - this.scale) * lerpRate;
+        this.parallax.x += (this.parallaxTarget.x - this.parallax.x) * lerpRate;
+        this.parallax.y += (this.parallaxTarget.y - this.parallax.y) * lerpRate;
+      }
+
+      this.render();
+
+      if (!this.prefersReducedMotion) {
+        this.visibleItems.forEach(item => this.updateItemTransform(item));
+      }
+
+      const isMoving =
+        Math.hypot(this.velocity.x, this.velocity.y) > 0.02 ||
+        Math.hypot(this.target.x - this.position.x, this.target.y - this.position.y) > 0.05 ||
+        Math.abs(this.targetScale - this.scale) > 0.001 ||
+        Math.hypot(this.parallaxTarget.x - this.parallax.x, this.parallaxTarget.y - this.parallax.y) > 0.05;
+
+      this.rafId = (this.isDragging || isMoving) ? requestAnimationFrame(() => this.animate()) : null;
+    }
+
+    updateItemTransform(item) {
+      const depth = parseFloat(item.dataset.depth);
+      const baseX = parseFloat(item.dataset.baseX);
+      const baseY = parseFloat(item.dataset.baseY);
+      const rot = item.dataset.rotation;
+      const offsetX = this.parallax.x * depth;
+      const offsetY = this.parallax.y * depth;
+      item.style.transform = `translate3d(${baseX + offsetX}px, ${baseY + offsetY}px, 0) rotate(${rot}deg)`;
+    }
+
+    render() {
+      this.canvas.style.transform = `translate3d(${this.position.x}px, ${this.position.y}px, 0) scale(${this.scale})`;
+    }
+  }
+
+  new ScatterStage(document.querySelector('.stage'), ARTWORK, CONFIG);
+})();
+</script>
+</body>
+</html>
