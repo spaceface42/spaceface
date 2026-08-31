@@ -32,6 +32,11 @@
     cursor: grabbing;
   }
 
+  /* Background is inert while the lightbox is open */
+  .stage[aria-hidden="true"] {
+    pointer-events: none;
+  }
+
   .stage-canvas {
     position: absolute;
     top: 0;
@@ -72,6 +77,19 @@
     pointer-events: none;
   }
 
+  /* Visually-hidden but screen-reader-visible helper text */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   /* FLIP Lightbox Styles */
   .lightbox-backdrop {
     position: fixed;
@@ -101,11 +119,28 @@
     transform-origin: top left; /* Critical for precise FLIP alignment */
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.4s ease;
   }
+
+  .lightbox-clone:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lightbox-clone {
+      transition: none;
+    }
+    .lightbox-backdrop {
+      transition: none;
+    }
+  }
 </style>
 </head>
 <body>
 
 <main class="stage" tabindex="-1" aria-label="Interactive image scatter canvas">
+  <p class="sr-only" id="stage-instructions">
+    Use arrow keys to pan, plus and minus to zoom, and Tab to move between images. Press Enter or Space on an image to open it full size; press Escape to close it.
+  </p>
   <div class="stage-canvas">
     <img class="item" src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500&auto=format&fit=crop&q=80" alt="Art 1" tabindex="0">
     <img class="item" src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=500&auto=format&fit=crop&q=80" alt="Art 2" tabindex="0">
@@ -132,9 +167,19 @@ class AccessibleScatterStage {
     this.items = [...stage.querySelectorAll('.item')];
     this.backdrop = document.querySelector('.lightbox-backdrop');
 
-    this.scaleFactor = options.scaleFactor || 2.4;
+    // How much larger the scrollable world is than the viewport.
+    this.worldSizeMultiplier = options.worldSizeMultiplier || 2.4;
     this.minZoom = options.minZoom || 0.6;
     this.maxZoom = options.maxZoom || 1.8;
+
+    // Subtle mouse-parallax drift, layered on top of pan/zoom. Purely a
+    // hover flourish for mouse pointers — never affects touch, dragging,
+    // the lightbox, or reduced-motion users.
+    this.parallaxStrength = options.parallaxStrength || 18;
+    this.parallax = { x: 0, y: 0 };
+    this.parallaxTarget = { x: 0, y: 0 };
+
+    this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     this.canvasSize = { width: 0, height: 0 };
     this.bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
@@ -142,6 +187,8 @@ class AccessibleScatterStage {
     this.position = { x: 0, y: 0 };
     this.target = { x: 0, y: 0 };
     this.velocity = { x: 0, y: 0 };
+
+    // scale = what's currently rendered; targetScale = where we're easing toward.
     this.scale = 1;
     this.targetScale = 1;
 
@@ -179,8 +226,8 @@ class AccessibleScatterStage {
   async init() {
     await this.preloadImages();
 
-    this.canvasSize.width = window.innerWidth * this.scaleFactor;
-    this.canvasSize.height = window.innerHeight * this.scaleFactor;
+    this.canvasSize.width = window.innerWidth * this.worldSizeMultiplier;
+    this.canvasSize.height = window.innerHeight * this.worldSizeMultiplier;
     this.canvas.style.width = `${this.canvasSize.width}px`;
     this.canvas.style.height = `${this.canvasSize.height}px`;
 
@@ -235,9 +282,11 @@ class AccessibleScatterStage {
     });
   }
 
+  // Bounds are computed against targetScale, since that's what pan clamping
+  // should track toward — not the (possibly mid-ease) rendered scale.
   updateBounds() {
-    this.bounds.minX = window.innerWidth - this.canvasSize.width * this.scale;
-    this.bounds.minY = window.innerHeight - this.canvasSize.height * this.scale;
+    this.bounds.minX = window.innerWidth - this.canvasSize.width * this.targetScale;
+    this.bounds.minY = window.innerHeight - this.canvasSize.height * this.targetScale;
     this.bounds.maxX = 0;
     this.bounds.maxY = 0;
   }
@@ -260,7 +309,7 @@ class AccessibleScatterStage {
       } else if (this.activePointers.size === 2) {
         const [p1, p2] = [...this.activePointers.values()];
         this.pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-        this.pinchStartScale = this.scale;
+        this.pinchStartScale = this.targetScale;
       }
       this.startLoop();
     });
@@ -313,6 +362,25 @@ class AccessibleScatterStage {
     this.stage.addEventListener('pointerup', stopDrag);
     this.stage.addEventListener('pointercancel', stopDrag);
 
+    this.stage.addEventListener('mousemove', (e) => {
+      if (this.activeLightbox || this.isDragging || this.prefersReducedMotion) return;
+
+      // Normalize cursor position to -1..1 from viewport center, then
+      // move the world slightly *opposite* the cursor for a gentle
+      // depth feel — small enough to read as ambience, not navigation.
+      const nx = (e.clientX / window.innerWidth - 0.5) * 2;
+      const ny = (e.clientY / window.innerHeight - 0.5) * 2;
+      this.parallaxTarget.x = -nx * this.parallaxStrength;
+      this.parallaxTarget.y = -ny * this.parallaxStrength;
+      this.startLoop();
+    });
+
+    this.stage.addEventListener('mouseleave', () => {
+      this.parallaxTarget.x = 0;
+      this.parallaxTarget.y = 0;
+      this.startLoop();
+    });
+
     this.stage.addEventListener('wheel', (e) => {
       e.preventDefault();
       if (this.activeLightbox) return;
@@ -357,20 +425,26 @@ class AccessibleScatterStage {
       const panStep = 80;
       let handled = false;
 
+      // A fresh keyboard pan shouldn't inherit leftover momentum from a
+      // previous touch/mouse drag, or the two can visibly fight each other.
       switch (e.key) {
         case 'ArrowUp':
+          this.velocity = { x: 0, y: 0 };
           this.target.y = this.clamp(this.target.y + panStep, this.bounds.minY, 0);
           handled = true;
           break;
         case 'ArrowDown':
+          this.velocity = { x: 0, y: 0 };
           this.target.y = this.clamp(this.target.y - panStep, this.bounds.minY, 0);
           handled = true;
           break;
         case 'ArrowLeft':
+          this.velocity = { x: 0, y: 0 };
           this.target.x = this.clamp(this.target.x + panStep, this.bounds.minX, 0);
           handled = true;
           break;
         case 'ArrowRight':
+          this.velocity = { x: 0, y: 0 };
           this.target.x = this.clamp(this.target.x - panStep, this.bounds.minX, 0);
           handled = true;
           break;
@@ -406,8 +480,8 @@ class AccessibleScatterStage {
     const width = parseFloat(item.dataset.width);
     const height = parseFloat(item.dataset.height);
 
-    const itemCenterX = (baseX + width / 2) * this.scale;
-    const itemCenterY = (baseY + height / 2) * this.scale;
+    const itemCenterX = (baseX + width / 2) * this.targetScale;
+    const itemCenterY = (baseY + height / 2) * this.targetScale;
 
     this.target.x = this.clamp(window.innerWidth / 2 - itemCenterX, this.bounds.minX, 0);
     this.target.y = this.clamp(window.innerHeight / 2 - itemCenterY, this.bounds.minY, 0);
@@ -415,18 +489,24 @@ class AccessibleScatterStage {
     this.startLoop();
   }
 
+  // Zoom now eases via targetScale -> scale in animate(), instead of
+  // snapping this.scale instantly (which used to cause a visible
+  // pop-then-slide when position was still lerping toward its target).
   applyZoom(nextScale, originX, originY) {
     const clampedScale = this.clamp(nextScale, this.minZoom, this.maxZoom);
     const prevScale = this.targetScale;
     if (clampedScale === prevScale) return;
 
     this.targetScale = clampedScale;
-    this.scale = clampedScale;
     this.updateBounds();
 
     const scaleRatio = clampedScale / prevScale;
     this.target.x = this.clamp(originX - (originX - this.target.x) * scaleRatio, this.bounds.minX, 0);
     this.target.y = this.clamp(originY - (originY - this.target.y) * scaleRatio, this.bounds.minY, 0);
+
+    if (this.prefersReducedMotion) {
+      this.scale = clampedScale; // snap instead of easing
+    }
 
     this.startLoop();
   }
@@ -434,13 +514,22 @@ class AccessibleScatterStage {
   openLightbox(item) {
     if (this.activeLightbox) return;
 
+    // Trap: take the background out of the tab order and hide it from AT
+    // while the lightbox is open, so Tab/screen-reader users can't wander
+    // into scattered images sitting behind the modal.
+    this.items.forEach(i => i.setAttribute('tabindex', '-1'));
+    this.stage.setAttribute('aria-hidden', 'true');
+
     const firstRect = item.getBoundingClientRect();
     const clone = item.cloneNode();
     clone.className = 'lightbox-clone';
-    clone.removeAttribute('tabindex');
+    clone.setAttribute('tabindex', '0');
+    clone.setAttribute('role', 'dialog');
+    clone.setAttribute('aria-modal', 'true');
+    clone.setAttribute('aria-label', item.alt || 'Enlarged image');
 
     const initialRot = item.dataset.rotation || '0';
-    
+
     // Explicit initial pixel coordinates matching rect
     clone.style.top = `${firstRect.top}px`;
     clone.style.left = `${firstRect.left}px`;
@@ -471,6 +560,10 @@ class AccessibleScatterStage {
     // Apply FLIP animation
     clone.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${scaleFactor}) rotate(0deg)`;
     clone.addEventListener('click', () => this.closeLightbox());
+
+    // Move focus into the dialog so keyboard/screen-reader users land
+    // somewhere sensible instead of on the now-hidden original image.
+    clone.focus();
   }
 
   closeLightbox() {
@@ -483,12 +576,23 @@ class AccessibleScatterStage {
     // Smoothly return to the exact stage item location and rotation
     clone.style.transform = `translate3d(0, 0, 0) scale(1) rotate(${rot}deg)`;
 
-    clone.addEventListener('transitionend', () => {
+    let restored = false;
+    const restore = () => {
+      if (restored) return;
+      restored = true;
       original.classList.remove('is-hidden');
       clone.remove();
+      this.items.forEach(i => i.setAttribute('tabindex', '0'));
+      this.stage.removeAttribute('aria-hidden');
       original.focus();
       this.activeLightbox = null;
-    }, { once: true });
+    };
+
+    clone.addEventListener('transitionend', restore, { once: true });
+    // Fallback in case transitionend never fires (interrupted transition,
+    // reduced-motion disabling the transition entirely, etc.) so the UI
+    // never gets stuck with the background permanently trapped/hidden.
+    setTimeout(restore, this.prefersReducedMotion ? 0 : 500);
   }
 
   startLoop() {
@@ -508,13 +612,35 @@ class AccessibleScatterStage {
       this.velocity.y *= friction;
     }
 
-    this.position.x += (this.target.x - this.position.x) * lerpRate;
-    this.position.y += (this.target.y - this.position.y) * lerpRate;
+    // Parallax fades to zero the moment the user actually takes control
+    // (dragging, pinching, or the lightbox open) so it never fights the
+    // pan the user asked for.
+    if (this.isDragging || this.activeLightbox) {
+      this.parallaxTarget.x = 0;
+      this.parallaxTarget.y = 0;
+    }
+
+    if (this.prefersReducedMotion) {
+      this.position.x = this.target.x;
+      this.position.y = this.target.y;
+      this.scale = this.targetScale;
+      this.parallax.x = 0;
+      this.parallax.y = 0;
+    } else {
+      this.position.x += (this.target.x - this.position.x) * lerpRate;
+      this.position.y += (this.target.y - this.position.y) * lerpRate;
+      this.scale += (this.targetScale - this.scale) * lerpRate;
+      this.parallax.x += (this.parallaxTarget.x - this.parallax.x) * lerpRate;
+      this.parallax.y += (this.parallaxTarget.y - this.parallax.y) * lerpRate;
+    }
 
     this.render();
 
-    const isMoving = Math.hypot(this.velocity.x, this.velocity.y) > 0.02 || 
-                     Math.hypot(this.target.x - this.position.x, this.target.y - this.position.y) > 0.05;
+    const isMoving =
+      Math.hypot(this.velocity.x, this.velocity.y) > 0.02 ||
+      Math.hypot(this.target.x - this.position.x, this.target.y - this.position.y) > 0.05 ||
+      Math.abs(this.targetScale - this.scale) > 0.001 ||
+      Math.hypot(this.parallaxTarget.x - this.parallax.x, this.parallaxTarget.y - this.parallax.y) > 0.05;
 
     if (this.isDragging || isMoving) {
       this.rafId = requestAnimationFrame(() => this.animate());
@@ -524,12 +650,14 @@ class AccessibleScatterStage {
   }
 
   render() {
-    this.canvas.style.transform = `translate3d(${this.position.x}px, ${this.position.y}px, 0) scale(${this.scale})`;
+    const x = this.position.x + this.parallax.x;
+    const y = this.position.y + this.parallax.y;
+    this.canvas.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${this.scale})`;
   }
 }
 
 new AccessibleScatterStage(document.querySelector('.stage'), {
-  scaleFactor: 2.4,
+  worldSizeMultiplier: 2.4,
   minZoom: 0.6,
   maxZoom: 1.8
 });
