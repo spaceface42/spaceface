@@ -1,0 +1,340 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Scatter Stage</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background: #e9e7df;
+    }
+
+    .stage {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        cursor: default;
+    }
+
+    .item {
+        position: absolute;
+        left: 0;
+        top: 0;
+
+        width: 180px;
+        aspect-ratio: 4 / 5;
+
+        object-fit: cover;
+
+        user-select: none;
+        -webkit-user-drag: none;
+
+        will-change: transform;
+
+        cursor: grab;
+
+        transform:
+            translate3d(
+                var(--x),
+                var(--y),
+                0
+            )
+            rotate(var(--rotation));
+    }
+
+    .item:active {
+        cursor: grabbing;
+    }
+
+    .item:hover {
+        z-index: 100;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="stage">
+
+    <img class="item" src="images/01.jpg">
+    <img class="item" src="images/02.jpg">
+    <img class="item" src="images/03.jpg">
+    <img class="item" src="images/04.jpg">
+    <img class="item" src="images/05.jpg">
+    <img class="item" src="images/06.jpg">
+    <img class="item" src="images/07.jpg">
+    <img class="item" src="images/08.jpg">
+
+</div>
+
+
+<script>
+
+class ScatterStage {
+
+    constructor(stage) {
+
+        this.stage = stage;
+        this.items = [...stage.querySelectorAll('.item')];
+
+        this.mouse = {
+            x: 0,
+            y: 0,
+            targetX: 0,
+            targetY: 0
+        };
+
+        this.drag = null;
+
+        this.init();
+        this.bindEvents();
+
+        this.animate();
+    }
+
+
+    init() {
+
+        this.items.forEach((item, index) => {
+
+            const width = item.offsetWidth;
+            const height = item.offsetHeight;
+
+            const x =
+                Math.random() *
+                (window.innerWidth - width);
+
+            const y =
+                Math.random() *
+                (window.innerHeight - height);
+
+            const rotation =
+                (Math.random() - 0.5) * 20;
+
+            item.dataset.x = x;
+            item.dataset.y = y;
+            item.dataset.rotation = rotation;
+
+            item.style.setProperty('--x', `${x}px`);
+            item.style.setProperty('--y', `${y}px`);
+            item.style.setProperty(
+                '--rotation',
+                `${rotation}deg`
+            );
+
+            item.dataset.depth =
+                0.5 + Math.random() * 1.5;
+        });
+    }
+
+
+    bindEvents() {
+
+        this.stage.addEventListener(
+            'pointermove',
+            e => {
+
+                this.mouse.targetX =
+                    e.clientX / window.innerWidth - 0.5;
+
+                this.mouse.targetY =
+                    e.clientY / window.innerHeight - 0.5;
+
+
+                if (this.drag) {
+
+                    const dx =
+                        e.clientX -
+                        this.drag.startX;
+
+                    const dy =
+                        e.clientY -
+                        this.drag.startY;
+
+                    this.drag.item.dataset.x =
+                        this.drag.x + dx;
+
+                    this.drag.item.dataset.y =
+                        this.drag.y + dy;
+                }
+            }
+        );
+
+
+        this.stage.addEventListener(
+            'pointerdown',
+            e => {
+
+                const item =
+                    e.target.closest('.item');
+
+                if (!item) return;
+
+                item.setPointerCapture(e.pointerId);
+
+                this.drag = {
+
+                    item,
+
+                    startX: e.clientX,
+                    startY: e.clientY,
+
+                    x: parseFloat(item.dataset.x),
+                    y: parseFloat(item.dataset.y)
+                };
+
+                item.style.zIndex = 1000;
+            }
+        );
+
+
+        this.stage.addEventListener(
+            'pointerup',
+            () => {
+
+                if (!this.drag) return;
+
+                this.drag.item.style.zIndex = '';
+
+                this.drag = null;
+            }
+        );
+
+
+        window.addEventListener(
+            'resize',
+            () => this.resize()
+        );
+    }
+
+
+    resize() {
+
+        const width =
+            window.innerWidth;
+
+        const height =
+            window.innerHeight;
+
+
+        this.items.forEach(item => {
+
+            let x =
+                parseFloat(item.dataset.x);
+
+            let y =
+                parseFloat(item.dataset.y);
+
+
+            const maxX =
+                width - item.offsetWidth;
+
+            const maxY =
+                height - item.offsetHeight;
+
+
+            x = Math.max(
+                0,
+                Math.min(x, maxX)
+            );
+
+            y = Math.max(
+                0,
+                Math.min(y, maxY)
+            );
+
+
+            item.dataset.x = x;
+            item.dataset.y = y;
+        });
+    }
+
+
+    animate() {
+
+        /*
+         * Smooth mouse interpolation.
+         */
+
+        this.mouse.x +=
+            (this.mouse.targetX - this.mouse.x) * 0.08;
+
+        this.mouse.y +=
+            (this.mouse.targetY - this.mouse.y) * 0.08;
+
+
+        this.items.forEach(item => {
+
+            if (this.drag?.item === item)
+                return;
+
+
+            const x =
+                parseFloat(item.dataset.x);
+
+            const y =
+                parseFloat(item.dataset.y);
+
+            const depth =
+                parseFloat(item.dataset.depth);
+
+
+            /*
+             * Parallax movement.
+             */
+
+            const offsetX =
+                this.mouse.x * 35 * depth;
+
+            const offsetY =
+                this.mouse.y * 35 * depth;
+
+
+            const rotation =
+                parseFloat(item.dataset.rotation);
+
+
+            item.style.transform = `
+                translate3d(
+                    ${x + offsetX}px,
+                    ${y + offsetY}px,
+                    0
+                )
+                rotate(${rotation}deg)
+            `;
+        });
+
+
+        requestAnimationFrame(
+            () => this.animate()
+        );
+    }
+}
+
+
+new ScatterStage(
+    document.querySelector('.stage')
+);
+
+</script>
+
+</body>
+</html>
+```

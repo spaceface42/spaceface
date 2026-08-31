@@ -1,0 +1,243 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cursor Slideshow</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            display: grid;
+            place-items: center;
+            background: white;
+        }
+
+        .slideshow {
+            position: relative;
+
+            width: min(90vw, 1000px);
+            height: min(70vh, 700px);
+
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+
+            width: 100%;
+            height: 100%;
+
+            object-fit: cover;
+
+            opacity: 0;
+            transition: opacity 300ms ease;
+        }
+
+        .slide.active {
+            opacity: 1;
+        }
+
+
+        /*
+         * Invisible navigation zones
+         */
+
+        .cursor-zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+
+            width: 50%;
+
+            cursor: none;
+        }
+
+        .cursor-zone.left {
+            left: 0;
+        }
+
+        .cursor-zone.right {
+            right: 0;
+        }
+
+
+        /*
+         * Custom cursor
+         */
+
+        .cursor {
+            position: fixed;
+
+            left: 0;
+            top: 0;
+
+            z-index: 100;
+
+            pointer-events: none;
+
+            opacity: 0;
+
+            font-family: Arial, sans-serif;
+            font-size: 32px;
+            line-height: 1;
+            font-weight: 300;
+
+            transform: translate(-50%, -50%);
+
+            transition:
+                opacity 100ms ease;
+
+            text-shadow:
+                0 1px 4px rgba(0, 0, 0, .4);
+        }
+
+
+        /*
+         * Cursor becomes visible
+         * only while over slideshow
+         */
+
+        .slideshow:hover .cursor {
+            opacity: 1;
+        }
+
+
+        /*
+         * Hide normal cursor over slideshow
+         */
+
+        .slideshow {
+            cursor: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="slideshow">
+
+        <img
+            class="slide active"
+            src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600"
+            alt=""
+        >
+
+        <img
+            class="slide"
+            src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600"
+            alt=""
+        >
+
+        <img
+            class="slide"
+            src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1600"
+            alt=""
+        >
+
+
+        <!-- Invisible click / hover zones -->
+
+        <button
+            class="cursor-zone left"
+            type="button"
+            aria-label="Previous slide"
+        ></button>
+
+        <button
+            class="cursor-zone right"
+            type="button"
+            aria-label="Next slide"
+        ></button>
+
+
+        <!-- Custom cursor -->
+
+        <div class="cursor"></div>
+
+    </main>
+
+
+
+<script>
+    const slideshow = document.querySelector(".slideshow");
+    const slides = document.querySelectorAll(".slide");
+    const left = document.querySelector(".cursor-zone.left");
+    const right = document.querySelector(".cursor-zone.right");
+    const cursor = document.querySelector(".cursor");
+
+    let index = 0;
+
+    function showSlide(newIndex) {
+        index = (newIndex + slides.length) % slides.length;
+
+        slides.forEach((slide, i) => {
+            slide.classList.toggle("active", i === index);
+        });
+    }
+
+    left.addEventListener("click", () => {
+        showSlide(index - 1);
+    });
+
+    right.addEventListener("click", () => {
+        showSlide(index + 1);
+    });
+
+
+    /*
+     * Custom cursor
+     *
+     * Don't use mouseenter on the zones.
+     * Determine the direction directly from
+     * the mouse position on every mousemove.
+     */
+
+    slideshow.addEventListener("mousemove", event => {
+
+        const rect = slideshow.getBoundingClientRect();
+
+        const x = event.clientX - rect.left;
+
+        const middle = rect.width / 2;
+
+        if (x < middle) {
+            cursor.textContent = "←";
+        } else {
+            cursor.textContent = "→";
+        }
+
+        cursor.style.left = event.clientX + "px";
+        cursor.style.top = event.clientY + "px";
+        cursor.style.opacity = "1";
+    });
+
+
+    /*
+     * Hide it completely when leaving
+     * the slideshow.
+     */
+
+    slideshow.addEventListener("mouseleave", () => {
+        cursor.style.opacity = "0";
+    });
+</script>
+
+
+
+</body>
+</html>
+```

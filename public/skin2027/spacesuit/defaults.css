@@ -1,3 +1,9 @@
+/**
+ *
+ * spaceface defaults
+ *
+ */
+ 
 @font-face {
     font-family: "Aber Mono";
     src: url("./fonts/AberMono-Regular.woff2") format("woff2");
@@ -14,8 +20,6 @@
     --neutron: .5rem;
     --atom: 1rem;
     --molecule: 3rem;
-    --line: 1lh;
-    --accent: rebeccapurple;
 
     --type-meta: .65rem;
     --text-xs: .7rem;
@@ -24,6 +28,19 @@
     --text-lg: 1.25rem;
     --text-xl: 2rem;
     --text-hero: clamp(2.5rem, 6vw, 6rem);
+
+    --line: 1lh;
+
+    --text-color: #444;
+
+    --radius: .5rem;
+
+    --color-text: hsl(0 0% 27%);
+    --color-background: hsl(0 0% 97%);
+    --color-accent: hsl(270, 50%, 40%);
+    --color-muted: hsl(0 0% 49%);
+
+    --color-surface: hsl(0 0% 88% / .5);
 
     interpolate-size: allow-keywords;
     transition-behavior: allow-discrete;
@@ -36,10 +53,10 @@ html {
 
 body {
     min-block-size: 100svh;
+    color: var(--text-color);
     font-size: var(--text-md);
     font-weight: 400;
     line-height: 1.6rem;
-    color: #444;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -67,11 +84,41 @@ h6 {
 }
 
 img {
-    max-inline-size: 100%;
-    max-block-size: 100%;
     background: url("./images/placeholder.svg") 0 0 / 100% 100% no-repeat;
 }
 
 @media (prefers-reduced-motion: no-preference) {
     /* interpolate-size: allow-keywords; */
 }
+
+
+
+
+a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: .2em;
+}
+
+a[href^="http://"]::after,
+a[href^="https://"]::after {
+    content: " ↗";
+    display: inline-block;
+    font-size: .75em;
+    transition: transform .2s ease;
+}
+
+a[href^="http://"]:hover::after,
+a[href^="https://"]:hover::after {
+    transform: translate(.15rem, -.15rem);
+}
+
+a:hover {
+    color: var(--color-text);
+}
+
+a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: .2rem;
+}
+

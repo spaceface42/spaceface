@@ -14,6 +14,14 @@
     background: url("./images/placeholder.svg") 0 0 / 100% 100% no-repeat;
 }
 
+
+
+
+
+
+
+
+
 footer ul[aria-label]::before {
     content: attr(aria-label);
     display: block;

@@ -22,10 +22,11 @@
 *:hover:not(:has(*:hover))::after {
     content: "";
     position: absolute;
-    inset: -.5rem;
+    inset: 0rem;
     background: url("./images/marching-ants-of-manhattan-N.svg")
         0 0 / 100% 100% no-repeat;
     pointer-events: none;
+    background-color: rgba(226, 245, 11, 0.5);
 }
 
 #debug-label {
