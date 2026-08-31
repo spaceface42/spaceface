@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bounded Draggable Scatter Stage</title>
+<title>Hybrid Scatter Stage</title>
 <style>
   *, *::before, *::after {
     box-sizing: border-box;
@@ -48,6 +48,12 @@
     -webkit-user-drag: none;
     border-radius: 4px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .item:hover {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    z-index: 10;
   }
 </style>
 </head>
@@ -55,23 +61,8 @@
 
 <div class="stage">
   <div class="stage-canvas">
+    <!-- Replace src with your actual images -->
     <img class="item" src="images/01.jpg" alt="">
-    <img class="item" src="images/02.jpg" alt="">
-    <img class="item" src="images/03.jpg" alt="">
-    <img class="item" src="images/04.jpg" alt="">
-    <img class="item" src="images/05.jpg" alt="">
-    <img class="item" src="images/06.jpg" alt="">
-    <img class="item" src="images/07.jpg" alt="">
-    <img class="item" src="images/08.jpg" alt="">
-        <img class="item" src="images/01.jpg" alt="">
-    <img class="item" src="images/02.jpg" alt="">
-    <img class="item" src="images/03.jpg" alt="">
-    <img class="item" src="images/04.jpg" alt="">
-    <img class="item" src="images/05.jpg" alt="">
-    <img class="item" src="images/06.jpg" alt="">
-    <img class="item" src="images/07.jpg" alt="">
-    <img class="item" src="images/08.jpg" alt="">
-        <img class="item" src="images/01.jpg" alt="">
     <img class="item" src="images/02.jpg" alt="">
     <img class="item" src="images/03.jpg" alt="">
     <img class="item" src="images/04.jpg" alt="">
@@ -83,65 +74,66 @@
 </div>
 
 <script>
-class BoundedScatterStage {
+class HybridScatterStage {
   constructor(stage, options = {}) {
     this.stage = stage;
     this.canvas = stage.querySelector('.stage-canvas');
     this.items = [...stage.querySelectorAll('.item')];
-
-    // Canvas size multiplier relative to viewport (e.g., 2.5x larger)
-    this.scaleFactor = options.scaleFactor || 2.5;
+    
+    // Size of the virtual canvas relative to viewport
+    this.scaleFactor = options.scaleFactor || 2.2;
 
     this.bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
     this.canvasSize = { width: 0, height: 0 };
-
+    
+    // Main drag position tracking
     this.position = { x: 0, y: 0 };
     this.target = { x: 0, y: 0 };
     this.velocity = { x: 0, y: 0 };
     this.pointer = { x: 0, y: 0 };
     this.dragging = false;
-    this.rafId = null;
 
+    // Subtle mouse hover parallax tracking
+    this.mouseOffset = { x: 0, y: 0 };
+    this.mouseTarget = { x: 0, y: 0 };
+
+    this.rafId = null;
     this.init();
     this.bindEvents();
   }
 
-  clamp(val, min, max) {
-    return Math.max(min, Math.min(max, val));
+  clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
   }
 
   init() {
     this.canvasSize.width = window.innerWidth * this.scaleFactor;
     this.canvasSize.height = window.innerHeight * this.scaleFactor;
-
     this.canvas.style.width = `${this.canvasSize.width}px`;
     this.canvas.style.height = `${this.canvasSize.height}px`;
 
-    // Maximum negative scroll limits
+    // Maximum scroll boundaries (canvas moves negatively to show bottom/right)
     this.bounds.minX = window.innerWidth - this.canvasSize.width;
-    this.bounds.maxX = 0;
     this.bounds.minY = window.innerHeight - this.canvasSize.height;
-    this.bounds.maxY = 0;
 
-    // Center the initial view
-    const initialX = (window.innerWidth - this.canvasSize.width) / 2;
-    const initialY = (window.innerHeight - this.canvasSize.height) / 2;
-    this.target.x = this.position.x = initialX;
-    this.target.y = this.position.y = initialY;
+    // Start in the center of the oversized canvas
+    this.target.x = this.position.x = this.bounds.minX / 2;
+    this.target.y = this.position.y = this.bounds.minY / 2;
 
     const itemWidth = 180;
     const itemHeight = 225;
-    const padding = 60; // Keep items away from the extreme canvas edges
+    const padding = 60;
 
+    // Distribute images randomly across the oversized bounds
     this.items.forEach(item => {
       const x = padding + Math.random() * (this.canvasSize.width - itemWidth - padding * 2);
       const y = padding + Math.random() * (this.canvasSize.height - itemHeight - padding * 2);
-      const rotation = (Math.random() - 0.5) * 20;
-
+      const rotation = (Math.random() - 0.5) * 16;
+      
       item.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotation}deg)`;
     });
 
-    this.canvas.style.transform = `translate3d(${this.position.x}px, ${this.position.y}px, 0)`;
+    this.render();
   }
 
   bindEvents() {
@@ -152,6 +144,8 @@ class BoundedScatterStage {
 
       this.pointer.x = e.clientX;
       this.pointer.y = e.clientY;
+      
+      // Stop inertia on grab
       this.velocity.x = 0;
       this.velocity.y = 0;
 
@@ -159,45 +153,66 @@ class BoundedScatterStage {
     });
 
     this.stage.addEventListener('pointermove', (e) => {
-      if (!this.dragging) return;
+      // 1. Calculate micro-parallax (only on mouse, touch ignores this)
+      if (e.pointerType === 'mouse') {
+        // Map cursor position to a -30px to +30px offset range
+        this.mouseTarget.x = ((e.clientX / window.innerWidth) - 0.5) * 60;
+        this.mouseTarget.y = ((e.clientY / window.innerHeight) - 0.5) * 60;
+      }
 
-      const dx = e.clientX - this.pointer.x;
-      const dy = e.clientY - this.pointer.y;
+      // 2. Calculate drag displacement
+      if (this.dragging) {
+        const dx = e.clientX - this.pointer.x;
+        const dy = e.clientY - this.pointer.y;
 
-      this.pointer.x = e.clientX;
-      this.pointer.y = e.clientY;
+        this.pointer.x = e.clientX;
+        this.pointer.y = e.clientY;
 
-      this.target.x = this.clamp(this.target.x + dx, this.bounds.minX, this.bounds.maxX);
-      this.target.y = this.clamp(this.target.y + dy, this.bounds.minY, this.bounds.maxY);
+        // Apply movement while strictly enforcing boundaries
+        this.target.x = this.clamp(this.target.x + dx, this.bounds.minX, 0);
+        this.target.y = this.clamp(this.target.y + dy, this.bounds.minY, 0);
 
-      this.velocity.x = dx;
-      this.velocity.y = dy;
+        this.velocity.x = dx;
+        this.velocity.y = dy;
+      }
+
+      this.startLoop();
     });
 
-    const stopDragging = (e) => {
+    const stopDrag = (e) => {
       if (!this.dragging) return;
       this.dragging = false;
       this.stage.classList.remove('is-dragging');
+      
       if (e.pointerId && this.stage.hasPointerCapture(e.pointerId)) {
         this.stage.releasePointerCapture(e.pointerId);
       }
+      
+      // Optional: reset mouse parallax offset gently on release/leave
+      if (e.type === 'pointerleave') {
+        this.mouseTarget.x = 0;
+        this.mouseTarget.y = 0;
+      }
     };
 
-    this.stage.addEventListener('pointerup', stopDragging);
-    this.stage.addEventListener('pointercancel', stopDragging);
+    this.stage.addEventListener('pointerup', stopDrag);
+    this.stage.addEventListener('pointercancel', stopDrag);
+    this.stage.addEventListener('pointerleave', stopDrag);
 
+    // Trackpad and scroll wheel navigation
     this.stage.addEventListener('wheel', (e) => {
       e.preventDefault();
-      this.target.x = this.clamp(this.target.x - e.deltaX, this.bounds.minX, this.bounds.maxX);
-      this.target.y = this.clamp(this.target.y - e.deltaY, this.bounds.minY, this.bounds.maxY);
+      this.target.x = this.clamp(this.target.x - e.deltaX, this.bounds.minX, 0);
+      this.target.y = this.clamp(this.target.y - e.deltaY, this.bounds.minY, 0);
       this.startLoop();
     }, { passive: false });
 
+    // Handle window resize dynamically
     window.addEventListener('resize', () => {
       this.bounds.minX = window.innerWidth - this.canvasSize.width;
       this.bounds.minY = window.innerHeight - this.canvasSize.height;
-      this.target.x = this.clamp(this.target.x, this.bounds.minX, this.bounds.maxX);
-      this.target.y = this.clamp(this.target.y, this.bounds.minY, this.bounds.maxY);
+      this.target.x = this.clamp(this.target.x, this.bounds.minX, 0);
+      this.target.y = this.clamp(this.target.y, this.bounds.minY, 0);
       this.startLoop();
     });
   }
@@ -209,23 +224,31 @@ class BoundedScatterStage {
   }
 
   animate() {
+    // Apply inertia if not currently dragging
     if (!this.dragging) {
-      this.target.x = this.clamp(this.target.x + this.velocity.x, this.bounds.minX, this.bounds.maxX);
-      this.target.y = this.clamp(this.target.y + this.velocity.y, this.bounds.minY, this.bounds.maxY);
-
-      this.velocity.x *= 0.92;
+      this.target.x = this.clamp(this.target.x + this.velocity.x, this.bounds.minX, 0);
+      this.target.y = this.clamp(this.target.y + this.velocity.y, this.bounds.minY, 0);
+      this.velocity.x *= 0.92; // Friction multiplier
       this.velocity.y *= 0.92;
     }
 
+    // Independent interpolation (lerping) for ultra-smooth rendering
     this.position.x += (this.target.x - this.position.x) * 0.12;
     this.position.y += (this.target.y - this.position.y) * 0.12;
 
-    this.canvas.style.transform = `translate3d(${this.position.x}px, ${this.position.y}px, 0)`;
+    this.mouseOffset.x += (this.mouseTarget.x - this.mouseOffset.x) * 0.05;
+    this.mouseOffset.y += (this.mouseTarget.y - this.mouseOffset.y) * 0.05;
 
-    const isMoving = Math.abs(this.velocity.x) > 0.01 || 
-                     Math.abs(this.velocity.y) > 0.01 || 
-                     Math.abs(this.target.x - this.position.x) > 0.05 || 
-                     Math.abs(this.target.y - this.position.y) > 0.05;
+    this.render();
+
+    // Check if any value is still changing significantly to keep loop alive
+    const isMoving = 
+      Math.abs(this.velocity.x) > 0.01 || 
+      Math.abs(this.velocity.y) > 0.01 || 
+      Math.abs(this.target.x - this.position.x) > 0.05 || 
+      Math.abs(this.target.y - this.position.y) > 0.05 ||
+      Math.abs(this.mouseTarget.x - this.mouseOffset.x) > 0.05 ||
+      Math.abs(this.mouseTarget.y - this.mouseOffset.y) > 0.05;
 
     if (this.dragging || isMoving) {
       this.rafId = requestAnimationFrame(() => this.animate());
@@ -233,9 +256,18 @@ class BoundedScatterStage {
       this.rafId = null;
     }
   }
+
+  render() {
+    // Combine base canvas position with the micro-parallax offset
+    const renderX = this.position.x + this.mouseOffset.x;
+    const renderY = this.position.y + this.mouseOffset.y;
+    
+    this.canvas.style.transform = `translate3d(${renderX}px, ${renderY}px, 0)`;
+  }
 }
 
-new BoundedScatterStage(document.querySelector('.stage'), { scaleFactor: 2.2 });
+new HybridScatterStage(document.querySelector('.stage'), { scaleFactor: 2.2 });
 </script>
+
 </body>
 </html>

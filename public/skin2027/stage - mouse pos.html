@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Interactive Scatter Stage</title>
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #e9e7df;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .stage.is-dragging {
+    cursor: grabbing;
+  }
+
+  .stage-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+    pointer-events: none;
+  }
+
+  .item {
+    position: absolute;
+    width: 180px;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    pointer-events: auto;
+    -webkit-user-drag: none;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .item:hover {
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
+    z-index: 10;
+  }
+
+  .item.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Lightbox Overlay */
+  .lightbox-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(18, 18, 18, 0.85);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+    z-index: 100;
+  }
+
+  .lightbox-backdrop.is-active {
+    opacity: 1;
+    pointer-events: auto;
+    cursor: zoom-out;
+  }
+
+  .lightbox-clone {
+    position: fixed;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+    z-index: 101;
+    pointer-events: auto;
+    cursor: zoom-out;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.4s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stage-canvas">
+    <img class="item" src="images/01.jpg" alt="">
+    <img class="item" src="images/02.jpg" alt="">
+    <img class="item" src="images/03.jpg" alt="">
+    <img class="item" src="images/04.jpg" alt="">
+    <img class="item" src="images/05.jpg" alt="">
+    <img class="item" src="images/06.jpg" alt="">
+    <img class="item" src="images/07.jpg" alt="">
+    <img class="item" src="images/08.jpg" alt="">
+    <img class="item" src="images/01.jpg" alt="">
+    <img class="item" src="images/02.jpg" alt="">
+    <img class="item" src="images/03.jpg" alt="">
+    <img class="item" src="images/04.jpg" alt="">
+  </div>
+</div>
+
+<div class="lightbox-backdrop"></div>
+
+<script>
+class AdvancedScatterStage {
+  constructor(stage, options = {}) {
+    this.stage = stage;
+    this.canvas = stage.querySelector('.stage-canvas');
+    this.items = [...stage.querySelectorAll('.item')];
+    this.backdrop = document.querySelector('.lightbox-backdrop');
+
+    this.scaleFactor = options.scaleFactor || 2.4;
+    this.minZoom = options.minZoom || 0.6;
+    this.maxZoom = options.maxZoom || 1.8;
+
+    this.canvasSize = { width: 0, height: 0 };
+    this.bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+
+    // Transform State
+    this.position = { x: 0, y: 0 };
+    this.target = { x: 0, y: 0 };
+    this.velocity = { x: 0, y: 0 };
+    this.scale = 1;
+    this.targetScale = 1;
+
+    // Pointer Tracking
+    this.activePointers = new Map();
+    this.lastPointer = { x: 0, y: 0 };
+    this.pinchStartDist = 0;
+    this.pinchStartScale = 1;
+    this.isDragging = false;
+    this.hasMovedSignificantly = false;
+    this.pointerDownPos = { x: 0, y: 0 };
+    this.pointerType = 'mouse';
+
+    // Lightbox State
+    this.activeLightbox = null;
+    this.rafId = null;
+
+    this.init();
+    this.bindEvents();
+  }
+
+  clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
+
+  // --- 1. Smart Collision-Avoiding Placement ---
+  init() {
+    this.canvasSize.width = window.innerWidth * this.scaleFactor;
+    this.canvasSize.height = window.innerHeight * this.scaleFactor;
+    this.canvas.style.width = `${this.canvasSize.width}px`;
+    this.canvas.style.height = `${this.canvasSize.height}px`;
+
+    this.updateBounds();
+
+    this.target.x = this.position.x = this.bounds.minX / 2;
+    this.target.y = this.position.y = this.bounds.minY / 2;
+
+    const itemWidth = 180;
+    const itemHeight = 225;
+    const padding = 80;
+    const placedBoxes = [];
+
+    this.items.forEach(item => {
+      let x, y, overlaps, attempts = 0;
+
+      do {
+        overlaps = false;
+        x = padding + Math.random() * (this.canvasSize.width - itemWidth - padding * 2);
+        y = padding + Math.random() * (this.canvasSize.height - itemHeight - padding * 2);
+
+        // Allow partial overlapping, prevent total overlap (min 60px center distance)
+        for (const box of placedBoxes) {
+          const dx = (x + itemWidth / 2) - (box.x + itemWidth / 2);
+          const dy = (y + itemHeight / 2) - (box.y + itemHeight / 2);
+          if (Math.hypot(dx, dy) < 140) {
+            overlaps = true;
+            break;
+          }
+        }
+        attempts++;
+      } while (overlaps && attempts < 60);
+
+      const rot = (Math.random() - 0.5) * 16;
+      placedBoxes.push({ x, y });
+
+      item.dataset.baseX = x;
+      item.dataset.baseY = y;
+      item.dataset.rotation = rot;
+      item.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg)`;
+    });
+
+    this.render();
+  }
+
+  updateBounds() {
+    this.bounds.minX = window.innerWidth - this.canvasSize.width * this.scale;
+    this.bounds.minY = window.innerHeight - this.canvasSize.height * this.scale;
+    this.bounds.maxX = 0;
+    this.bounds.maxY = 0;
+  }
+
+  // --- 2. Input Handling, Tap/Drag Separation & Pinch Zoom ---
+  bindEvents() {
+    this.stage.addEventListener('pointerdown', (e) => {
+      if (this.activeLightbox) return;
+
+      this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      this.pointerType = e.pointerType;
+
+      if (this.activePointers.size === 1) {
+        this.isDragging = true;
+        this.hasMovedSignificantly = false;
+        this.pointerDownPos = { x: e.clientX, y: e.clientY };
+        this.lastPointer = { x: e.clientX, y: e.clientY };
+        this.velocity = { x: 0, y: 0 };
+        this.stage.classList.add('is-dragging');
+        this.stage.setPointerCapture(e.pointerId);
+      } else if (this.activePointers.size === 2) {
+        // Pinch initialization
+        const [p1, p2] = [...this.activePointers.values()];
+        this.pinchStartDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        this.pinchStartScale = this.scale;
+      }
+      this.startLoop();
+    });
+
+    this.stage.addEventListener('pointermove', (e) => {
+      if (this.activeLightbox || !this.activePointers.has(e.pointerId)) return;
+
+      this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // Handle 2-Finger Pinch Zoom
+      if (this.activePointers.size === 2) {
+        const [p1, p2] = [...this.activePointers.values()];
+        const currentDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        const factor = currentDist / this.pinchStartDist;
+        this.applyZoom(this.pinchStartScale * factor, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+        return;
+      }
+
+      if (!this.isDragging) return;
+
+      const dx = e.clientX - this.lastPointer.x;
+      const dy = e.clientY - this.lastPointer.y;
+
+      if (!this.hasMovedSignificantly) {
+        const totalDist = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
+        if (totalDist > 8) this.hasMovedSignificantly = true; // Drag threshold
+      }
+
+      this.lastPointer = { x: e.clientX, y: e.clientY };
+      this.target.x = this.clamp(this.target.x + dx, this.bounds.minX, 0);
+      this.target.y = this.clamp(this.target.y + dy, this.bounds.minY, 0);
+
+      this.velocity = { x: dx, y: dy };
+    });
+
+    const stopDrag = (e) => {
+      this.activePointers.delete(e.pointerId);
+      if (this.stage.hasPointerCapture(e.pointerId)) {
+        this.stage.releasePointerCapture(e.pointerId);
+      }
+
+      if (this.activePointers.size === 0) {
+        this.isDragging = false;
+        this.stage.classList.remove('is-dragging');
+      } else if (this.activePointers.size === 1) {
+        const [remaining] = [...this.activePointers.values()];
+        this.lastPointer = { x: remaining.x, y: remaining.y };
+      }
+    };
+
+    this.stage.addEventListener('pointerup', stopDrag);
+    this.stage.addEventListener('pointercancel', stopDrag);
+
+    // Mouse Wheel Zoom & Pan
+    this.stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (this.activeLightbox) return;
+
+      if (e.ctrlKey || e.metaKey) {
+        // Pinch-to-zoom on trackpad or Ctrl+Wheel
+        const zoomDelta = -e.deltaY * 0.005;
+        this.applyZoom(this.targetScale + zoomDelta, e.clientX, e.clientY);
+      } else {
+        // Standard Pan
+        this.target.x = this.clamp(this.target.x - e.deltaX, this.bounds.minX, 0);
+        this.target.y = this.clamp(this.target.y - e.deltaY, this.bounds.minY, 0);
+      }
+      this.startLoop();
+    }, { passive: false });
+
+    // Tap/Click Detection for Lightbox
+    this.items.forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (this.hasMovedSignificantly) return; // Prevent open if drag gesture
+        this.openLightbox(item);
+      });
+    });
+
+    this.backdrop.addEventListener('click', () => this.closeLightbox());
+
+    window.addEventListener('resize', () => {
+      this.updateBounds();
+      this.target.x = this.clamp(this.target.x, this.bounds.minX, 0);
+      this.target.y = this.clamp(this.target.y, this.bounds.minY, 0);
+      this.startLoop();
+    });
+  }
+
+  // --- 3. Geometric Zoom Math ---
+  applyZoom(nextScale, originX, originY) {
+    const clampedScale = this.clamp(nextScale, this.minZoom, this.maxZoom);
+    const prevScale = this.targetScale;
+    if (clampedScale === prevScale) return;
+
+    this.targetScale = clampedScale;
+    this.scale = clampedScale;
+    this.updateBounds();
+
+    // Re-anchor coordinates around pointer origin
+    const scaleRatio = clampedScale / prevScale;
+    this.target.x = this.clamp(originX - (originX - this.target.x) * scaleRatio, this.bounds.minX, 0);
+    this.target.y = this.clamp(originY - (originY - this.target.y) * scaleRatio, this.bounds.minY, 0);
+
+    this.startLoop();
+  }
+
+  // --- 4. FLIP Lightbox Animation ---
+  openLightbox(item) {
+    if (this.activeLightbox) return;
+
+    const rect = item.getBoundingClientRect();
+    const clone = item.cloneNode();
+    clone.className = 'lightbox-clone';
+
+    // FIRST: Position directly on top of current rendered stage item
+    const initialRot = item.dataset.rotation;
+    clone.style.top = `${rect.top}px`;
+    clone.style.left = `${rect.left}px`;
+    clone.style.width = `${rect.width}px`;
+    clone.style.height = `${rect.height}px`;
+    clone.style.transform = `rotate(${initialRot}deg)`;
+
+    document.body.appendChild(clone);
+    item.classList.add('is-hidden');
+    this.backdrop.classList.add('is-active');
+
+    this.activeLightbox = { original: item, clone, rect, rot: initialRot };
+
+    // Force style reflow
+    clone.getBoundingClientRect();
+
+    // LAST & INVERT: Scale up and center on screen
+    const targetHeight = Math.min(window.innerHeight * 0.8, 600);
+    const targetWidth = targetHeight * (4 / 5);
+    const centerX = (window.innerWidth - targetWidth) / 2;
+    const centerY = (window.innerHeight - targetHeight) / 2;
+
+    const deltaX = centerX - rect.left;
+    const deltaY = centerY - rect.top;
+    const scale = targetWidth / rect.width;
+
+    clone.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${scale}) rotate(0deg)`;
+    clone.addEventListener('click', () => this.closeLightbox());
+  }
+
+  closeLightbox() {
+    if (!this.activeLightbox) return;
+    const { original, clone, rot } = this.activeLightbox;
+
+    this.backdrop.classList.remove('is-active');
+
+    // Return to original stage position and angle
+    clone.style.transform = `translate3d(0, 0, 0) scale(1) rotate(${rot}deg)`;
+
+    clone.addEventListener('transitionend', () => {
+      original.classList.remove('is-hidden');
+      clone.remove();
+      this.activeLightbox = null;
+    }, { once: true });
+  }
+
+  // --- 5. Mobile-Tuned Momentum Loop ---
+  startLoop() {
+    if (!this.rafId) {
+      this.rafId = requestAnimationFrame(() => this.animate());
+    }
+  }
+
+  animate() {
+    // Dynamic friction curves: Touch swipes decelerate with longer fluid glide
+    const friction = this.pointerType === 'touch' ? 0.94 : 0.88;
+    const lerpRate = this.pointerType === 'touch' ? 0.14 : 0.1;
+
+    if (!this.isDragging) {
+      this.target.x = this.clamp(this.target.x + this.velocity.x, this.bounds.minX, 0);
+      this.target.y = this.clamp(this.target.y + this.velocity.y, this.bounds.minY, 0);
+      this.velocity.x *= friction;
+      this.velocity.y *= friction;
+    }
+
+    this.position.x += (this.target.x - this.position.x) * lerpRate;
+    this.position.y += (this.target.y - this.position.y) * lerpRate;
+
+    this.render();
+
+    const isMoving = Math.hypot(this.velocity.x, this.velocity.y) > 0.02 || 
+                     Math.hypot(this.target.x - this.position.x, this.target.y - this.position.y) > 0.05;
+
+    if (this.isDragging || isMoving) {
+      this.rafId = requestAnimationFrame(() => this.animate());
+    } else {
+      this.rafId = null;
+    }
+  }
+
+  render() {
+    this.canvas.style.transform = `translate3d(${this.position.x}px, ${this.position.y}px, 0) scale(${this.scale})`;
+  }
+}
+
+new AdvancedScatterStage(document.querySelector('.stage'), {
+  scaleFactor: 2.4,
+  minZoom: 0.6,
+  maxZoom: 1.8
+});
+</script>
+</body>
+</html>
