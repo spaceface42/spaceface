@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="620px" height="620px" viewBox="0 0 620 620" xmlns="http://www.w3.org/2000/svg">
+
+
+
+<defs>
+<filter id="noise">
+    <feTurbulence
+    type="fractalNoise"
+    baseFrequency="19.5"
+    numOctaves="10"
+    result="turbulence"
+    />
+    <feComposite operator="in" in="turbulence" in2="SourceAlpha" result="composite"/>
+    <feColorMatrix in="composite" type="luminanceToAlpha" />
+    <feBlend in="SourceGraphic" in2="composite" mode="color-burn" />
+</filter>
+  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="hsl(337, 92%, 69%)" />
+    <stop offset="100%" stop-color="hsl(269, 65%, 52%)" />
+  </linearGradient>
+<linearGradient
+    id="gradient2"
+    x1="0%"
+    y1="0%"
+    x2="100%"
+    y2="0%"
+    gradientTransform="rotate(-47)"
+>
+    <stop offset="0%"   stop-color="hsl(335, 90%, 68%)" />
+    <stop offset="100%" stop-color="hsl(265, 70%, 50%)" />
+</linearGradient>
+</defs>
+<style>
+#logo {
+    fill: none;
+    stroke: rgba(244, 244, 244, 1);
+    stroke-width: 30px;
+    stroke-linecap: round;
+    transform: scale(0.8);
+    transform-origin: center;
+    shape-rendering: geometricPrecision;
+}
+#squaricle {
+    fill: hsl(20, 92%, 64%);
+    filter: url(#noise);
+    fill: hsl(337, 92%, 69%);
+    fill: hsl(269, 65%, 52%);
+    fill: url(#gradient2);
+}
+</style>
+
+<g id="squaricle">
+    <path d="
+        M 310,  615
+        C 376,  615,  481,  615,  548,  548
+        C 615,  481,  615,  376,  615,  310
+        C 615,  244,  615,  139,  548,   72
+        C 481,    5,  376,    5,  310,    5
+        C 244,    5,  139,    5,   72,   72
+        C   5,  139,    5,  244,    5,  310
+        C   5,  376,    5,  481,   72,  548
+        C 139,  615,  244,  615,  310,  615 Z
+    " />
+</g>
+<g id="logo">
+    <!-- <rect x="10" y="10" width="600" height="600" rx="50" /> -->
+    <path id="sign" d="
+        M 110 510
+        H 460
+        a 50 50 0 0 0 0 -100
+        H 160
+        a 50 50 0 0 1 0 -100
+        H 460
+        a 50 50 0 0 0 0 -100
+        H 160
+        a 50 50 0 0 1 0 -100
+        H 510" />
+</g>
+      <use href="#circle" fill="hsl(20, 92%, 64%)" x="100" y="75" mask="url(#shape-mask)" filter="url('#noise')" transform="rotate(180)" transform-origin="145 120"  />
+</svg>
