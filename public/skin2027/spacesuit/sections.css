@@ -60,6 +60,10 @@ footer ul[aria-label]::before {
     font-size: var(--type-meta);
 }
 
+.certifications li p {
+    width: 12ch;
+}
+
 footer a {
     color: var(--accent);
 }
