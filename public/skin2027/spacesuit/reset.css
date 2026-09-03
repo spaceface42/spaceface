@@ -52,3 +52,10 @@ select {
   font: inherit;
 }
 */
+
+
+button {
+    /* https://www.youtube.com/shorts/4B_4WLpbyp8 */
+    /* OS high contrast mode does not mess up hover states */
+    outline-color: transparent;
+}
