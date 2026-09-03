@@ -51,7 +51,7 @@ nav {
     align-items: center;
     gap: 3rem;
     padding: var(--molecule);
-        background-color: #27bb1346;
+    background-color: #27bb1346;
 }
 
 
@@ -138,4 +138,11 @@ footer ul[aria-label]::before {
     font-size: var(--type-meta);
 }
 
+
+ a {
+    color: var(--accent);
+    text-box-trim: trim-both;
+    text-box-edge: ex alphabetic;
+    background: rgba(170, 11, 11, 0.5);
+}
 

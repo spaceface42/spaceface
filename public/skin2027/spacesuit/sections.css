@@ -1,3 +1,8 @@
+
+
+
+
+
 .hero p {
     margin: 0;
     transition: opacity .35s ease;
@@ -64,6 +69,9 @@ footer ul[aria-label]::before {
     width: 12ch;
 }
 
-footer a {
+ a {
     color: var(--accent);
+    text-box-trim: trim-both;
+    text-box-edge: ex alphabetic;
+    background: rgba(170, 11, 11, 0.5);
 }
